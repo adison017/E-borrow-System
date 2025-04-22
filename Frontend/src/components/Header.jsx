@@ -22,7 +22,7 @@ function Header() {
         {/* Logo + System Name */}
         <div className="flex items-center space-x-4">
           <img src="/lo.png" alt="Logo" className="h-10 w-10 sm:h-12 sm:w-12" />
-          <h1 className="text-2xl sm:text-3xl font-bold">ระบบเช็คชื่อนักเรียน</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">ระบบยืม-คืนครุภัณฑ์</h1>
         </div>
 
         
