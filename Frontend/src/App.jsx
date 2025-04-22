@@ -58,7 +58,7 @@ function AppInner() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
+    <div className=" min-h-screen flex flex-col md:flex-row bg-gray-50 text-black">
       {/* Sidebar */}
       <div className="w-full md:w-64 bg-white shadow-md">
         <aside>{renderSidebar()}</aside>
