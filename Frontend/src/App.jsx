@@ -7,7 +7,7 @@ import SidebarUser from './components/SidebarUser';
 import SidebarExecutive from './components/SidebarExecutive';
 
 import BorrowList from './pages/BorrowList';
-import Managepro from './pages/Managepro';
+import ManageEquipment from './pages/ManageEquipment';
 import ManageUser from './pages/ManageUser';
 import CheckInfo from './pages/CheckInfo';
 import DashboardAdmin from './pages/DashboardAdmin';
@@ -98,7 +98,7 @@ function AppInner() {
                 <Route path="/DashboardAd" element={<DashboardAdmin />} />
                 <Route path="/DashboardEx" element={<DashboardExeutive />} />
                 <Route path="/borrow-list" element={<BorrowList />} />
-                <Route path="/equipment" element={<Managepro />} />
+                <Route path="/equipment" element={<ManageEquipment />} />
                 <Route path="/Check" element={<CheckInfo />} />
                 <Route path="/members" element={<ManageUser />} />
               </>
