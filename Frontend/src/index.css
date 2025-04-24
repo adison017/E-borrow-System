@@ -1,3 +1,20 @@
 @import "tailwindcss";
 @import 'flowbite';
 @plugin "daisyui";
+
+/* กำหนดสีสำหรับแต่ละประเภทของ alert */
+.alert-success {
+    background-color: #4CAF50; /* สีเขียวสำหรับ success */
+    color: white;
+  }
+  
+  .alert-error {
+    background-color: #f44336; /* สีแดงสำหรับ error */
+    color: white;
+  }
+  
+  .alert-warning {
+    background-color: #ff9800; /* สีส้มสำหรับ warning */
+    color: white;
+  }
+  

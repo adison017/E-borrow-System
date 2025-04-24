@@ -1,5 +1,16 @@
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { PencilIcon } from "@heroicons/react/24/solid";
+import { useState, useEffect } from "react"; // เพิ่ม useEffect
+import { 
+  MagnifyingGlassIcon, 
+  TrashIcon,
+  EyeIcon 
+} from "@heroicons/react/24/outline";
+import { 
+  PencilIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  XCircleIcon,
+  ClockIcon
+} from "@heroicons/react/24/solid";
 import {
   Card,
   CardHeader,
@@ -7,12 +18,22 @@ import {
   Typography,
   Button,
   CardBody,
-  Chip,
   CardFooter,
   Avatar,
   IconButton,
   Tooltip,
+  ThemeProvider,
 } from "@material-tailwind/react";
+
+// กำหนด theme สีพื้นฐานเป็นสีดำ
+const theme = {
+  typography: {
+    defaultProps: {
+      color: "black",
+      textGradient: false,
+    },
+  }
+};
 
 const TABLE_HEAD = [
   "รหัสครุภัณฑ์",
@@ -22,10 +43,10 @@ const TABLE_HEAD = [
   "จำนวน",
   "สถานะ",
   "วันที่เพิ่ม",
-  ""
+  "จัดการ"
 ];
 
-const TABLE_ROWS = [
+const initialEquipment = [
   {
     id: "EQ-001",
     name: "กล้อง Sony",
@@ -46,158 +67,675 @@ const TABLE_ROWS = [
   },
   {
     id: "EQ-003",
-    name: "ลำโพง Bluetooth",
-    description: "ลำโพงกำลังสูง 50W",
-    quantity: "8 ชิ้น",
+    name: "จอมอนิเตอร์",
+    description: "จอ LED 32 นิ้ว",
+    quantity: "2 ชิ้น",
     status: "ชำรุด",
-    created_at: "2023-09-20 09:15:00",
-    pic: "https://cdn-icons-png.flaticon.com/512/3652/3652283.png"
+    created_at: "2023-09-15 09:20:00",
+    pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
   },
   {
     id: "EQ-004",
-    name: "โปรเจคเตอร์",
-    description: "ความละเอียด 4K",
+    name: "เครื่องพิมพ์ HP",
+    description: "เครื่องพิมพ์อิงค์เจ็ท",
     quantity: "3 ชิ้น",
     status: "ถูกยืม",
-    created_at: "2023-09-15 13:45:00",
-    pic: "https://cdn-icons-png.flaticon.com/512/2777/2777154.png"
-  },
+    created_at: "2023-09-10 13:45:00",
+    pic: "https://cdn-icons-png.flaticon.com/512/6134/6134781.png"
+  }
 ];
 
-const statusColors = {
-  "พร้อมใช้งาน": "green",
-  "อยู่ระหว่างซ่อม": "amber",
-  "ชำรุด": "red",
-  "ถูกยืม": "blue"
+// กำหนดสีและไอคอนตามสถานะ
+const statusConfig = {
+  "พร้อมใช้งาน": {
+    color: "green",
+    icon: CheckCircleIcon,
+    backgroundColor: "bg-green-50",
+    borderColor: "border-green-100"
+  },
+  "อยู่ระหว่างซ่อม": {
+    color: "amber",
+    icon: ClockIcon,
+    backgroundColor: "bg-amber-50",
+    borderColor: "border-amber-100"
+  },
+  "ชำรุด": {
+    color: "red",
+    icon: XCircleIcon,
+    backgroundColor: "bg-red-50",
+    borderColor: "border-red-100"
+  },
+  "ถูกยืม": {
+    color: "blue",
+    icon: ExclamationCircleIcon,
+    backgroundColor: "bg-blue-50",
+    borderColor: "border-blue-100"
+  }
 };
 
 function ManageEquipment() {
-  return (
-    <Card className="h-full w-full">
-      <CardHeader floated={false} shadow={false} className="rounded-none">
-        <div className="mb-8 flex items-center justify-between gap-8">
-          <div>
-            <Typography variant="h5" color="blue-gray">
-              รายการครุภัณฑ์
-            </Typography>
-            <Typography color="gray" className="mt-1 font-normal">
-              จัดการข้อมูลครุภัณฑ์ทั้งหมด
-            </Typography>
-          </div>
-          <Button className="bg-blue-500 hover:bg-blue-600" size="sm">
-            + เพิ่มครุภัณฑ์
-          </Button>
-        </div>
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="w-full md:w-72">
-            <Input
-              label="ค้นหาครุภัณฑ์"
-              icon={<MagnifyingGlassIcon className="h-5 w-5" />}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outlined" size="sm">ส่งออก Excel</Button>
-            <Button variant="outlined" size="sm">ตัวกรอง</Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardBody className="overflow-scroll px-0">
-        <table className="mt-4 w-full min-w-max table-auto text-left">
-          <thead>
-            <tr>
-              {TABLE_HEAD.map((head) => (
-                <th
-                  key={head}
-                  className="border-y border-blue-gray-100 bg-blue-gray-50/50 p-4"
-                >
-                  <Typography
-                    variant="small"
-                    color="blue-gray"
-                    className="font-normal leading-none opacity-70"
-                  >
-                    {head}
-                  </Typography>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {TABLE_ROWS.map(({ id, name, description, quantity, status, created_at, pic }, index) => {
-              const isLast = index === TABLE_ROWS.length - 1;
-              const classes = isLast ? "p-4" : "p-4 border-b border-blue-gray-50";
+  const [equipmentList, setEquipmentList] = useState(initialEquipment);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    id: "",
+    name: "",
+    description: "",
+    quantity: "",
+    status: "พร้อมใช้งาน",
+    pic: ""
+  });
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState("success");
+  
+  // เพิ่ม state สำหรับฟอร์มเพิ่มครุภัณฑ์ใหม่
+  const [addFormData, setAddFormData] = useState({
+    id: "",
+    name: "",
+    description: "",
+    quantity: "",
+    status: "พร้อมใช้งาน",
+    pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png" // รูปเริ่มต้น
+  });
+  
+  // เพิ่มสถานะสำหรับการค้นหา
+  const [searchTerm, setSearchTerm] = useState("");
 
-              return (
-                <tr key={id}>
-                  <td className={classes}>
-                    <Typography variant="small" color="blue-gray" className="font-bold">
-                      {id}
+  // ฟังก์ชั่นแสดง Alert
+  const showAlertMessage = (message, type = "success") => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setShowAlert(true);
+    
+    // ปิด Alert อัตโนมัติหลังจาก 3 วินาที
+    setTimeout(() => {
+      setShowAlert(false);
+    }, 3000);
+  };
+
+  const handleDeleteClick = (equipment) => {
+    setSelectedEquipment(equipment);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    setEquipmentList(equipmentList.filter(item => item.id !== selectedEquipment.id));
+    setDeleteDialogOpen(false);
+    setSelectedEquipment(null);
+    showAlertMessage(`ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "success");
+  };
+
+  const handleEditClick = (equipment) => {
+    setSelectedEquipment(equipment);
+    setEditFormData({
+      id: equipment.id,
+      name: equipment.name,
+      description: equipment.description,
+      quantity: equipment.quantity,
+      status: equipment.status,
+      pic: equipment.pic
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const saveEdit = () => {
+    setEquipmentList(equipmentList.map(item => 
+      item.id === editFormData.id ? editFormData : item
+    ));
+    setEditDialogOpen(false);
+    showAlertMessage(`แก้ไขครุภัณฑ์ ${editFormData.name} เรียบร้อยแล้ว`, "success");
+  };
+  
+  // ฟังก์ชั่นสำหรับเปิด dialog เพิ่มครุภัณฑ์
+  const handleAddClick = () => {
+    // สร้าง ID ใหม่
+    const newId = `EQ-${String(equipmentList.length + 1).padStart(3, '0')}`;
+    setAddFormData({
+      id: newId,
+      name: "",
+      description: "",
+      quantity: "",
+      status: "พร้อมใช้งาน",
+      pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png" // รูปเริ่มต้น
+    });
+    setAddDialogOpen(true);
+  };
+  
+  // ฟังก์ชั่นจัดการการเปลี่ยนแปลงในฟอร์มเพิ่ม
+  const handleAddChange = (e) => {
+    const { name, value } = e.target;
+    setAddFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // ฟังก์ชั่นบันทึกครุภัณฑ์ใหม่
+  const saveNewEquipment = () => {
+    // สร้างวันที่ปัจจุบัน
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    
+    // เพิ่มครุภัณฑ์ใหม่เข้าไปในรายการ
+    const newEquipment = {
+      ...addFormData,
+      created_at: formattedDate
+    };
+    
+    setEquipmentList([...equipmentList, newEquipment]);
+    setAddDialogOpen(false);
+    showAlertMessage(`เพิ่มครุภัณฑ์ ${addFormData.name} เรียบร้อยแล้ว`, "success");
+  };
+  
+  // ฟังก์ชั่นสำหรับกรองข้อมูลตามคำค้นหา
+  const filteredEquipment = equipmentList.filter(
+    item => 
+      item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // สร้าง component แสดงสถานะที่สวยงาม
+  const StatusDisplay = ({ status }) => {
+    const config = statusConfig[status] || {
+      color: "gray",
+      icon: ExclamationCircleIcon,
+      backgroundColor: "bg-gray-200",
+      borderColor: "border-gray-100"
+    };
+    
+    const StatusIcon = config.icon;
+    
+    return (
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${config.backgroundColor} ${config.borderColor} border`}>
+        <StatusIcon className={`h-4 w-4 text-${config.color}-500`} />
+        <span className={`text-${config.color}-700 font-medium text-sm`}>
+          {status}
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <ThemeProvider value={theme}>
+      <Card className="h-full w-full text-black">
+       {/* Alert Notification */}
+{showAlert && (
+  <div 
+    role="alert" 
+    className={`alert alert-${alertType} fixed top-4 right-4 w-auto max-w-md shadow-lg z-50 transition-all duration-300 transform ${showAlert ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}
+  >
+    {alertType === 'success' && (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    )}
+    {alertType === 'error' && (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    )}
+    {alertType === 'warning' && (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    )}
+    <span>{alertMessage}</span>
+  </div>
+)}
+
+        
+        <CardHeader floated={false} shadow={false} className="rounded-none">
+          <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <Typography variant="h5" className="text-black">
+                รายการครุภัณฑ์
+              </Typography>
+              <Typography color="gray" className="mt-1 font-normal text-black opacity-70">
+                จัดการข้อมูลครุภัณฑ์ทั้งหมด
+              </Typography>
+            </div>
+            <Button 
+              className="bg-blue-500 hover:bg-blue-600 text-white" 
+              size="sm"
+              onClick={handleAddClick}
+            >
+              + เพิ่มครุภัณฑ์
+            </Button>
+          </div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+           <div className="w-full md:w-72 relative">
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+              ค้นหาครุภัณฑ์
+            </label>
+            <div className="relative ">
+              <input
+                id="search"
+                type="text"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="ค้นหาครุภัณฑ์..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+           </div>
+           <div className="flex flex-wrap gap-2 w-full md:w-auto justify-start md:justify-end">
+            <button className="px-4 py-2 text-sm border border-black text-black rounded-md hover:bg-gray-100 transition-colors">
+              ส่งออก Excel
+            </button>
+            <button className="px-4 py-2 text-sm border border-black text-black rounded-md hover:bg-gray-100 transition-colors">
+              ตัวกรอง
+            </button>
+          </div>
+        </div>
+        </CardHeader>
+        <CardBody className="overflow-x-auto px-0">
+          <table className="mt-4 w-full min-w-max table-auto text-left">
+            <thead>
+              <tr>
+                {TABLE_HEAD.map((head) => (
+                  <th
+                    key={head}
+                    className="border-y border-blue-gray-100 bg-blue-gray-50/50 p-4"
+                  >
+                    <Typography
+                      variant="small"
+                      className="font-normal leading-none text-black opacity-70"
+                    >
+                      {head}
                     </Typography>
-                  </td>
-                  <td className={classes}>
-                    <Typography variant="small" color="blue-gray" className="font-semibold">
-                      {name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEquipment.length > 0 ? (
+                filteredEquipment.map(({ id, name, description, quantity, status, created_at, pic }, index) => {
+                  const isLast = index === filteredEquipment.length - 1;
+                  const classes = isLast ? "p-4" : "p-4 border-b border-blue-gray-50";
+
+                  return (
+                    <tr key={id} className="hover:bg-gray-200">
+                      <td className={classes}>
+                        <Typography variant="small" className="font-bold text-black">
+                          {id}
+                        </Typography>
+                      </td>
+                      <td className={classes}>
+                        <Typography variant="small" className="font-semibold text-black">
+                          {name}
+                        </Typography>
+                      </td>
+                      <td className={classes}>
+                        <div className="flex items-center justify-center">
+                          <Avatar 
+                            src={pic} 
+                            alt={name} 
+                            size="md"
+                            className="h-12 w-12 border border-blue-gray-50 shadow-sm object-contain p-1 bg-white"
+                          />
+                        </div>
+                      </td>
+                      <td className={classes}>
+                        <Typography variant="small" className="font-normal text-black">
+                          {description}
+                        </Typography>
+                      </td>
+                      <td className={classes}>
+                        <Typography variant="small" className="font-medium text-black">
+                          {quantity}
+                        </Typography>
+                      </td>
+                      <td className={classes}>
+                        <StatusDisplay status={status} />
+                      </td>
+                      <td className={classes}>
+                        <Typography variant="small" className="font-normal text-black">
+                          {created_at}
+                        </Typography>
+                      </td>
+                      <td className={classes}>
+                        <div className="flex gap-1">
+                          <Tooltip content="ดูรายละเอียด">
+                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100">
+                              <EyeIcon className="h-4 w-4" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip content="แก้ไข">
+                            <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100" onClick={() => handleEditClick({ id, name, description, quantity, status, pic })}>
+                              <PencilIcon className="h-4 w-4" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip content="ลบ">
+                            <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100" onClick={() => handleDeleteClick({ id, name })}>
+                              <TrashIcon className="h-4 w-4" />
+                            </IconButton>
+                          </Tooltip>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={8} className="p-4 text-center">
+                    <Typography className="font-normal text-black">
+                      ไม่พบข้อมูลครุภัณฑ์
                     </Typography>
-                  </td>
-                  <td className={classes}>
-                    <Avatar 
-                      src={pic} 
-                      alt={name} 
-                      size="lg" 
-                      className="border border-blue-gray-50 shadow-sm"
-                      withBorder={true}
-                    />
-                  </td>
-                  <td className={classes}>
-                    <Typography variant="small" color="blue-gray" className="font-normal">
-                      {description}
-                    </Typography>
-                  </td>
-                  <td className={classes}>
-                    <Typography variant="small" color="blue-gray" className="font-medium">
-                      {quantity}
-                    </Typography>
-                  </td>
-                  <td className={classes}>
-                    <Chip
-                      variant="filled"
-                      size="sm"
-                      value={status}
-                      color={statusColors[status] || "gray"}
-                      className="rounded-full py-1.5 px-3 font-medium"
-                    />
-                  </td>
-                  <td className={classes}>
-                    <Typography variant="small" color="blue-gray" className="font-normal">
-                      {created_at}
-                    </Typography>
-                  </td>
-                  <td className={classes}>
-                    <Tooltip content="แก้ไข">
-                      <IconButton variant="text" color="blue-gray">
-                        <PencilIcon className="h-4 w-4" />
-                      </IconButton>
-                    </Tooltip>
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </CardBody>
-      <CardFooter className="flex items-center justify-between border-t border-blue-gray-50 p-4">
-        <Typography variant="small" color="blue-gray" className="font-normal">
-          Showing 1 to {TABLE_ROWS.length} of {TABLE_ROWS.length} entries
-        </Typography>
-        <div className="flex gap-2">
-          <Button variant="outlined" size="sm" disabled>
-            Previous
-          </Button>
-          <Button variant="outlined" size="sm" disabled>
-            Next
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
+              )}
+            </tbody>
+          </table>
+        </CardBody>
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-blue-gray-50 p-4">
+          <Typography variant="small" className="font-normal text-black mb-3 sm:mb-0">
+            แสดง 1 ถึง {filteredEquipment.length} จากทั้งหมด {equipmentList.length} รายการ
+          </Typography>
+          <div className="flex gap-2">
+            <Button variant="outlined" size="sm" disabled className="text-black border-black">
+              ก่อนหน้า
+            </Button>
+            <Button variant="outlined" size="sm" disabled className="text-black border-black">
+              ถัดไป
+            </Button>
+          </div>
+        </CardFooter>
+        
+        {/* Delete Confirmation Modal - DaisyUI */}
+        {deleteDialogOpen && (
+          <div className="modal modal-open transition-all duration-300 ease-in-out">
+            <div className={`modal-box max-w-sm bg-white mx-auto transition-all duration-300 ease-in-out ${deleteDialogOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+              <h3 className="font-bold text-lg text-center text-black">ยืนยันการลบครุภัณฑ์</h3>
+              <div className="py-4 text-center text-black">
+                คุณแน่ใจว่าต้องการลบครุภัณฑ์ <strong>{selectedEquipment?.name}</strong> <br />
+                (รหัส: {selectedEquipment?.id}) ใช่หรือไม่?
+              </div>
+              <div className="modal-action flex justify-center gap-3">
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => setDeleteDialogOpen(false)}
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  className="btn btn-error text-white" 
+                  onClick={confirmDelete}
+                >
+                  ยืนยันการลบ
+                </button>
+              </div>
+            </div>
+            <div className="modal-backdrop bg-black/50 transition-opacity duration-300" onClick={() => setDeleteDialogOpen(false)}></div>
+          </div>
+        )}
+
+        {/* Edit Dialog Modal - DaisyUI */}
+        {editDialogOpen && (
+          <div className="modal modal-open transition-all duration-300 ease-in-out">
+            <div className={`modal-box max-w-4xl w-11/12 bg-white mx-auto p-6 shadow-xl transition-all duration-300 ease-in-out ${editDialogOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+              <h3 className="font-bold text-2xl text-black border-b pb-3 mb-4">แก้ไขครุภัณฑ์</h3>
+              <div className="py-4 grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-base font-medium text-black mb-2">
+                      รหัสครุภัณฑ์
+                    </label>
+                    <input
+                      type="text"
+                      name="id"
+                      value={editFormData.id}
+                      onChange={handleEditChange}
+                      disabled
+                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-base font-medium text-black mb-2">
+                      ชื่อครุภัณฑ์
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={editFormData.name}
+                      onChange={handleEditChange}
+                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-base font-medium text-black mb-2">
+                    รายละเอียด
+                  </label>
+                  <textarea
+                    name="description"
+                    value={editFormData.description}
+                    onChange={handleEditChange}
+                    className="textarea textarea-bordered w-full h-24 bg-gray-50 text-black text-lg"
+                  ></textarea>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-base font-medium text-black mb-2">
+                      จำนวน
+                    </label>
+                    <input
+                      type="text"
+                      name="quantity"
+                      value={editFormData.quantity}
+                      onChange={handleEditChange}
+                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-base font-medium text-black mb-2">
+                      สถานะ
+                    </label>
+                    <select
+                      name="status"
+                      value={editFormData.status}
+                      onChange={handleEditChange}
+                      className="select select-bordered w-full bg-gray-50 text-black text-lg"
+                    >
+                      {Object.keys(statusConfig).map(status => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center border">
+                    <img 
+                      src={editFormData.pic} 
+                      alt={editFormData.name}
+                      className="max-h-24 max-w-24 object-contain"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-black mb-2">สถานะที่เลือก:</h4>
+                    <StatusDisplay status={editFormData.status} />
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-black mb-2">
+                        เปลี่ยนรูปภาพ (URL)
+                      </label>
+                      <input
+                        type="text"
+                        name="pic"
+                        value={editFormData.pic}
+                        onChange={handleEditChange}
+                        className="input input-bordered w-full bg-gray-50 text-black"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="modal-action border-t pt-4">
+                <button
+                  className="btn btn-outline btn-lg"
+                  onClick={() => setEditDialogOpen(false)}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  className="btn btn-success btn-lg text-white"
+                  onClick={saveEdit}
+                >
+                  บันทึกการเปลี่ยนแปลง
+                </button>
+              </div>
+            </div>
+            <div className="modal-backdrop bg-black/50 transition-opacity duration-300" onClick={() => setEditDialogOpen(false)}></div>
+          </div>
+        )}
+        
+        {/* Add Equipment Dialog Modal - DaisyUI */}
+        {addDialogOpen && (
+          <div className="modal modal-open transition-all duration-300 ease-in-out">
+            <div className={`modal-box max-w-4xl w-11/12 bg-white mx-auto p-6 shadow-xl transition-all duration-300 ease-in-out ${addDialogOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+              <h3 className="font-bold text-2xl text-black border-b pb-3 mb-4">เพิ่มครุภัณฑ์ใหม่</h3>
+              <div className="py-4 grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-base font-medium text-black mb-2">
+                      รหัสครุภัณฑ์
+                    </label>
+                    <input
+                      type="text"
+                      name="id"
+                      value={addFormData.id}
+                      onChange={handleAddChange}
+                      disabled
+                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-base font-medium text-black mb-2">
+                      ชื่อครุภัณฑ์ *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={addFormData.name}
+                      onChange={handleAddChange}
+                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
+                      placeholder="ระบุชื่อครุภัณฑ์"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-base font-medium text-black mb-2">
+                    รายละเอียด
+                  </label>
+                  <textarea
+                    name="description"
+                    value={addFormData.description}
+                    onChange={handleAddChange}
+                    className="textarea textarea-bordered w-full h-24 bg-gray-50 text-black text-lg"
+                    placeholder="รายละเอียดครุภัณฑ์"
+                  ></textarea>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-base font-medium text-black mb-2">
+                      จำนวน *
+                    </label>
+                    <input
+                      type="text"
+                      name="quantity"
+                      value={addFormData.quantity}
+                      onChange={handleAddChange}
+                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
+                      placeholder="ระบุจำนวน (เช่น 5 ชิ้น)"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-base font-medium text-black mb-2">
+                      สถานะ
+                    </label>
+                    <select
+                      name="status"
+                      value={addFormData.status}
+                      onChange={handleAddChange}
+                      className="select select-bordered w-full bg-gray-50 text-black text-lg"
+                    >
+                      {Object.keys(statusConfig).map(status => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center border">
+                    <img 
+                      src={addFormData.pic} 
+                      alt="รูปภาพตัวอย่าง"
+                      className="max-h-24 max-w-24 object-contain"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-black mb-2">สถานะที่เลือก:</h4>
+                    <StatusDisplay status={addFormData.status} />
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-black mb-2">
+                        รูปภาพ (URL)
+                      </label>
+                      <input
+                        type="text"
+                        name="pic"
+                        value={addFormData.pic}
+                        onChange={handleAddChange}
+                        className="input input-bordered w-full bg-gray-50 text-black"
+                        placeholder="URL รูปภาพ"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="modal-action border-t pt-4">
+                <button
+                  className="btn btn-outline btn-lg"
+                  onClick={() => setAddDialogOpen(false)}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  className="btn btn-success btn-lg text-white"
+                  onClick={saveNewEquipment}
+                  disabled={!addFormData.name || !addFormData.quantity}
+                >
+                  เพิ่มครุภัณฑ์
+                </button>
+              </div>
+            </div>
+            <div className="modal-backdrop bg-black/50 transition-opacity duration-300" onClick={() => setAddDialogOpen(false)}></div>
+          </div>
+        )}
+      </Card>
+    </ThemeProvider>
   );
 }
 
