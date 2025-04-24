@@ -17,10 +17,10 @@ import {
 
 import { styled } from '@mui/material/styles';
 
-import AppTheme from './shared-theme/AppTheme';
-import ColorModeSelect from './shared-theme/ColorModeSelect';
-import { GoogleIcon, FacebookIcon, SitemarkIcon } from './shared-theme/CustomIcons';
-import ForgotPassword from './components/ForgotPassword';
+import AppTheme from '@/shared-theme/AppTheme';
+import ColorModeSelect from '@/shared-theme/ColorModeSelect';
+import { GoogleIcon, FacebookIcon, SitemarkIcon } from '@/shared-theme/CustomIcons';
+import ForgotPassword from '@/components/ForgotPassword';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',

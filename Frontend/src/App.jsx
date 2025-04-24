@@ -15,7 +15,7 @@ import DashboardUser from './pages/DashboardUser';
 import Home from './pages/Home';
 import ManageEquipment from './pages/ManageEquipment';
 import ManageUser from './pages/ManageUser';
-import Signin from './Sign_in';
+import Signin from './pages/Sign_in';
 
 function AppInner() {
   const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
