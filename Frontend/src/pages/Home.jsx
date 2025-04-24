@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Sample equipment data
+
+  // Sample equipment data (with unique IDs)
   const equipmentData = [
     {
       id: 1,
@@ -34,13 +34,13 @@ const Home = () => {
       name: 'ไมโครโฟน Rode NT-USB',
       code: 'AV-004',
       status: 'พร้อมยืม',
-      dueDate: '15/06/2023',
+      dueDate: '',
       image: 'logo.png'
     },
     {
       id: 5,
       name: 'กล้อง Canon EOS 80D',
-      code: 'PH-003',
+      code: 'PH-005',
       status: 'กำลังซ่อม',
       dueDate: '15/06/2023',
       image: 'logo.png'
@@ -48,25 +48,25 @@ const Home = () => {
     {
       id: 6,
       name: 'ไมโครโฟน Rode NT-USB',
-      code: 'AV-004',
+      code: 'AV-006',
       status: 'พร้อมยืม',
-      dueDate: '15/06/2023',
+      dueDate: '',
       image: 'logo.png'
     },
     {
-      id: 6,
+      id: 7,
       name: 'ไมโครโฟน Rode NT-USB',
-      code: 'AV-004',
+      code: 'AV-007',
       status: 'พร้อมยืม',
-      dueDate: '15/06/2023',
+      dueDate: '',
       image: 'logo.png'
     },
     {
-      id: 6,
+      id: 8,
       name: 'ไมโครโฟน Rode NT-USB',
-      code: 'AV-004',
+      code: 'AV-008',
       status: 'พร้อมยืม',
-      dueDate: '15/06/2023',
+      dueDate: '',
       image: 'logo.png'
     }
   ];
@@ -94,12 +94,12 @@ const Home = () => {
       <div className="w-full max-w-6xl">
         <h1 className="text-2xl font-bold mb-4 text-center">หน้าหลักระบบยืมคืนครุภัณฑ์</h1>
         <p className="mb-6 text-center">ยินดีต้อนรับเข้าสู่ระบบยืมคืนครุภัณฑ์ คณะวิทยาการสารสนเทศ</p>
-        
+
         {/* Search Bar */}
         <div className="mb-8 flex justify-center">
           <div className="relative max-w-md w-full">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -112,7 +112,7 @@ const Home = () => {
             />
           </div>
         </div>
-        
+
         {/* Equipment Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredEquipment.map((equipment) => (
@@ -128,7 +128,7 @@ const Home = () => {
                     {equipment.status}
                   </span>
                 </div>
-                {equipment.dueDate && (
+                {equipment.dueDate && equipment.status !== 'พร้อมยืม' && (
                   <p className="text-sm text-gray-500">กำหนดคืน: {equipment.dueDate}</p>
                 )}
               </div>
@@ -140,7 +140,7 @@ const Home = () => {
             </div>
           ))}
         </div>
-        
+
         {filteredEquipment.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             ไม่พบครุภัณฑ์ที่ตรงกับการค้นหา

@@ -1,18 +1,21 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import Header from './components/Header';
+import { useEffect, useState } from 'react';
+import { Route, BrowserRouter as Router, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Footer from './components/Footer';
+import Header from './components/Header';
 import SidebarAdmin from './components/SidebarAdmin';
-import SidebarUser from './components/SidebarUser';
 import SidebarExecutive from './components/SidebarExecutive';
+import SidebarUser from './components/SidebarUser';
+
 
 import BorrowList from './pages/BorrowList';
-import ManageEquipment from './pages/ManageEquipment';
-import ManageUser from './pages/ManageUser';
 import CheckInfo from './pages/CheckInfo';
 import DashboardAdmin from './pages/DashboardAdmin';
-import DashboardUser from './pages/DashboardUser';
 import DashboardExeutive from './pages/DashboardExeutive';
+import DashboardUser from './pages/DashboardUser';
+import Home from './pages/Home';
+import ManageEquipment from './pages/ManageEquipment';
+import ManageUser from './pages/ManageUser';
+import Signin from './Sign_in';
 
 function AppInner() {
   const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
@@ -104,7 +107,11 @@ function AppInner() {
               </>
             )}
             {(userRole === 'admin' || userRole === 'user') && (
+              <>
               <Route path="/DashboardUs" element={<DashboardUser />} />
+              <Route path="/equipment" element={<Home />} />
+              <Route path="/s" element={<Signin />} />
+              </>
             )}
           </Routes>
         </div>
