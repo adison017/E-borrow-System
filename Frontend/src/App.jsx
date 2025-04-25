@@ -16,6 +16,7 @@ import Home from './pages/Home';
 import ManageEquipment from './pages/ManageEquipment';
 import ManageUser from './pages/ManageUser';
 import Signin from './pages/Sign_in';
+import User_re from './pages/User_requirement';
 
 function AppInner() {
   const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
@@ -111,6 +112,7 @@ function AppInner() {
               <Route path="/DashboardUs" element={<DashboardUser />} />
               <Route path="/equipment" element={<Home />} />
               <Route path="/s" element={<Signin />} />
+              <Route path="/re" element={<User_re />} />
               </>
             )}
           </Routes>
