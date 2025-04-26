@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MdShoppingCart } from "react-icons/md";
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -98,7 +99,7 @@ const Home = () => {
   };
 
   // Calculate total selected items
-  const totalSelectedItems = Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
+  const totalSelectedItems = Object.keys(quantities).length;
 
   // Filter equipment based on search and status
   const filteredEquipment = equipmentData.filter(equipment => {
@@ -258,9 +259,7 @@ const Home = () => {
         <div className="fixed bottom-10 left-auto right-10 bg-base-100 shadow-lg p-4 rounded-2xl">
           <div className="max-w-8xl mx-auto flex justify-between items-center gap-7">
             <div className="text-lg text-neutral-content font-medium flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
+              <MdShoppingCart />  
               {totalSelectedItems} รายการที่เลือก
             </div>
             <div className="flex justify-between gap-2">
