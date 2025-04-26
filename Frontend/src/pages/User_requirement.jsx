@@ -93,7 +93,7 @@ const requirementList = () => {
                     <div className="text-gray-700 font-medium">รวมทั้งหมด: {request.total} ชิ้น</div>
                     <div className="flex gap-2">
                       <button className="btn btn-outline btn-error">ยกเลิก</button>
-                      <button className="btn btn-info text-white">ดูรายละเอียด</button>
+                      <button className="btn btn-outline">ดูรายละเอียด</button>
                     </div>
                   </div>
                 </div>

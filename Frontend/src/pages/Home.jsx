@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('ทั้งหมด');
+  const [quantities, setQuantities] = useState({});
 
   // Sample equipment data (with unique IDs)
   const equipmentData = [
@@ -71,22 +73,64 @@ const Home = () => {
     }
   ];
 
-  const filteredEquipment = equipmentData.filter(equipment =>
-    equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    equipment.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Handle quantity increase
+  const handleIncrease = (id) => {
+    setQuantities(prev => ({
+      ...prev,
+      [id]: (prev[id] || 0) + 1
+    }));
+  };
 
-  const getStatusColor = (status) => {
+  // Handle quantity decrease
+  const handleDecrease = (id) => {
+    setQuantities(prev => {
+      const newQuantity = (prev[id] || 0) - 1;
+      if (newQuantity <= 0) {
+        const newState = {...prev};
+        delete newState[id];
+        return newState;
+      }
+      return {
+        ...prev,
+        [id]: newQuantity
+      };
+    });
+  };
+
+  // Calculate total selected items
+  const totalSelectedItems = Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
+
+  // Filter equipment based on search and status
+  const filteredEquipment = equipmentData.filter(equipment => {
+    const matchesSearch = equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         equipment.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = selectedStatus === 'ทั้งหมด' || equipment.status === selectedStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Get status badge with appropriate styling
+  const getStatusBadge = (status) => {
     switch (status) {
       case 'พร้อมยืม':
-        return 'bg-green-100 text-green-800';
+        return <span className="badge badge-success gap-2">พร้อมยืม</span>;
       case 'ถูกยืม':
-        return 'bg-yellow-100 text-yellow-800';
+        return <span className="badge badge-warning gap-2">ถูกยืม</span>;
       case 'กำลังซ่อม':
-        return 'bg-red-100 text-red-800';
+        return <span className="badge badge-error gap-2">กำลังซ่อม</span>;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return <span className="badge badge-info gap-2">{status}</span>;
     }
+  };
+
+  // Handle status filter change
+  const handleStatusFilter = (status) => {
+    setSelectedStatus(status);
+  };
+
+  // Handle confirm button click
+  const handleConfirm = () => {
+    alert(`ยืนยันการยืม ${totalSelectedItems} รายการ`);
+    setQuantities({});
   };
 
   return (
@@ -113,33 +157,129 @@ const Home = () => {
           </div>
         </div>
 
+        {/* Status Filter Buttons */}
+        <div className="filter mb-8 flex justify-center gap-2 flex-wrap">
+          <button 
+            className={`btn btn-sm ${selectedStatus === 'ทั้งหมด' ? 'btn-active' : 'btn-outline'}`}
+            onClick={() => handleStatusFilter('ทั้งหมด')}
+          >
+            ทั้งหมด
+          </button>
+          <button 
+            className={`btn btn-sm ${selectedStatus === 'พร้อมยืม' ? 'btn-active' : 'btn-outline'}`}
+            onClick={() => handleStatusFilter('พร้อมยืม')}
+          >
+            พร้อมยืม
+          </button>
+          <button 
+            className={`btn btn-sm ${selectedStatus === 'ถูกยืม' ? 'btn-active' : 'btn-outline'}`}
+            onClick={() => handleStatusFilter('ถูกยืม')}
+          >
+            ถูกยืม
+          </button>
+          <button 
+            className={`btn btn-sm ${selectedStatus === 'กำลังซ่อม' ? 'btn-active' : 'btn-outline'}`}
+            onClick={() => handleStatusFilter('กำลังซ่อม')}
+          >
+            กำลังซ่อม
+          </button>
+        </div>
+
         {/* Equipment Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">
           {filteredEquipment.map((equipment) => (
-            <div key={equipment.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-300">
-              <div className="p-4">
-                <div className="flex justify-center mb-4">
-                  <img src={equipment.image} alt={equipment.name} className="h-32 object-contain" />
-                </div>
-                <h3 className="text-lg font-semibold mb-1">{equipment.name}</h3>
-                <p className="text-gray-600 text-sm mb-2">รหัส: {equipment.code}</p>
-                <div className="flex items-center mb-2">
-                  <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(equipment.status)}`}>
-                    {equipment.status}
-                  </span>
-                </div>
+            <div key={equipment.id} className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-300 bg-white">
+              <figure className="px-4 pt-4">
+                <img 
+                  src={equipment.image} 
+                  alt={equipment.name} 
+                  className="rounded-xl h-40 object-contain w-full" 
+                />
+              </figure>
+              <div className="card-body p-4">
+                <h2 className="card-title">
+                  {equipment.name}
+                  {getStatusBadge(equipment.status)}
+                </h2>
+                <p className="text-sm">รหัส: {equipment.code}</p>
                 {equipment.dueDate && equipment.status !== 'พร้อมยืม' && (
-                  <p className="text-sm text-gray-500">กำหนดคืน: {equipment.dueDate}</p>
+                  <p className="text-sm">กำหนดคืน: {equipment.dueDate}</p>
                 )}
-              </div>
-              <div className="bg-gray-50 px-4 py-3 flex justify-end">
-                <button className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md transition-colors duration-300">
-                  {equipment.status === 'พร้อมยืม' ? 'ยืมครุภัณฑ์' : 'รายละเอียด'}
-                </button>
+                <div className="card-actions justify-end mt-2">
+                  {equipment.status === 'พร้อมยืม' ? (
+                    quantities[equipment.id] ? (
+                      <div className="join">
+                        <button 
+                          className="join-item btn btn-sm btn-outline" 
+                          onClick={() => handleDecrease(equipment.id)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                          </svg>
+                        </button>
+                        <span className="join-item btn btn-sm btn-outline pointer-events-none">
+                          {quantities[equipment.id]}
+                        </span>
+                        <button 
+                          className="join-item btn btn-sm btn-outline" 
+                          onClick={() => handleIncrease(equipment.id)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        className="btn btn-sm btn-outline" 
+                        onClick={() => handleIncrease(equipment.id)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    )
+                  ) : (
+                    <button className="btn btn-sm btn-outline">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      รายละเอียด
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Summary Bar (fixed at bottom) */}
+        {totalSelectedItems > 0 && (
+        <div className="fixed bottom-10 left-auto right-10 bg-base-100 shadow-lg p-4 rounded-2xl">
+          <div className="max-w-8xl mx-auto flex justify-between items-center gap-7">
+            <div className="text-lg text-neutral-content font-medium flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              {totalSelectedItems} รายการที่เลือก
+            </div>
+            <div className="flex justify-between gap-2">
+              <button 
+                className="btn btn-error"
+                onClick={() => setQuantities({})}
+              >
+                ยกเลิก
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={handleConfirm}
+              >
+                ยืนยัน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
         {filteredEquipment.length === 0 && (
           <div className="text-center py-8 text-gray-500">
