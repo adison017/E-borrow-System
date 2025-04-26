@@ -17,6 +17,7 @@ import ManageEquipment from './pages/ManageEquipment';
 import ManageUser from './pages/ManageUser';
 import Signin from './pages/Sign_in';
 import User_re from './pages/User_requirement';
+import ReturnList from './pages/ReturnList';
 
 function AppInner() {
   const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
@@ -105,6 +106,7 @@ function AppInner() {
                 <Route path="/equipment" element={<ManageEquipment />} />
                 <Route path="/Check" element={<CheckInfo />} />
                 <Route path="/members" element={<ManageUser />} />
+                <Route path="/return-list" element={<ReturnList />} />
               </>
             )}
             {(userRole === 'admin' || userRole === 'user') && (
