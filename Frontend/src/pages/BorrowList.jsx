@@ -13,10 +13,10 @@ import {
 } from "@heroicons/react/24/solid";
 
 // Components
-import BorrowDetailsDialog from "../components/BorrowDetailsDialog";
+import BorrowDetailsDialog from "../components/borrows/BorrowDetailsDialog";
 import Notification from "../components/Notification";
 import ConfirmDialog from "../components/ConfirmDialog";
-import CheckDataDialog from "../components/CheckDataDialog"; // New component
+
 
 import { 
   Card,
@@ -443,16 +443,7 @@ const BorrowList = () => {
         onReject={handleReject}
       />
 
-      Check Data Dialog
-      {selectedBorrow && (
-        <CheckDataDialog
-          borrow={selectedBorrow}
-          isOpen={isCheckDataOpen}
-          onClose={() => setIsCheckDataOpen(false)}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      )}
+    
 
       {/* Confirm Review Dialog */}
       <ConfirmDialog
