@@ -3,8 +3,11 @@ import {
   MagnifyingGlassIcon, 
   TrashIcon,
   EyeIcon,
-  PencilIcon
 } from "@heroicons/react/24/outline";
+
+import { 
+  PencilIcon,
+} from "@heroicons/react/24/solid";
 import { 
   Card,
   CardHeader,
@@ -380,6 +383,7 @@ function ManageUser() {
                           <Tooltip content="แก้ไข">
                             <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100" 
                               onClick={() => handleEditClick({ user_id, user_code, pic,username, email, phone, address })}>
+              
                               <PencilIcon className="h-4 w-4" />
                             </IconButton>
                           </Tooltip>
