@@ -13,9 +13,9 @@ import {
 } from "@heroicons/react/24/solid";
 
 // Components
-import BorrowDetailsDialog from "../components/borrows/BorrowDetailsDialog";
-import Notification from "../components/Notification";
-import ConfirmDialog from "../components/ConfirmDialog";
+import BorrowDetailsDialog from "../../components/borrows/BorrowDetailsDialog";
+import Notification from "../../components/Notification";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 
 import { 
