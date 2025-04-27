@@ -26,11 +26,11 @@ import {
 
 
 // Import components
+import ScannerDialog from "../../components/ScannerDialog";
+import ReturnFormDialog from "../../components/returns/ReturnFormDialog";
+import ReturndetailsDialog from "../../components/returns/ReturndetailsDialog";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import Notification from "../../components/Notification";
-import ReturnFormDialog from "../../components/ReturnFormDialog";
-import ReturndetailsDialog from "../../components/ReturndetailsDialog";
-import ScannerDialog from "../../components/ScannerDialog";
 
 
 // Import services
