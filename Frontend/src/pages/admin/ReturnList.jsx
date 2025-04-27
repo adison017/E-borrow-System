@@ -1,43 +1,40 @@
-import { useState, useEffect } from "react";
-import { 
-    MagnifyingGlassIcon, 
-    CheckCircleIcon,
-    EyeIcon,
-    QrCodeIcon,
-    TrashIcon,             // <-- เพิ่มมาใหม่ตรงนี้
-  } from "@heroicons/react/24/outline";
+import {
+  EyeIcon,
+  MagnifyingGlassIcon,
+  QrCodeIcon,
+  TrashIcon
+} from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
 
-import { 
+import {
   CheckCircleIcon as CheckCircleSolidIcon,
-  ExclamationTriangleIcon,
-  ClockIcon
+  ClockIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/solid"; // ไอคอนแบบทึบ (ใช้กับ badge สถานะ)
 
-import { 
-  Card,
-  CardHeader,
-  Typography,
+import {
   Button,
+  Card,
   CardBody,
   CardFooter,
-  Avatar,
+  CardHeader,
   IconButton,
-  Tooltip,
   ThemeProvider,
-  Badge
+  Tooltip,
+  Typography
 } from "@material-tailwind/react";
 
 
 // Import components
-import ScannerDialog from "../components/ScannerDialog";
-import ReturnFormDialog from "../components/ReturnFormDialog";
-import ReturndetailsDialog from "../components/ReturndetailsDialog";
-import ConfirmDialog from "../components/ConfirmDialog";
-import Notification from "../components/Notification";
+import ConfirmDialog from "../../components/ConfirmDialog";
+import Notification from "../../components/Notification";
+import ReturnFormDialog from "../../components/ReturnFormDialog";
+import ReturndetailsDialog from "../../components/ReturndetailsDialog";
+import ScannerDialog from "../../components/ScannerDialog";
 
 
 // Import services
-import { calculateReturnStatus, createNewReturn } from "../components/returnService";
+import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
