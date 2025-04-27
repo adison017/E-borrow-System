@@ -6,20 +6,19 @@ import SidebarAdmin from './components/SidebarAdmin';
 import SidebarExecutive from './components/SidebarExecutive';
 import SidebarUser from './components/SidebarUser';
 
-import BorrowList from './pages/BorrowList';
-import CheckInfo from './pages/CheckInfo';
-import DashboardAdmin from './pages/DashboardAdmin';
-import DashboardExeutive from './pages/DashboardExeutive';
-import DashboardUser from './pages/DashboardUser';
-import Home from './pages/Home';
-import ManageEquipment from './pages/ManageEquipment';
-import ManageUser from './pages/ManageUser';
-import Signin from './pages/Sign_in';
-import User_re from './pages/User_requirement';
-import ReturnList from './pages/ReturnList';
+import BorrowList from './pages/admin/BorrowList';
+import CheckInfo from './pages/admin/CheckInfo';
+import DashboardAdmin from './pages/admin/DashboardAdmin';
+import ManageEquipment from './pages/admin/ManageEquipment';
+import ManageUser from './pages/admin/ManageUser';
+import ReturnList from './pages/admin/ReturnList';
+import DashboardExeutive from './pages/exeutive/DashboardExeutive';
+import DashboardUser from './pages/user/Dashboard';
+import Homes from './pages/user/Product';
+import User_re from './pages/user/Requirement';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
+  const [userRole, setUserRole] = useState('user'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -111,8 +110,7 @@ function AppInner() {
             {(userRole === 'admin' || userRole === 'user') && (
               <>
               <Route path="/DashboardUs" element={<DashboardUser />} />
-              <Route path="/equipment" element={<Home />} />
-              <Route path="/s" element={<Signin />} />
+              <Route path="/equipment" element={<Homes />} />
               <Route path="/re" element={<User_re />} />
               </>
             )}
