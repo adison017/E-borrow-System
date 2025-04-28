@@ -16,9 +16,10 @@ import DashboardExeutive from './pages/exeutive/DashboardExeutive';
 import DashboardUser from './pages/user/Dashboard';
 import Homes from './pages/user/Product';
 import User_re from './pages/user/Requirement';
+import ReceiveItem from './pages/admin/ReceiveItem';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState('user'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
+  const [userRole, setUserRole] = useState('admin'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -105,6 +106,7 @@ function AppInner() {
                 <Route path="/Check" element={<CheckInfo />} />
                 <Route path="/members" element={<ManageUser />} />
                 <Route path="/return-list" element={<ReturnList />} />
+                <Route path="/ReceiveItem" element={<ReceiveItem />} />
               </>
             )}
             {(userRole === 'admin' || userRole === 'user') && (
