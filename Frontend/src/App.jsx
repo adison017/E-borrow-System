@@ -23,6 +23,7 @@ import Done from './pages/users/All_done';
 import Borrow from './pages/users/Borrow';
 import Cancel_re from './pages/users/Cancel_re';
 import Fine from './pages/users/Fine';
+import ReceiveItem from './pages/admin/ReceiveItem';
 
 
 function AppInner() {
