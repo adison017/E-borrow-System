@@ -13,6 +13,7 @@ import ManageEquipment from './pages/admin/ManageEquipment';
 import ManageUser from './pages/admin/ManageUser';
 import ReturnList from './pages/admin/ReturnList';
 import DashboardExeutive from './pages/exeutive/DashboardExeutive';
+
 import DashboardUser from './pages/users/Dashboard';
 import Homes from './pages/users/Product';
 import User_re from './pages/users/Requirement';
@@ -23,8 +24,9 @@ import Borrow from './pages/users/Borrow';
 import Cancel_re from './pages/users/Cancel_re';
 import Fine from './pages/users/Fine';
 
+
 function AppInner() {
-  const [userRole, setUserRole] = useState('user'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
+  const [userRole, setUserRole] = useState('admin'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -111,6 +113,7 @@ function AppInner() {
                 <Route path="/Check" element={<CheckInfo />} />
                 <Route path="/members" element={<ManageUser />} />
                 <Route path="/return-list" element={<ReturnList />} />
+                <Route path="/ReceiveItem" element={<ReceiveItem />} />
               </>
             )}
             {(userRole === 'admin' || userRole === 'user') && (
