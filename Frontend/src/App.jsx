@@ -13,9 +13,15 @@ import ManageEquipment from './pages/admin/ManageEquipment';
 import ManageUser from './pages/admin/ManageUser';
 import ReturnList from './pages/admin/ReturnList';
 import DashboardExeutive from './pages/exeutive/DashboardExeutive';
-import DashboardUser from './pages/user/Dashboard';
-import Homes from './pages/user/Product';
-import User_re from './pages/user/Requirement';
+import DashboardUser from './pages/users/Dashboard';
+import Homes from './pages/users/Product';
+import User_re from './pages/users/Requirement';
+import Approve from './pages/users/Approve';
+import Return from './pages/users/Return';
+import Done from './pages/users/All_done';
+import Borrow from './pages/users/Borrow';
+import Cancel_re from './pages/users/Cancel_re';
+import Fine from './pages/users/Fine';
 
 function AppInner() {
   const [userRole, setUserRole] = useState('user'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
@@ -112,6 +118,12 @@ function AppInner() {
               <Route path="/DashboardUs" element={<DashboardUser />} />
               <Route path="/equipment" element={<Homes />} />
               <Route path="/re" element={<User_re />} />
+              <Route path="/approve" element={<Approve />} />
+              <Route path="/return" element={<Return />} />
+              <Route path="/completed" element={<Done />} />
+              <Route path="/borrow" element={<Borrow />} />
+              <Route path="/cancel" element={<Cancel_re />} />
+              <Route path="/fine" element={<Fine />} />
               </>
             )}
           </Routes>

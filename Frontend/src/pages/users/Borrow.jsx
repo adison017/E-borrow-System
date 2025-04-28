@@ -41,12 +41,14 @@ const RequirementList = () => {
     }
   ];
 
+  const pendingRequests = borrowingRequests.filter(request => request.status === "รออนุมัติ");
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">รายการขอยืมครุภัณฑ์</h1>
       
       <div className="space-y-6">
-        {borrowingRequests.map((request) => (
+        {pendingRequests.map((request) => (
           <div key={request.id} className="card bg-white shadow-xl overflow-hidden transition-transform duration-300 hover:scale-105">
             <div className="flex flex-col md:flex-row">
               {/* Image Section */}
