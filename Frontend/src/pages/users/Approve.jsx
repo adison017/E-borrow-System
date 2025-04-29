@@ -13,7 +13,9 @@ const RequirementList = () => {
         { name: "โปรเจคเตอร์", quantity: 1 },
         { name: "ลำโพง", quantity: 2 }
       ],
-      total: 6
+      total: 6,
+      dueDate: "20 สิงหาคม 2566",
+      borrowedDate: "15 สิงหาคม 2566"
     },
     {
       id: "IT-2023-002",
@@ -25,7 +27,9 @@ const RequirementList = () => {
         { name: "ไมโครโฟน", quantity: 2 },
         { name: "จอภาพ", quantity: 1 }
       ],
-      total: 3
+      total: 3,
+      dueDate: "20 สิงหาคม 2566",
+      borrowedDate: "15 สิงหาคม 2566"
     },
     {
       id: "IT-2023-003",
@@ -93,6 +97,17 @@ const RequirementList = () => {
                           {item.name} ({item.quantity} {item.quantity > 1 ? 'เครื่อง' : 'ชุด'})
                         </span>
                       ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-700 mb-1">วันที่ยืม</h3>
+                      <p className="text-gray-600 text-sm md:text-base">{request.borrowedDate}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-700 mb-1">วันที่ครบกำหนดคืน</h3>
+                      <p className="text-gray-600 text-sm md:text-base">{request.dueDate}</p>
                     </div>
                   </div>
 
