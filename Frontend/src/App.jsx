@@ -24,6 +24,7 @@ import Borrow from './pages/users/Borrow';
 import Cancel_re from './pages/users/Cancel_re';
 import Fine from './pages/users/Fine';
 import ReceiveItem from './pages/admin/ReceiveItem';
+import Edit_pro from './pages/users/edit_profile';
 
 
 function AppInner() {
@@ -128,6 +129,7 @@ function AppInner() {
               <Route path="/borrow" element={<Borrow />} />
               <Route path="/cancel" element={<Cancel_re />} />
               <Route path="/fine" element={<Fine />} />
+              <Route path="/edit_profile" element={<Edit_pro />} />
               </>
             )}
           </Routes>

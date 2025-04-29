@@ -18,10 +18,20 @@ function SidebarAdmin() {
     setOpenSubMenu(!openSubMenu);
   };
 
+  const handleNavigation = () => {
+    // ปิด sidebar เมื่ออยู่บน mobile
+    if (window.innerWidth < 640) { // sm breakpoint ของ Tailwind
+      setSidebarOpen(false);
+    }
+  };
+
   const handleLogout = () => {
     // Add logout logic here
     console.log('Logging out...');
     // navigate('/login');
+    if (window.innerWidth < 640) {
+      setSidebarOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -41,7 +51,7 @@ function SidebarAdmin() {
 
   return (
     <React.Fragment>
-      {/* Mobile toggle button */}
+      {/* Mobile toggle button - ซ่อนใน desktop (sm ขึ้นไป) */}
       <button 
         id="toggle-button"
         onClick={toggleSidebar}
@@ -50,7 +60,7 @@ function SidebarAdmin() {
         aria-label="Toggle sidebar"
         aria-expanded={sidebarOpen}
       >
-        <MdMenu size={22} />
+        <MdMenu size={30} />
       </button>
 
       {/* Sidebar */}
@@ -59,19 +69,20 @@ function SidebarAdmin() {
         className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 bg-gray-50 dark:bg-gray-800`} 
         aria-label="Admin sidebar"
       >
-        <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
-          <ul className="space-y-2">
-            <li className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white group">
+        <div className="h-full px-2 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
+          <ul className="space-y">
+            {/* ปุ่มเมนูใน sidebar - แสดงเฉพาะใน mobile */}
+            <li className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white group sm:hidden">
               <button onClick={toggleSidebar} className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
                 <MdMenu size={30}/>
               </button>
             </li>
-            <li className="flex justify-center p-4">
-              <div className="w-24 h-24 flex items-center justify-center">
+            <li className="flex justify-center p-2">
+              <div className="w-full h-auto md:h-auto flex items-center justify-center">
                 <img 
-                  src="E-BORROW_SYSTEM/Frontend/public/logo_w.png" 
+                  src="/logo_it.png" 
                   alt="Logo" 
-                  className="object-contain h-full w-full"
+                  className="object-cover w-full h-full md:max-h-80 md:max-w-90"
                 />
               </div>
             </li>
@@ -82,8 +93,9 @@ function SidebarAdmin() {
             <li>
               <Link 
                 to="/DashboardUs" 
+                onClick={handleNavigation}
                 className={`flex items-center p-2 rounded-lg group ${isActive('/DashboardUs') 
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
+                  ? 'bg-blue-100 text-white dark:bg-blue-900 dark:text-white' 
                   : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
               >
                 <VscGraph size={22} />
@@ -95,8 +107,9 @@ function SidebarAdmin() {
             <li>
               <Link 
                 to="/equipment" 
+                onClick={handleNavigation}
                 className={`flex items-center p-2 rounded-lg group ${isActive('/equipment') 
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
+                  ? 'bg-blue-100 text-white dark:bg-blue-900 dark:text-white' 
                   : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
               >
                 <FaShoppingBag size={22} />
@@ -124,8 +137,9 @@ function SidebarAdmin() {
                 <li>
                   <Link 
                     to="/borrow" 
+                    onClick={handleNavigation}
                     className={`flex items-center p-2 rounded-lg ${isActive('/borrow') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
                       : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
                   >
                     <MdAccessTimeFilled size={20} />
@@ -135,8 +149,9 @@ function SidebarAdmin() {
                 <li>
                   <Link 
                     to="/approve" 
+                    onClick={handleNavigation}
                     className={`flex items-center p-2 rounded-lg ${isActive('/approve') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
                       : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
                   >
                     <FaCheckCircle size={18} />
@@ -146,8 +161,9 @@ function SidebarAdmin() {
                 <li>
                   <Link 
                     to="/return" 
+                    onClick={handleNavigation}
                     className={`flex items-center p-2 rounded-lg ${isActive('/return') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
                       : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
                   >
                     <FaExchangeAlt size={18} />
@@ -157,8 +173,9 @@ function SidebarAdmin() {
                 <li>
                   <Link 
                     to="/cancel" 
+                    onClick={handleNavigation}
                     className={`flex items-center p-2 rounded-lg ${isActive('/cancel') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
                       : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
                   >
                     <MdCancel size={20} />
@@ -168,8 +185,9 @@ function SidebarAdmin() {
                 <li>
                   <Link 
                     to="/completed" 
+                    onClick={handleNavigation}
                     className={`flex items-center p-2 rounded-lg ${isActive('/completed') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
                       : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
                   >
                     <FaArchive size={18} />
@@ -179,8 +197,9 @@ function SidebarAdmin() {
                 <li>
                   <Link 
                     to="/fine" 
+                    onClick={handleNavigation}
                     className={`flex items-center p-2 rounded-lg ${isActive('/fine') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
                       : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
                   >
                     <FaMoneyBillAlt size={18} />
@@ -195,9 +214,10 @@ function SidebarAdmin() {
           <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
             <li>
               <Link 
-                to="/profile" 
-                className={`flex items-center p-2 rounded-lg group ${isActive('/profile') 
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
+                to="/edit_profile" 
+                onClick={handleNavigation}
+                className={`flex items-center p-2 rounded-lg group ${isActive('/edit_profile') 
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
                   : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
               >
                 <FaUserEdit size={22} />
