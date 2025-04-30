@@ -3,12 +3,12 @@ import axios from 'axios';
 
 const PersonalInfoEdit = () => {
   const [formData, setFormData] = useState({
-    profileImage: '',
-    idNumber: '65011211022',
-    fullName: 'กิตติขจร คุ้มบุ่งคล้า',
-    username: 'kitti624',
-    password: 'doe12345',
-    email: 'doe@gmail.com',
+    profileImage: '/pro.jpg',
+    idNumber: '65011211033',
+    fullName: 'อดิศร หนูกลาง',
+    username: 'adison300',
+    password: 'oat12345',
+    email: 'oat@gmail.com',
     phone: '0986286323',
     currentAddress: '141 ทีทีแมนชั่น',
     province: 'มหาสารคาม',
@@ -20,20 +20,38 @@ const PersonalInfoEdit = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const displayImage = previewImage || 
+  (typeof formData.profileImage === 'string' ? formData.profileImage : null);
+
+    const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+    // ตรวจสอบขนาดไฟล์ไม่เกิน 2MB
+    if (file.size > 2 * 1024 * 1024) {
+    alert('ไฟล์รูปภาพต้องมีขนาดไม่เกิน 2MB');
+    return;
+    }
+
+    // ตรวจสอบประเภทไฟล์
+    if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
+    alert('รองรับเฉพาะไฟล์ JPG และ PNG');
+    return;
+    }
+
+    setFormData(prev => ({ ...prev, profileImage: file }));
+    const reader = new FileReader();
+    reader.onloadend = () => {
+    setPreviewImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+    }
+    };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData(prev => ({ ...prev, profileImage: file }));
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result);
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -75,28 +93,38 @@ const PersonalInfoEdit = () => {
                 <div className="flex flex-col items-center space-y-4 p-6 bg-gray-50 rounded-xl border border-gray-100">
                   <label className="block text-sm font-medium text-gray-700">รูปภาพประจำตัว</label>
                   <div className="relative w-40 h-40 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 overflow-hidden shadow-sm hover:border-primary transition-colors duration-200">
-                    {previewImage ? (
-                      <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                    {displayImage ? (
+                      <img 
+                        src={displayImage} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = process.env.PUBLIC_URL + '/profile-default.jpg';
+                        }}
+                      />
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4 text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                            d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                            d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        <span className="text-xs">คลิกเพื่ออัปโหลดรูปภาพ</span>
                       </div>
                     )}
                   </div>
+                  
                   <label className="cursor-pointer w-full">
                     <div className="btn btn-outline btn-primary btn-block btn-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
-                      อัปโหลดรูปภาพ
+                      {previewImage ? 'เปลี่ยนรูปภาพ' : 'อัปโหลดรูปภาพ'}
                     </div>
-                    <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/jpeg, image/png" 
+                      onChange={handleImageChange} 
+                    />
                   </label>
                   <p className="text-xs text-gray-500 text-center">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB</p>
                 </div>
