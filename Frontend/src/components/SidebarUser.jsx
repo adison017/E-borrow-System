@@ -19,8 +19,7 @@ function SidebarAdmin() {
   };
 
   const handleNavigation = () => {
-    // ปิด sidebar เมื่ออยู่บน mobile
-    if (window.innerWidth < 640) { // sm breakpoint ของ Tailwind
+    if (window.innerWidth >= 1024) { // lg breakpoint
       setSidebarOpen(false);
     }
   };
@@ -56,7 +55,7 @@ function SidebarAdmin() {
         id="toggle-button"
         onClick={toggleSidebar}
         type="button"
-        className="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 z-50"
+        className="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 z-50"
         aria-label="Toggle sidebar"
         aria-expanded={sidebarOpen}
       >
@@ -172,6 +171,18 @@ function SidebarAdmin() {
                 </li>
                 <li>
                   <Link 
+                    to="/fine" 
+                    onClick={handleNavigation}
+                    className={`flex items-center p-2 rounded-lg ${isActive('/fine') 
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                      : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                  >
+                    <FaMoneyBillAlt size={18} />
+                    <span className="ms-3">ค่าปรับ</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link 
                     to="/cancel" 
                     onClick={handleNavigation}
                     className={`flex items-center p-2 rounded-lg ${isActive('/cancel') 
@@ -192,18 +203,6 @@ function SidebarAdmin() {
                   >
                     <FaArchive size={18} />
                     <span className="ms-3">เสร็จสิ้น</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    to="/fine" 
-                    onClick={handleNavigation}
-                    className={`flex items-center p-2 rounded-lg ${isActive('/fine') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
-                  >
-                    <FaMoneyBillAlt size={18} />
-                    <span className="ms-3">ค่าปรับ</span>
                   </Link>
                 </li>
               </ul>
