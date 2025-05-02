@@ -22,7 +22,12 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
         if (isOpen && borrow) {
             // Reset form when dialog opens
             setDeliveryNote("");
-            setSignature(null);
+            // If status is delivered, use the existing signature
+            if (borrow.status === "delivered" && borrow.signature) {
+                setSignature(borrow.signature);
+            } else {
+                setSignature(null);
+            }
             setShowCamera(false);
         }
     }, [isOpen, borrow]);
@@ -77,7 +82,6 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
         }
     };
     
-
     const captureSignature = () => {
         if (webcamRef.current) {
             const imageSrc = webcamRef.current.getScreenshot();
@@ -101,7 +105,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
         }
     };
 
-    // Delivery button status
+    // Delivery button status - if delivered, the button is disabled
     const isDeliveryButtonDisabled = borrow.status === "delivered" || isSubmitting || !signature;
 
     return (
@@ -215,57 +219,76 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                     placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
                     value={deliveryNote}
                     onChange={(e) => setDeliveryNote(e.target.value)}
+                    disabled={borrow.status === "delivered"}
                 ></textarea>
             </div>
 
             {/* Signature Section with shadow */}
             <div>
                 <h3 className="font-semibold text-gray-700 mb-2">ลายเซ็นรับของ</h3>
-                {signature ? (
+                {borrow.status === "delivered" ? (
+                    // If delivered, just show the signature
                     <div className="flex flex-col items-center">
-                        <img src={signature} alt="ลายเซ็นรับของ" className="h-32 border border-gray-300 rounded-lg mb-2 shadow-md" />
-                        <button
-                            onClick={() => setSignature(null)}
-                            className="text-red-600 text-sm font-medium hover:text-red-800"
-                        >
-                            ลบลายเซ็น
-                        </button>
-                    </div>
-                ) : showCamera ? (
-                    <div className="flex flex-col items-center">
-                        <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden mb-2 shadow-md">
-                            <Webcam
-                                audio={false}
-                                ref={webcamRef}
-                                screenshotFormat="image/jpeg"
-                                videoConstraints={{ facingMode: "user" }}
-                                onUserMedia={() => setCameraReady(true)}
-                                className="w-full h-full object-cover"
-                            />
+                        <div className="mb-2 text-green-600 font-medium flex items-center">
+                            <CheckCircleSolidIcon className="w-5 h-5 mr-1" />
+                            <span>ได้รับการลงนามยืนยันแล้ว</span>
                         </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={captureSignature}
-                                disabled={!cameraReady}
-                                className={`btn btn-primary ${cameraReady ? '' : 'btn-disabled'}`}
-                            >
-                                ถ่ายภาพ
-                            </button>
-                            <button
-                                onClick={() => setShowCamera(false)}
-                                className="btn btn-outline"
-                            >
-                                ยกเลิก
-                            </button>
-                        </div>
+                        <img 
+                            src={borrow.signature || signature} 
+                            alt="ลายเซ็นรับของ" 
+                            className="h-32 border border-gray-300 rounded-lg shadow-md" 
+                        />
                     </div>
                 ) : (
-                    <button
-                        onClick={() => setShowCamera(true)}
-                        className="btn btn-primary w-full mt-2"
-                    >
-                        ถ่ายลายเซ็น
-                    </button>
+                    // Normal flow for non-delivered status
+                    <>
+                        {signature ? (
+                            <div className="flex flex-col items-center">
+                                <img src={signature} alt="ลายเซ็นรับของ" className="h-32 border border-gray-300 rounded-lg mb-2 shadow-md" />
+                                <button
+                                    onClick={() => setSignature(null)}
+                                    className="text-red-600 text-sm font-medium hover:text-red-800"
+                                >
+                                    ลบลายเซ็น
+                                </button>
+                            </div>
+                        ) : showCamera ? (
+                            <div className="flex flex-col items-center">
+                                <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden mb-2 shadow-md">
+                                    <Webcam
+                                        audio={false}
+                                        ref={webcamRef}
+                                        screenshotFormat="image/jpeg"
+                                        videoConstraints={{ facingMode: "user" }}
+                                        onUserMedia={() => setCameraReady(true)}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={captureSignature}
+                                        disabled={!cameraReady}
+                                        className={`btn btn-primary ${cameraReady ? '' : 'btn-disabled'}`}
+                                    >
+                                        ถ่ายภาพ
+                                    </button>
+                                    <button
+                                        onClick={() => setShowCamera(false)}
+                                        className="btn btn-outline"
+                                    >
+                                        ยกเลิก
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setShowCamera(true)}
+                                className="btn btn-primary w-full mt-2"
+                            >
+                                ถ่ายลายเซ็น
+                            </button>
+                        )}
+                    </>
                 )}
             </div>
 
@@ -278,24 +301,29 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                     </div>
                 </div>
             </div>
-
-
-
         </div>
 
         {/* Footer with Submit Button */}
         <div className="bg-gray-50 p-4 text-right shadow-md">
-            <button
-                onClick={handleDelivery}
-                className={`btn btn-primary ${isDeliveryButtonDisabled ? 'btn-disabled' : ''}`}
-                disabled={isDeliveryButtonDisabled}
-            >
-                ยืนยันการส่งมอบ
-            </button>
+            {borrow.status === "delivered" ? (
+                <button
+                    onClick={onClose}
+                    className="btn btn-neutral"
+                >
+                    ปิด
+                </button>
+            ) : (
+                <button
+                    onClick={handleDelivery}
+                    className={`btn btn-primary ${isDeliveryButtonDisabled ? 'btn-disabled' : ''}`}
+                    disabled={isDeliveryButtonDisabled}
+                >
+                    ยืนยันการส่งมอบ
+                </button>
+            )}
         </div>
     </div>
 </div>
-
     );
 };
 

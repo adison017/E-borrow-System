@@ -1,13 +1,14 @@
 import { useRef, useEffect, useState } from "react";
 import { CameraIcon } from "@heroicons/react/24/outline";
-import Quagga from 'quagga';
+import { BrowserMultiFormatReader, Exception } from "@zxing/library";
 
 const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   const scannerRef = useRef(null);
   const [manualCode, setManualCode] = useState("");
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState(null);
-  const quaggaInitialized = useRef(false);
+  const codeReader = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -15,7 +16,7 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
       return;
     }
 
-    if (isOpen && scannerRef.current && !quaggaInitialized.current) {
+    if (isOpen && scannerRef.current && !codeReader.current) {
       initializeScanner();
     }
 
@@ -27,69 +28,60 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   const initializeScanner = async () => {
     setScanning(true);
     setError(null);
-    
-    try {
-      await Quagga.init({
-        inputStream: {
-          name: "Live",
-          type: "LiveStream",
-          target: scannerRef.current,
-          constraints: {
-            width: 480,
-            height: 360,
-            facingMode: "environment",
-          },
-        },
-        decoder: {
-          readers: [
-            "code_128_reader",
-            "ean_reader",
-            "ean_8_reader",
-            "code_39_reader",
-            "code_39_vin_reader",
-            "codabar_reader",
-            "upc_reader",
-            "upc_e_reader"
-          ],
-        },
-        locate: true,
-      }, (err) => {
-        if (err) {
-          console.error("Failed to initialize scanner:", err);
-          setError("ไม่สามารถเริ่มต้นสแกนเนอร์ได้ กรุณาตรวจสอบการอนุญาตใช้กล้อง");
-          setScanning(false);
-          quaggaInitialized.current = false;
-          return;
-        }
-        quaggaInitialized.current = true;
-        Quagga.start();
-      });
 
-      Quagga.onDetected((result) => {
-        if (result?.codeResult?.code) {
-          const code = result.codeResult.code;
-          stopScanner();
-          onScanComplete(code);
+    try {
+      // ตรวจสอบว่า videoRef ยังไม่ได้เริ่มเล่น
+      if (videoRef.current && videoRef.current.paused === false) {
+        return; // ถ้าวิดีโอกำลังเล่นอยู่แล้ว ไม่เริ่มใหม่
+      }
+
+      codeReader.current = new BrowserMultiFormatReader();
+      const devices = await codeReader.current.listVideoInputDevices();
+
+      const rearCamera = devices.find((device) =>
+        device.label.toLowerCase().includes("back") ||
+        device.label.toLowerCase().includes("rear")
+      );
+      const deviceId = rearCamera?.deviceId || devices[0]?.deviceId;
+
+      if (!deviceId) throw new Error("ไม่พบอุปกรณ์กล้อง");
+      if (!videoRef.current) throw new Error("Video element not ready");
+
+      await codeReader.current.decodeFromVideoDevice(
+        deviceId,
+        videoRef.current,
+        (result, err) => {
+          if (result) {
+            stopScanner();
+            onScanComplete(result.getText());
+          }
+          if (err && !(err instanceof Exception)) {
+            console.error("Error during scanning:", err);
+            setError("เกิดข้อผิดพลาดในการสแกน");
+          }
         }
-      });
+      );
     } catch (e) {
       console.error("Scanner initialization error:", e);
-      setError("เกิดข้อผิดพลาดในการเริ่มต้นสแกนเนอร์");
+      setError(e.message || "เกิดข้อผิดพลาดในการเริ่มต้นสแกนเนอร์");
       setScanning(false);
-      quaggaInitialized.current = false;
+      codeReader.current = null;
     }
   };
 
   const stopScanner = () => {
     try {
-      if (quaggaInitialized.current) {
-        Quagga.offDetected();
-        Quagga.stop();
+      if (codeReader.current) {
+        codeReader.current.reset();
+        codeReader.current = null;
+      }
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
       }
     } catch (e) {
       console.error("Error stopping scanner:", e);
     } finally {
-      quaggaInitialized.current = false;
       setScanning(false);
     }
   };
@@ -106,41 +98,41 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   return (
     <div className="modal modal-open transition-all duration-300 ease-in-out">
       <div className="modal-box max-w-lg bg-white mx-auto transition-all duration-300 ease-in-out">
-        <h3 className="font-bold text-lg text-center text-black mb-4">สแกน QR Code หรือ Barcode</h3>
-        
+        <h3 className="font-bold text-lg text-center text-black mb-4">
+          สแกน QR Code หรือ Barcode
+        </h3>
+
         {error && (
           <div className="alert alert-error mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{error}</span>
+            <button className="btn btn-sm btn-primary ml-4" onClick={initializeScanner}>
+              ลองอีกครั้ง
+            </button>
           </div>
         )}
 
         <div className="text-center mb-4">
-          <p className="text-sm text-gray-600 mb-2">กรุณาสแกน QR Code หรือ Barcode ของครุภัณฑ์หรือการยืม</p>
+          <p className="text-sm text-gray-600 mb-2">
+            กรุณาสแกน QR Code หรือ Barcode ของครุภัณฑ์หรือการยืม
+          </p>
         </div>
 
         <div className="flex justify-center mb-4">
           <div
             ref={scannerRef}
-            className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-black"
+            className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-black flex items-center justify-center relative"
             style={{ width: "480px", height: "360px" }}
           >
-            {!scanning && (
-              <div className="h-full flex flex-col items-center justify-center">
-                <CameraIcon className="h-12 w-12 mx-auto text-gray-400" />
-                <p className="mt-2 text-gray-400">กำลังเริ่มกล้อง...</p>
-                {error && (
-                  <button 
-                    className="btn btn-sm btn-primary mt-4"
-                    onClick={initializeScanner}
-                  >
-                    ลองอีกครั้ง
-                  </button>
-                )}
-              </div>
-            )}
+            <video
+              ref={videoRef}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              muted
+              autoPlay
+            />
+            <div className="absolute top-0 left-0 right-0 bottom-0 border-4 border-dashed border-[#1E3A8A] rounded-lg pointer-events-none"></div>
           </div>
         </div>
 
@@ -151,7 +143,7 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
             className="input input-bordered w-full text-white bg-opacity-90 bg-gray-800 placeholder-gray-300 py-2 px-4 rounded-lg border-2 border-transparent focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-transparent"
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleManualSearch()}
+            onKeyPress={(e) => e.key === "Enter" && handleManualSearch()}
           />
           <button
             className="btn btn-primary bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-full shadow-md transition duration-300 ease-in-out disabled:opacity-50"
