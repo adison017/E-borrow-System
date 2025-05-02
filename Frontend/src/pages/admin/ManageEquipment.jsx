@@ -24,7 +24,10 @@ import {
   Tooltip,
   ThemeProvider,
 } from "@material-tailwind/react";
-
+import DeleteEquipmentDialog from "./DeleteEquipmentDialog";
+import EditEquipmentDialog from "./EditEquipmentDialog";
+import AddEquipmentDialog from "./AddEquipmentDialog";
+import Notification from "../../components/Notification";
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -271,29 +274,12 @@ function ManageEquipment() {
     <ThemeProvider value={theme}>
       <Card className="h-full w-full text-black">
        {/* Alert Notification */}
-{showAlert && (
-  <div 
-    role="alert" 
-    className={`alert alert-${alertType} fixed top-4 right-4 w-auto max-w-md shadow-lg z-50 transition-all duration-300 transform ${showAlert ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}
-  >
-    {alertType === 'success' && (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    )}
-    {alertType === 'error' && (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    )}
-    {alertType === 'warning' && (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
-    )}
-    <span>{alertMessage}</span>
-  </div>
-)}
+       <Notification 
+          show={showAlert}
+          message={alertMessage}
+          type={alertType}
+          onClose={() => setShowAlert(false)}
+        />
 
         
         <CardHeader floated={false} shadow={false} className="rounded-none">
@@ -457,283 +443,49 @@ function ManageEquipment() {
         </CardFooter>
         
         {/* Delete Confirmation Modal - DaisyUI */}
-        {deleteDialogOpen && (
-          <div className="modal modal-open transition-all duration-300 ease-in-out">
-            <div className={`modal-box max-w-sm bg-white mx-auto transition-all duration-300 ease-in-out ${deleteDialogOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-              <h3 className="font-bold text-lg text-center text-black">ยืนยันการลบครุภัณฑ์</h3>
-              <div className="py-4 text-center text-black">
-                คุณแน่ใจว่าต้องการลบครุภัณฑ์ <strong>{selectedEquipment?.name}</strong> <br />
-                (รหัส: {selectedEquipment?.id}) ใช่หรือไม่?
-              </div>
-              <div className="modal-action flex justify-center gap-3">
-                <button 
-                  className="btn btn-outline" 
-                  onClick={() => setDeleteDialogOpen(false)}
-                >
-                  ยกเลิก
-                </button>
-                <button 
-                  className="btn btn-error text-white" 
-                  onClick={confirmDelete}
-                >
-                  ยืนยันการลบ
-                </button>
-              </div>
-            </div>
-            <div className="modal-backdrop bg-black/50 transition-opacity duration-300" onClick={() => setDeleteDialogOpen(false)}></div>
-          </div>
-        )}
+        <DeleteEquipmentDialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          selectedEquipment={selectedEquipment}
+          onConfirm={confirmDelete}
+        />
 
         {/* Edit Dialog Modal - DaisyUI */}
-        {editDialogOpen && (
-          <div className="modal modal-open transition-all duration-300 ease-in-out">
-            <div className={`modal-box max-w-4xl w-11/12 bg-white mx-auto p-6 shadow-xl transition-all duration-300 ease-in-out ${editDialogOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-              <h3 className="font-bold text-2xl text-black border-b pb-3 mb-4">แก้ไขครุภัณฑ์</h3>
-              <div className="py-4 grid grid-cols-1 gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-base font-medium text-black mb-2">
-                      รหัสครุภัณฑ์
-                    </label>
-                    <input
-                      type="text"
-                      name="id"
-                      value={editFormData.id}
-                      onChange={handleEditChange}
-                      disabled
-                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium text-black mb-2">
-                      ชื่อครุภัณฑ์
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={editFormData.name}
-                      onChange={handleEditChange}
-                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-base font-medium text-black mb-2">
-                    รายละเอียด
-                  </label>
-                  <textarea
-                    name="description"
-                    value={editFormData.description}
-                    onChange={handleEditChange}
-                    className="textarea textarea-bordered w-full h-24 bg-gray-50 text-black text-lg"
-                  ></textarea>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-base font-medium text-black mb-2">
-                      จำนวน
-                    </label>
-                    <input
-                      type="text"
-                      name="quantity"
-                      value={editFormData.quantity}
-                      onChange={handleEditChange}
-                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium text-black mb-2">
-                      สถานะ
-                    </label>
-                    <select
-                      name="status"
-                      value={editFormData.status}
-                      onChange={handleEditChange}
-                      className="select select-bordered w-full bg-gray-50 text-black text-lg"
-                    >
-                      {Object.keys(statusConfig).map(status => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
-                  <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center border">
-                    <img 
-                      src={editFormData.pic} 
-                      alt={editFormData.name}
-                      className="max-h-24 max-w-24 object-contain"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-black mb-2">สถานะที่เลือก:</h4>
-                    <StatusDisplay status={editFormData.status} />
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-black mb-2">
-                        เปลี่ยนรูปภาพ (URL)
-                      </label>
-                      <input
-                        type="text"
-                        name="pic"
-                        value={editFormData.pic}
-                        onChange={handleEditChange}
-                        className="input input-bordered w-full bg-gray-50 text-black"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="modal-action border-t pt-4">
-                <button
-                  className="btn btn-outline btn-lg"
-                  onClick={() => setEditDialogOpen(false)}
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  className="btn btn-success btn-lg text-white"
-                  onClick={saveEdit}
-                >
-                  บันทึกการเปลี่ยนแปลง
-                </button>
-              </div>
-            </div>
-            <div className="modal-backdrop bg-black/50 transition-opacity duration-300" onClick={() => setEditDialogOpen(false)}></div>
-          </div>
-        )}
+        <EditEquipmentDialog
+          open={editDialogOpen}
+          onClose={() => setEditDialogOpen(false)}
+          equipmentData={selectedEquipment}
+          onSave={(updatedData) => {
+            setEquipmentList(equipmentList.map(item => 
+              item.id === updatedData.id ? updatedData : item
+            ));
+            showAlertMessage(`แก้ไขครุภัณฑ์ ${updatedData.name} เรียบร้อยแล้ว`, "success");
+          }}
+        />
         
         {/* Add Equipment Dialog Modal - DaisyUI */}
-        {addDialogOpen && (
-          <div className="modal modal-open transition-all duration-300 ease-in-out">
-            <div className={`modal-box max-w-4xl w-11/12 bg-white mx-auto p-6 shadow-xl transition-all duration-300 ease-in-out ${addDialogOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-              <h3 className="font-bold text-2xl text-black border-b pb-3 mb-4">เพิ่มครุภัณฑ์ใหม่</h3>
-              <div className="py-4 grid grid-cols-1 gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-base font-medium text-black mb-2">
-                      รหัสครุภัณฑ์
-                    </label>
-                    <input
-                      type="text"
-                      name="id"
-                      value={addFormData.id}
-                      onChange={handleAddChange}
-                      disabled
-                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium text-black mb-2">
-                      ชื่อครุภัณฑ์ *
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={addFormData.name}
-                      onChange={handleAddChange}
-                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
-                      placeholder="ระบุชื่อครุภัณฑ์"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-base font-medium text-black mb-2">
-                    รายละเอียด
-                  </label>
-                  <textarea
-                    name="description"
-                    value={addFormData.description}
-                    onChange={handleAddChange}
-                    className="textarea textarea-bordered w-full h-24 bg-gray-50 text-black text-lg"
-                    placeholder="รายละเอียดครุภัณฑ์"
-                  ></textarea>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-base font-medium text-black mb-2">
-                      จำนวน *
-                    </label>
-                    <input
-                      type="text"
-                      name="quantity"
-                      value={addFormData.quantity}
-                      onChange={handleAddChange}
-                      className="input input-bordered w-full bg-gray-50 text-black text-lg"
-                      placeholder="ระบุจำนวน (เช่น 5 ชิ้น)"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium text-black mb-2">
-                      สถานะ
-                    </label>
-                    <select
-                      name="status"
-                      value={addFormData.status}
-                      onChange={handleAddChange}
-                      className="select select-bordered w-full bg-gray-50 text-black text-lg"
-                    >
-                      {Object.keys(statusConfig).map(status => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
-                  <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center border">
-                    <img 
-                      src={addFormData.pic} 
-                      alt="รูปภาพตัวอย่าง"
-                      className="max-h-24 max-w-24 object-contain"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-black mb-2">สถานะที่เลือก:</h4>
-                    <StatusDisplay status={addFormData.status} />
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-black mb-2">
-                        รูปภาพ (URL)
-                      </label>
-                      <input
-                        type="text"
-                        name="pic"
-                        value={addFormData.pic}
-                        onChange={handleAddChange}
-                        className="input input-bordered w-full bg-gray-50 text-black"
-                        placeholder="URL รูปภาพ"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="modal-action border-t pt-4">
-                <button
-                  className="btn btn-outline btn-lg"
-                  onClick={() => setAddDialogOpen(false)}
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  className="btn btn-success btn-lg text-white"
-                  onClick={saveNewEquipment}
-                  disabled={!addFormData.name || !addFormData.quantity}
-                >
-                  เพิ่มครุภัณฑ์
-                </button>
-              </div>
-            </div>
-            <div className="modal-backdrop bg-black/50 transition-opacity duration-300" onClick={() => setAddDialogOpen(false)}></div>
-          </div>
-        )}
+        <AddEquipmentDialog
+          open={addDialogOpen}
+          onClose={() => setAddDialogOpen(false)}
+          initialFormData={{
+            id: `EQ-${String(equipmentList.length + 1).padStart(3, '0')}`,
+            name: "",
+            description: "",
+            quantity: "",
+            status: "พร้อมใช้งาน",
+            pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
+          }}
+          onSave={(newEquipment) => {
+            const now = new Date();
+            const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            
+            setEquipmentList([...equipmentList, {
+              ...newEquipment,
+              created_at: formattedDate
+            }]);
+            showAlertMessage(`เพิ่มครุภัณฑ์ ${newEquipment.name} เรียบร้อยแล้ว`, "success");
+          }}
+        />
       </Card>
     </ThemeProvider>
   );
