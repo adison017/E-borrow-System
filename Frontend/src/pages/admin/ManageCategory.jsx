@@ -4,7 +4,6 @@ import {
   TrashIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
-
 import { 
   PencilIcon,
 } from "@heroicons/react/24/solid";
@@ -21,11 +20,12 @@ import {
   Tooltip,
   ThemeProvider,
 } from "@material-tailwind/react";
-import DeleteUserDialog from "./DeleteUserDialog";
-import EditUserDialog from "./EditUserDialog";
-import AddUserDialog from "./AddUserDialog";
+import DeleteCategoryDialog from "./DeleteCategoryDialog";
+import EditCategoryDialog from "./EditCategoryDialog";
+import AddCategoryDialog from "./AddCategoryDialog";
 import Notification from "../../components/Notification";
-// กำหนด theme สีพื้นฐานเป็นสีดำ
+
+// Theme configuration
 const theme = {
   typography: {
     defaultProps: {
@@ -36,136 +36,93 @@ const theme = {
 };
 
 const TABLE_HEAD = [
-  "รหัสสมาชิก",
-  "รูปภาพ",
-  "ชื่อผู้ใช้",
-  "อีเมล",
-  "เบอร์โทรศัพท์",
-  "ที่อยู่",
+  "รหัสหมวดหมู่",
+  "ชื่อหมวดหมู่",
+  "คำอธิบาย",
   "วันที่สร้าง",
   "จัดการ"
 ];
 
-const initialUsers = [
+const initialCategories = [
   {
-    user_id: 1,
-    user_code: "US-001",
-    username: "John Doe",
-    pic: "https://randomuser.me/api/portraits/men/1.jpg",
-    email: "john@example.com",
-    phone: "0812345678",
-    address: "123 ถนนสุขุมวิท",
-    county: "เขตบางนา",
-    locality: "กรุงเทพมหานคร",
-    postal_no: "10110",
+    category_id: 1,
+    category_code: "CAT-001",
+    name: "อุปกรณ์อิเล็กทรอนิกส์",
+    description: "หมวดหมู่สำหรับอุปกรณ์อิเล็กทรอนิกส์ทั้งหมด",
     created_at: "2023-10-01 10:00:00",
     updated_at: "2023-10-05 15:30:00"
   },
   {
-    user_id: 2,
-    user_code: "US-002",
-    username: "Jane Smith",
-    pic: "https://randomuser.me/api/portraits/men/1.jpg",
-    email: "jane@example.com",
-    phone: "0898765432",
-    address: "456 ถนนรัชดาภิเษก",
-    county: "เขตห้วยขวาง",
-    locality: "กรุงเทพมหานคร",
-    postal_no: "10310",
+    category_id: 2,
+    category_code: "CAT-002",
+    name: "เครื่องใช้ในบ้าน",
+    description: "เครื่องใช้ไฟฟ้าและเฟอร์นิเจอร์สำหรับบ้าน",
     created_at: "2023-09-25 14:30:00",
     updated_at: "2023-09-28 09:15:00"
   },
   {
-    user_id: 3,
-    user_code: "US-003",
-    username: "Alex Brown",
-    pic: "https://randomuser.me/api/portraits/men/1.jpg",
-    email: "alex@example.com",
-    phone: "0976543210",
-    address: "789 ถนนพระราม 4",
-    county: "เขตปทุมวัน",
-    locality: "กรุงเทพมหานคร",
-    postal_no: "10330",
+    category_id: 3,
+    category_code: "CAT-003",
+    name: "เสื้อผ้าและแฟชั่น",
+    description: "เสื้อผ้า เครื่องแต่งกาย และอุปกรณ์แฟชั่น",
     created_at: "2023-09-15 09:20:00",
     updated_at: "2023-09-20 11:45:00"
   }
 ];
 
-function ManageUser() {
-  const [userList, setUserList] = useState(initialUsers);
+function ManageCategory() {
+  const [categoryList, setCategoryList] = useState(initialCategories);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState({
-    user_id: "",
-    user_code: "",
-    username: "",
-    pic:"",
-    email: "",
-    phone: "",
-    address: "",
-    county: "",
-    locality: "",
-    postal_no: "",
-    password: ""
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "success"
   });
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [alertType, setAlertType] = useState("success");
+  
+  const [editFormData, setEditFormData] = useState({
+    category_id: "",
+    category_code: "",
+    name: "",
+    description: ""
+  });
   
   const [addFormData, setAddFormData] = useState({
-    user_code: "",
-    username: "",
-    pic:"",
-    email: "",
-    phone: "",
-    address: "",
-    county: "",
-    locality: "",
-    postal_no: "",
-    password: ""
+    category_code: "",
+    name: "",
+    description: ""
   });
   
   const [searchTerm, setSearchTerm] = useState("");
 
-  // ฟังก์ชั่นแสดง Alert
-  const showAlertMessage = (message, type = "success") => {
-    setAlertMessage(message);
-    setAlertType(type);
-    setShowAlert(true);
+  const showNotification = (message, type = "success") => {
+    setNotification({ show: true, message, type });
     setTimeout(() => {
-      setShowAlert(false);
+      setNotification(prev => ({ ...prev, show: false }));
     }, 3000);
   };
 
-  const handleDeleteClick = (user) => {
-    setSelectedUser(user);
+  const handleDeleteClick = (category) => {
+    setSelectedCategory(category);
     setDeleteDialogOpen(true);
   };
 
   const confirmDelete = () => {
-    setUserList(userList.filter(item => item.user_id !== selectedUser.user_id));
+    setCategoryList(categoryList.filter(item => item.category_id !== selectedCategory.category_id));
     setDeleteDialogOpen(false);
-    setSelectedUser(null);
-    showAlertMessage(`ลบผู้ใช้ ${selectedUser.username} เรียบร้อยแล้ว`, "success");
+    setSelectedCategory(null);
+    showNotification(`ลบหมวดหมู่ ${selectedCategory.name} เรียบร้อยแล้ว`);
   };
 
-  const handleEditClick = (user) => {
-    console.log("user.pic = ", user.pic);
-    setSelectedUser(user);
+  const handleEditClick = (category) => {
+    setSelectedCategory(category);
     setEditFormData({
-      user_id: user.user_id,
-      user_code: user.user_code,
-      username: user.username,
-      pic:user.pic,
-      email: user.email,
-      phone: user.phone,
-      address: user.address,
-      county: user.county,
-      locality: user.locality,
-      postal_no: user.postal_no,
-      password: "" // ไม่แสดง password จริง แต่เก็บไว้สำหรับการอัปเดต
+      category_id: category.category_id,
+      category_code: category.category_code,
+      name: category.name,
+      description: category.description
     });
     setEditDialogOpen(true);
   };
@@ -179,29 +136,22 @@ function ManageUser() {
   };
 
   const saveEdit = () => {
-    setUserList(userList.map(item => 
-      item.user_id === editFormData.user_id ? { 
+    setCategoryList(categoryList.map(item => 
+      item.category_id === editFormData.category_id ? { 
         ...editFormData, 
         updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
       } : item
     ));
     setEditDialogOpen(false);
-    showAlertMessage(`แก้ไขผู้ใช้ ${editFormData.username} เรียบร้อยแล้ว`, "success");
+    showNotification(`แก้ไขหมวดหมู่ ${editFormData.name} เรียบร้อยแล้ว`);
   };
   
   const handleAddClick = () => {
-    const newCode = `US-${String(userList.length + 1).padStart(3, '0')}`;
+    const newCode = `CAT-${String(categoryList.length + 1).padStart(3, '0')}`;
     setAddFormData({
-      user_code: newCode,
-      username: "",
-      pic:"",
-      email: "",
-      phone: "",
-      address: "",
-      county: "",
-      locality: "",
-      postal_no: "",
-      password: ""
+      category_code: newCode,
+      name: "",
+      description: ""
     });
     setAddDialogOpen(true);
   };
@@ -214,50 +164,40 @@ function ManageUser() {
     }));
   };
   
-  const saveNewUser = () => {
+  const saveNewCategory = () => {
     const now = new Date();
     const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
     
-    const newUser = {
+    const newCategory = {
       ...addFormData,
-      user_id: userList.length > 0 ? Math.max(...userList.map(u => u.user_id)) + 1 : 1,
+      category_id: categoryList.length > 0 ? Math.max(...categoryList.map(c => c.category_id)) + 1 : 1,
       created_at: formattedDate,
       updated_at: formattedDate
     };
     
-    setUserList([...userList, newUser]);
+    setCategoryList([...categoryList, newCategory]);
     setAddDialogOpen(false);
-    showAlertMessage(`เพิ่มผู้ใช้ ${addFormData.username} เรียบร้อยแล้ว`, "success");
+    showNotification(`เพิ่มหมวดหมู่ ${addFormData.name} เรียบร้อยแล้ว`);
   };
   
-  const filteredUsers = userList.filter(
-    user => 
-      user.user_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCategories = categoryList.filter(
+    category => 
+      category.category_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
     <ThemeProvider value={theme}>
       <Card className="h-full w-full text-black">
-        {/* Alert Notification */}
-        <Notification 
-          show={showAlert}
-          message={alertMessage}
-          type={alertType}
-          onClose={() => setShowAlert(false)}
-        />
-        
-        
         <CardHeader floated={false} shadow={false} className="rounded-none">
           <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <Typography variant="h5" className="text-black">
-                รายการผู้ใช้งาน
+                รายการหมวดหมู่
               </Typography>
               <Typography color="gray" className="mt-1 font-normal text-black opacity-70">
-                จัดการข้อมูลผู้ใช้งานทั้งหมด
+                จัดการข้อมูลหมวดหมู่ทั้งหมด
               </Typography>
             </div>
             <Button 
@@ -265,20 +205,20 @@ function ManageUser() {
               size="sm"
               onClick={handleAddClick}
             >
-              + เพิ่มผู้ใช้งาน
+              + เพิ่มหมวดหมู่
             </Button>
           </div>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="w-full md:w-72 relative">
               <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
-                ค้นหาผู้ใช้งาน
+                ค้นหาหมวดหมู่
               </label>
               <div className="relative">
                 <input
                   id="search"
                   type="text"
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="ค้นหาผู้ใช้งาน..."
+                  placeholder="ค้นหาหมวดหมู่..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -318,46 +258,26 @@ function ManageUser() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map(({ user_id, user_code, username, pic,email, phone, address, created_at }, index) => {
-                  const isLast = index === filteredUsers.length - 1;
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map(({ category_id, category_code, name, description, created_at }, index) => {
+                  const isLast = index === filteredCategories.length - 1;
                   const classes = isLast ? "p-4" : "p-4 border-b border-blue-gray-50";
 
                   return (
-                    <tr key={user_id} className="hover:bg-gray-200">
+                    <tr key={category_id} className="hover:bg-gray-200">
                       <td className={classes}>
                         <Typography variant="small" className="font-bold text-black">
-                          {user_code}
+                          {category_code}
                         </Typography>
                       </td>
-                      <td className={classes}>
-            <div className="flex items-center justify-center">
-              <Avatar 
-                src={pic || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"} 
-                alt={username} 
-                size="md"
-                className="h-12 w-12 border border-blue-gray-50 shadow-sm object-contain p-1 bg-white"
-              />
-            </div>
-          </td>
                       <td className={classes}>
                         <Typography variant="small" className="font-semibold text-black">
-                          {username}
+                          {name}
                         </Typography>
                       </td>
                       <td className={classes}>
                         <Typography variant="small" className="font-normal text-black">
-                          {email}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-normal text-black">
-                          {phone}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-normal text-black">
-                          {address}
+                          {description || '-'}
                         </Typography>
                       </td>
                       <td className={classes}>
@@ -373,15 +293,22 @@ function ManageUser() {
                             </IconButton>
                           </Tooltip>
                           <Tooltip content="แก้ไข">
-                            <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100" 
-                              onClick={() => handleEditClick({ user_id, user_code, pic,username, email, phone, address })}>
-              
+                            <IconButton 
+                              variant="text" 
+                              color="amber" 
+                              className="bg-amber-50 hover:bg-amber-100" 
+                              onClick={() => handleEditClick({ category_id, category_code, name, description })}
+                            >
                               <PencilIcon className="h-4 w-4" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip content="ลบ">
-                            <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100" 
-                              onClick={() => handleDeleteClick({ user_id, username })}>
+                            <IconButton 
+                              variant="text" 
+                              color="red" 
+                              className="bg-red-50 hover:bg-red-100" 
+                              onClick={() => handleDeleteClick({ category_id, name })}
+                            >
                               <TrashIcon className="h-4 w-4" />
                             </IconButton>
                           </Tooltip>
@@ -392,9 +319,9 @@ function ManageUser() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-4 text-center">
+                  <td colSpan={TABLE_HEAD.length} className="p-4 text-center">
                     <Typography className="font-normal text-black">
-                      ไม่พบข้อมูลผู้ใช้งาน
+                      ไม่พบข้อมูลหมวดหมู่
                     </Typography>
                   </td>
                 </tr>
@@ -405,7 +332,7 @@ function ManageUser() {
         
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-blue-gray-50 p-4">
           <Typography variant="small" className="font-normal text-black mb-3 sm:mb-0">
-            แสดง 1 ถึง {filteredUsers.length} จากทั้งหมด {userList.length} รายการ
+            แสดง 1 ถึง {filteredCategories.length} จากทั้งหมด {categoryList.length} รายการ
           </Typography>
           <div className="flex gap-2">
             <Button variant="outlined" size="sm" disabled className="text-black border-black">
@@ -417,58 +344,60 @@ function ManageUser() {
           </div>
         </CardFooter>
         
+        {/* Notification Component */}
+        <Notification 
+          show={notification.show} 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={() => setNotification(prev => ({ ...prev, show: false }))}
+        />
+        
         {/* Delete Confirmation Modal */}
-        <DeleteUserDialog
+        <DeleteCategoryDialog
           open={deleteDialogOpen}
           onClose={() => setDeleteDialogOpen(false)}
-          selectedUser={selectedUser}
+          selectedCategory={selectedCategory}
           onConfirm={confirmDelete}
         />
+        
         {/* Edit Dialog Modal */}
-        <EditUserDialog
+        <EditCategoryDialog
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
-          userData={selectedUser}
+          categoryData={selectedCategory}
           onSave={(updatedData) => {
-            setUserList(userList.map(item => 
-              item.user_id === updatedData.user_id ? { 
+            setCategoryList(categoryList.map(item => 
+              item.category_id === updatedData.category_id ? { 
                 ...updatedData, 
                 updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
               } : item
             ));
-            showAlertMessage(`แก้ไขผู้ใช้ ${updatedData.username} เรียบร้อยแล้ว`, "success");
+            showNotification(`แก้ไขหมวดหมู่ ${updatedData.name} เรียบร้อยแล้ว`);
           }}
         />
         
-        {/* Add User Dialog Modal */}
-        <AddUserDialog
+        {/* Add Category Dialog Modal */}
+        <AddCategoryDialog
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
-          initialFormData={selectedUser || {
-            user_code: `US-${String(userList.length + 1).padStart(3, '0')}`,
-            username: "",
-            pic: "",
-            email: "",
-            phone: "",
-            address: "",
-            county: "",
-            locality: "",
-            postal_no: "",
-            password: ""
+          initialFormData={{
+            category_code: `CAT-${String(categoryList.length + 1).padStart(3, '0')}`,
+            name: "",
+            description: ""
           }}
-          onSave={(newUser) => {
+          onSave={(newCategory) => {
             const now = new Date();
             const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
             
-            const userWithId = {
-              ...newUser,
-              user_id: userList.length > 0 ? Math.max(...userList.map(u => u.user_id)) + 1 : 1,
+            const categoryWithId = {
+              ...newCategory,
+              category_id: categoryList.length > 0 ? Math.max(...categoryList.map(c => c.category_id)) + 1 : 1,
               created_at: formattedDate,
               updated_at: formattedDate
             };
             
-            setUserList([...userList, userWithId]);
-            showAlertMessage(`เพิ่มผู้ใช้ ${newUser.username} เรียบร้อยแล้ว`, "success");
+            setCategoryList([...categoryList, categoryWithId]);
+            showNotification(`เพิ่มหมวดหมู่ ${newCategory.name} เรียบร้อยแล้ว`);
           }}
         />
       </Card>
@@ -476,4 +405,4 @@ function ManageUser() {
   );
 }
 
-export default ManageUser;
+export default ManageCategory;

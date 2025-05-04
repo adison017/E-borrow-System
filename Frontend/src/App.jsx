@@ -25,7 +25,7 @@ import Cancel_re from './pages/users/Cancel_re';
 import Fine from './pages/users/Fine';
 import ReceiveItem from './pages/admin/ReceiveItem';
 import Edit_pro from './pages/users/edit_profile';
-
+import ManageCategory from './pages/admin/ManageCategory';
 
 function AppInner() {
   const [userRole, setUserRole] = useState('admin'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
@@ -116,6 +116,7 @@ function AppInner() {
                 <Route path="/members" element={<ManageUser />} />
                 <Route path="/return-list" element={<ReturnList />} />
                 <Route path="/ReceiveItem" element={<ReceiveItem />} />
+                <Route path="/category" element={<ManageCategory />} />
               </>
             )}
             {(userRole === 'admin' || userRole === 'user') && (

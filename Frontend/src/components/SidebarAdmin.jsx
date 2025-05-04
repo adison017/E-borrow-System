@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTachometerAlt, 
   faArrowRightArrowLeft ,
@@ -9,9 +9,17 @@ import { faTachometerAlt,
   faGift 
 } from '@fortawesome/free-solid-svg-icons';
 
+import { MdManageAccounts } from "react-icons/md";
+import { VscGraph } from "react-icons/vsc";
+import { AiFillProduct } from "react-icons/ai";
+import { BiLogOutCircle, BiPackage } from "react-icons/bi";
+import { FaHandshake,FaSignOutAlt } from "react-icons/fa";
+import { GrCatalog } from "react-icons/gr";
+
 function SidebarAdmin() {
   const [open, setOpen] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   const handleOpen = (value) => {
     setOpen(open === value ? 0 : value);
@@ -40,6 +48,9 @@ function SidebarAdmin() {
     };
   }, [sidebarOpen]);
 
+  // Check if current route matches to set active state
+  const isActive = (path) => location.pathname === path;
+
   return (
     <React.Fragment>
       {/* Mobile toggle button */}
@@ -65,53 +76,123 @@ function SidebarAdmin() {
         <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
           <ul className="space-y-2 font-medium">
             <li>
-              <NavLink to="/DashboardAd" onClick={handleNavLinkClick} className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                <FontAwesomeIcon icon={faTachometerAlt} className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
+              <NavLink 
+                to="/DashboardAd" 
+                onClick={handleNavLinkClick} 
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                }`}
+              >
+                <VscGraph size={25} />
                 <span className="ms-3">Dashboard Admin</span>
               </NavLink>
             </li>
             <li>
-              <NavLink to="/equipment" onClick={handleNavLinkClick} className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                <FontAwesomeIcon icon={faCogs} className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
+              <NavLink 
+                to="/equipment" 
+                onClick={handleNavLinkClick} 
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                }`}
+              >
+                <AiFillProduct  size={25}/>
                 <span className="ms-3">จัดการครุภัณฑ์</span>
               </NavLink>
             </li>
             <li>
-              <NavLink to="/members" onClick={handleNavLinkClick} className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                <FontAwesomeIcon icon={faUsers} className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
+              <NavLink 
+                to="/members" 
+                onClick={handleNavLinkClick} 
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                }`}
+              >
+                <MdManageAccounts size={25}/>
                 <span className="flex-1 ms-3 whitespace-nowrap">จัดการสมาชิก</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink 
+                to="/category" 
+                onClick={handleNavLinkClick} 
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                }`}
+              >
+                <GrCatalog size={25}/>
+                <span className="flex-1 ms-3 whitespace-nowrap">จัดการประเภท</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink 
+                to="/borrow-list" 
+                onClick={handleNavLinkClick}
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                }`}
+              >
+                <FaHandshake size={25}/>
+                <span className="flex-1 ms-3 whitespace-nowrap">รายการยืม</span>
                 <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
               </NavLink>
             </li>
             <li>
-              <NavLink to="/borrow-list" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                <FontAwesomeIcon icon={faListAlt} className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
-                <span className="flex-1 ms-3 whitespace-nowrap">รายการยืม</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/return-list" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-              <FontAwesomeIcon icon={faArrowRightArrowLeft}  className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
+              <NavLink 
+                to="/return-list" 
+                onClick={handleNavLinkClick}
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                }`}
+              >
+                <BiLogOutCircle size={25} />
                 <span className="flex-1 ms-3 whitespace-nowrap">รายการคืน</span>
+                <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
               </NavLink>
             </li>
             <li>
-              <NavLink to="/ReceiveItem" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                <FontAwesomeIcon icon={faGift} className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
+              <NavLink 
+                to="/ReceiveItem" 
+                onClick={handleNavLinkClick}
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                }`}
+              >
+                <BiPackage size={25} />
                 <span className="flex-1 ms-3 whitespace-nowrap">ส่งมอบครุภัณฑ์</span>
+                <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
               </NavLink>
             </li>
-            
           </ul>
           <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
-          <li>
-              <NavLink to="/ReceiveItem" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                <FontAwesomeIcon icon={faGift} className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
-                <span className="flex-1 ms-3 whitespace-nowrap">ส่งมอบครุภัณฑ์</span>
+            <li>
+              <NavLink 
+                to="/logout" 
+                onClick={handleNavLinkClick}
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                }`}
+              >
+                <FaSignOutAlt size={25} />
+                <span className="flex-1 ms-3 whitespace-nowrap">ออกจากระบบ</span>
               </NavLink>
             </li>
           </ul>
-           
         </div>
       </aside>
     </React.Fragment>
