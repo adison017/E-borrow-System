@@ -324,6 +324,7 @@ const PersonalInfoEdit = () => {
               <button
                 type="button"
                 className="btn btn-outline btn-sm md:btn-md border-gray-700 hover:bg-red-600 hover:text-white flex-2 rounded-xl border-gray-300"
+
               >
                 ยกเลิก
               </button>
