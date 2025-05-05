@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Typography } from "@material-tailwind/react";
 
 export default function AddEquipmentDialog({
@@ -15,6 +15,8 @@ export default function AddEquipmentDialog({
     status: "พร้อมใช้งาน",
     pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
   });
+  const fileInputRef = useRef(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const statusConfig = {
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
@@ -24,6 +26,12 @@ export default function AddEquipmentDialog({
   };
 
   useEffect(() => {
+    if (initialFormData?.pic) {
+      setPreviewImage(initialFormData.pic);
+    } else {
+      setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
+    }
+
     setFormData(initialFormData || {
       id: "",
       name: "",
@@ -42,6 +50,22 @@ export default function AddEquipmentDialog({
     }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData(prev => ({
+        ...prev,
+        pic: file
+      }));
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = () => {
     onSave(formData);
     onClose();
@@ -54,7 +78,7 @@ export default function AddEquipmentDialog({
       color: "gray",
       icon: "ExclamationCircleIcon"
     };
-    
+
     return (
       <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-${config.color}-50 border border-${config.color}-100`}>
         <span className={`text-${config.color}-700 font-medium text-sm`}>
@@ -128,28 +152,28 @@ export default function AddEquipmentDialog({
                 required
               />
             </div>
-            <div>
-              <label className="block text-base font-medium text-gray-700 mb-2">
-                สถานะ
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="select select-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                {Object.keys(statusConfig).map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
+             <div>
+                <label className="block text-base font-medium text-gray-700 mb-2">
+                  สถานะ
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  className="select select-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500 h-[48px] min-h-[48px]"
+                  >
+                  {Object.keys(statusConfig).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+             </div>
           </div>
 
           <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
             <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center border">
-              <img 
-                src={formData.pic} 
-                alt="รูปภาพตัวอย่าง"
+              <img
+                src={previewImage}
+                alt="รูปภาพครุภัณฑ์"
                 className="max-h-24 max-w-24 object-contain"
               />
             </div>
@@ -158,30 +182,39 @@ export default function AddEquipmentDialog({
               <StatusDisplay status={formData.status} />
               <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  รูปภาพ (URL)
+                  อัพโหลดรูปภาพ
                 </label>
                 <input
-                  type="text"
-                  name="pic"
-                  value={formData.pic}
-                  onChange={handleChange}
-                  className="input input-bordered w-full bg-gray-50 text-gray-800 text-base py-2 px-3 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="URL รูปภาพ"
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
                 />
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline"
+                  onClick={() => fileInputRef.current.click()}
+                >
+                  เลือกไฟล์
+                </button>
+                {formData.pic && formData.pic.name && (
+                  <p className="text-sm mt-2 text-gray-600">{formData.pic.name}</p>
+                )}
               </div>
             </div>
           </div>
         </div>
 
         <div className="modal-action mt-8 flex justify-end space-x-3">
-          <button 
+          <button
             className="btn btn-outline btn-lg px-6 py-2 text-gray-700 border-gray-300 hover:bg-gray-50"
             onClick={onClose}
           >
             ยกเลิก
           </button>
           <button
-            className="btn btn-success btn-lg px-6 py-2 text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+            className="btn btn-success btn-lg text-white"
             onClick={handleSubmit}
             disabled={!isFormValid}
           >
