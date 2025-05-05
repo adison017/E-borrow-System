@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { MdShoppingCart, MdClose, MdSearch, MdAdd, MdRemove, MdSend } from "react-icons/md";
-import { FaCalendarAlt } from "react-icons/fa";
+import BorrowDialog from './dialogs/BorrowDialog';
+import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
+import ImageModal from './dialogs/ImageModal';
 
 // Sample borrowing and repair history data
 const historyData = {
@@ -61,6 +63,7 @@ const historyData = {
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ทั้งหมด');
+  const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
   const [quantities, setQuantities] = useState({});
   const [showBorrowDialog, setShowBorrowDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
@@ -72,12 +75,13 @@ const Home = () => {
   });
   const [selectedImage, setSelectedImage] = useState(null);
 
-  // Sample equipment data with image references
+  // Sample equipment data with image references and categories
   const equipmentData = [
     {
       id: 1,
       name: 'โน๊ตบุ๊ค Dell XPS 15',
       code: 'IT-001',
+      category: 'คอมพิวเตอร์',
       status: 'พร้อมยืม',
       dueDate: '',
       image: 'https://mercular.s3.ap-southeast-1.amazonaws.com/images/products/2024/11/Computer/OIN5640101101GTH-1.jpg',
@@ -91,9 +95,10 @@ const Home = () => {
       id: 2,
       name: 'โปรเจคเตอร์ Epson EB-U05',
       code: 'AV-002',
+      category: 'อุปกรณ์มัลติมีเดีย',
       status: 'ถูกยืม',
       dueDate: '15/06/2023',
-      image: '/logo.png',
+      image: 'https://mercular.s3.ap-southeast-1.amazonaws.com/images/products/2024/11/Computer/OIN5640101101GTH-1.jpg',
       available: 0,
       specifications: 'ความสว่าง 3,500 ลูเมน, ความละเอียด Full HD, ขนาด 3.2 กก.',
       location: 'ห้องสื่อการสอน อาคาร 2 ชั้น 1',
@@ -104,6 +109,7 @@ const Home = () => {
       id: 3,
       name: 'กล้อง Canon EOS 80D',
       code: 'PH-003',
+      category: 'กล้องและอุปกรณ์ถ่ายภาพ',
       status: 'กำลังซ่อม',
       dueDate: '15/06/2023',
       image: '/logo.png',
@@ -117,6 +123,7 @@ const Home = () => {
       id: 4,
       name: 'ไมโครโฟน Rode NT-USB',
       code: 'AV-004',
+      category: 'อุปกรณ์มัลติมีเดีย',
       status: 'พร้อมยืม',
       dueDate: '',
       image: '/logo.png',
@@ -125,8 +132,25 @@ const Home = () => {
       location: 'ห้องบันทึกเสียง อาคาร 2 ชั้น 2',
       purchaseDate: '20/11/2021',
       price: '5,900 บาท'
+    },
+    {
+      id: 5,
+      name: 'เครื่องพิมพ์ HP LaserJet Pro',
+      code: 'IT-005',
+      category: 'อุปกรณ์สำนักงาน',
+      status: 'พร้อมยืม',
+      dueDate: '',
+      image: '/logo.png',
+      available: 2,
+      specifications: 'ความเร็วพิมพ์ 30 หน้า/นาที, ความละเอียด 1200x1200 dpi',
+      location: 'ห้องสำนักงาน อาคาร 1 ชั้น 1',
+      purchaseDate: '15/09/2021',
+      price: '8,500 บาท'
     }
   ];
+
+  // Extract unique categories from equipment data
+  const categories = ['ทั้งหมด', ...new Set(equipmentData.map(item => item.category))];
 
   // Handle quantity increase
   const handleIncrease = (id) => {
@@ -158,32 +182,38 @@ const Home = () => {
   // Calculate total selected items
   const totalSelectedItems = Object.keys(quantities).length;
 
-  // Filter equipment based on search and status
+  // Filter equipment based on search, status and category
   const filteredEquipment = equipmentData.filter(equipment => {
     const matchesSearch = equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          equipment.code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === 'ทั้งหมด' || equipment.status === selectedStatus;
-    return matchesSearch && matchesStatus;
+    const matchesCategory = selectedCategory === 'ทั้งหมด' || equipment.category === selectedCategory;
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   // Get status badge with appropriate styling
   const getStatusBadge = (status) => {
-    const baseClasses = "badge gap-2 whitespace-nowrap";
+    const baseClasses = "badge px-4 py-4 rounded-full text-sm font-medium ";
     switch (status) {
       case 'พร้อมยืม':
-        return <span className={`${baseClasses} badge-success`}>พร้อมยืม</span>;
+        return <span className={`${baseClasses} badge-success text-white`}>พร้อมยืม</span>;
       case 'ถูกยืม':
-        return <span className={`${baseClasses} badge-warning`}>ถูกยืม</span>;
+        return <span className={`${baseClasses} badge-warning text-black`}>ถูกยืม</span>;
       case 'กำลังซ่อม':
-        return <span className={`${baseClasses} badge-error`}>กำลังซ่อม</span>;
+        return <span className={`${baseClasses} badge-error text-white`}>กำลังซ่อม</span>;
       default:
-        return <span className={`${baseClasses} badge-info`}>{status}</span>;
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>{status}</span>;
     }
   };
 
   // Handle status filter change
   const handleStatusFilter = (status) => {
     setSelectedStatus(status);
+  };
+
+  // Handle category filter change
+  const handleCategoryFilter = (category) => {
+    setSelectedCategory(category);
   };
 
   // Handle confirm button click
@@ -265,435 +295,232 @@ const Home = () => {
   };
 
   return (
-    <div className="p-6 flex justify-center">
-      <div className="w-full max-w-6xl">
-        <h1 className="text-2xl font-bold mb-4 text-center">หน้าหลักระบบยืมคืนครุภัณฑ์</h1>
-        <p className="mb-6 text-center">ยินดีต้อนรับเข้าสู่ระบบยืมคืนครุภัณฑ์ คณะวิทยาการสารสนเทศ</p>
-
-        {/* Search Bar */}
-        <div className="mb-8 flex justify-center">
-          <div className="relative max-w-md w-full">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              className="w-full p-2 pl-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="ค้นหาชื่อครุภัณฑ์หรือรหัส..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <header className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-center text-center">
+            <h1 className="text-3xl font-bold text-gray-900">ระบบยืมคืนครุภัณฑ์</h1>
+            <p className="mt-2 text-lg text-gray-600">คณะวิทยาการสารสนเทศ</p>
           </div>
         </div>
+      </header>
 
-        {/* Status Filter Buttons */}
-        <div className="filter mb-8 flex justify-center gap-3 flex-wrap">
-          <button 
-            className={`btn btn-sm transition-transform duration-300 hover:scale-120 rounded-2xl ${selectedStatus === 'ทั้งหมด' ? 'btn-active' : 'btn-outline'}`}
-            onClick={() => handleStatusFilter('ทั้งหมด')}
-          >
-            ทั้งหมด
-          </button>
-          <button 
-            className={`btn btn-sm transition-transform duration-300 hover:scale-120 rounded-2xl ${selectedStatus === 'พร้อมยืม' ? 'btn-active' : 'btn-outline'}`}
-            onClick={() => handleStatusFilter('พร้อมยืม')}
-          >
-            พร้อมยืม
-          </button>
-          <button 
-            className={`btn btn-sm transition-transform duration-300 hover:scale-120 rounded-2xl ${selectedStatus === 'ถูกยืม' ? 'btn-active' : 'btn-outline'}`}
-            onClick={() => handleStatusFilter('ถูกยืม')}
-          >
-            ถูกยืม
-          </button>
-          <button 
-            className={`btn btn-sm transition-transform duration-300 hover:scale-120 rounded-2xl ${selectedStatus === 'กำลังซ่อม' ? 'btn-active' : 'btn-outline'}`}
-            onClick={() => handleStatusFilter('กำลังซ่อม')}
-          >
-            กำลังซ่อม
-          </button>
-        </div>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 bg-white">
+        {/* Search and Filter Section */}
+        <div className="mb-8">
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="relative max-w-3xl mx-auto ">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MdSearch className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl text-sm"
+                placeholder="ค้นหาชื่อครุภัณฑ์หรือรหัส..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
 
-        {/* Equipment Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">
-          {filteredEquipment.map((equipment) => (
-            <div key={equipment.id} className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-300 bg-white transition-transform duration-300 hover:scale-105">
-              <figure className="px-4 pt-4 relative">
-                <img 
-                  src={equipment.image} 
-                  alt={equipment.name} 
-                  className="rounded-xl h-40 w-full object-contain cursor-pointer" 
-                  onClick={() => showImageModal(equipment.image)}
-                />
-                <div className="absolute top-6 right-6">
-                  {getStatusBadge(equipment.status)}
-                </div>
-              </figure>
-              <div className="card-body p-4 md:p-6">
-                <div className="card-title flex flex-col gap-2">
-                  <h2 className="font-semibold line-clamp-1 text-lg md:text-xl">{equipment.name}</h2>
-                  <p className="text-sm">รหัสครุภัณฑ์ {equipment.code}</p>
-                </div>
-                
-                <div className="flex flex-col items-center w-full mt-4">
-                  {equipment.status === 'พร้อมยืม' && (
-                    <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
-                  )}
-                  {equipment.dueDate && equipment.status !== 'พร้อมยืม' && (
-                    <p className="text-sm">กำหนดคืน {equipment.dueDate}</p>
-                  )}
-                </div>
-
-                <div className="card-actions justify-center">
-                  {equipment.status === 'พร้อมยืม' ? (
-                    quantities[equipment.id] ? (
-                      <div className="join gap-2">
-                        <button 
-                          className={`join-item btn btn-sm rounded-xl ${quantities[equipment.id] >= equipment.available ? 'btn-disabled' : 'btn-outline'}`}
-                          onClick={() => handleIncrease(equipment.id)}
-                          disabled={quantities[equipment.id] >= equipment.available}
-                        >
-                          <MdAdd className="w-4 h-4" />
-                        </button>
-                        <span className="join-item btn btn-sm pointer-events-none rounded-xl">
-                          {quantities[equipment.id]}
-                        </span>
-                        <button 
-                          className="join-item btn btn-sm btn-outline rounded-xl" 
-                          onClick={() => handleDecrease(equipment.id)}
-                        >
-                          <MdRemove className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button 
-                        className={`btn btn-sm rounded-xl ${equipment.available <= 0 ? 'btn-disabled' : 'btn-outline'}`}
-                        onClick={() => handleIncrease(equipment.id)}
-                        disabled={equipment.available <= 0}
-                      >
-                        {equipment.available > 0 ? (
-                          <MdAdd className="w-4 h-4" />
-                        ) : 'ไม่พร้อมให้ยืม'}
-                      </button>
-                    )
-                  ) : (
-                    <button 
-                      className="btn btn-sm btn-outline rounded-xl"
-                      onClick={() => showEquipmentDetail(equipment)}
+          {/* Filter Controls */}
+          <div className="bg-white p-4 rounded-lg mb-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              {/* Status Filters */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">สถานะ</h3>
+                <div className="flex flex-wrap gap-2">
+                  {['ทั้งหมด', 'พร้อมยืม', 'ถูกยืม', 'กำลังซ่อม'].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusFilter(status)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        selectedStatus === status
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
                     >
-                      <MdSearch className="w-4 h-4" />
-                      รายละเอียด
+                      {status}
                     </button>
-                  )}
+                  ))}
                 </div>
               </div>
+
+              {/* Category Filter */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">หมวดหมู่</h3>
+                <select
+                  className="block w-full pl-3 pr-10 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm rounded-xl transition-colors hover:bg-blue-700"
+                  value={selectedCategory}
+                  onChange={(e) => handleCategoryFilter(e.target.value)}
+                >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          ))}
+          </div>
         </div>
 
-        {/* Summary Bar (fixed at bottom) */}
-        {totalSelectedItems > 0 && (
-          <div className="fixed bottom-10 left-auto right-10 bg-base-100 shadow-lg p-4 rounded-2xl">
-            <div className="max-w-8xl mx-auto flex justify-between items-center gap-7">
-              <div className="text-lg text-neutral-content font-medium flex items-center gap-2">
-                <MdShoppingCart />  
-                {totalSelectedItems} รายการที่เลือก
-              </div>
-              <div className="flex justify-between gap-2">
-                <button 
-                  className="btn btn-error rounded-xl"
-                  onClick={() => setQuantities({})}
-                >
-                  ยกเลิก
-                </button>
-                <button 
-                  className="btn btn-primary rounded-xl"
-                  onClick={handleConfirm}
-                >
-                  ยืนยัน
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {filteredEquipment.length === 0 && (
-          <div className="text-center py-8 text-gray-500 rounded-xl">
-            ไม่พบครุภัณฑ์ที่ตรงกับการค้นหา
-          </div>
-        )}
-
-        {/* Borrow Dialog */}
-        {showBorrowDialog && (
-          <div className="fixed inset-0 backdrop-blur bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl transform transition-all duration-300">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold text-gray-800">แบบฟอร์มขอยืมครุภัณฑ์</h2>
-                  <button
-                    onClick={() => setShowBorrowDialog(false)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <MdClose className="w-6 h-6" />
-                  </button>
-                </div>
-
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-700 mb-3">รายการที่เลือก</h3>
-                  <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
-                    {Object.entries(quantities).map(([id, qty]) => {
-                      const equipment = equipmentData.find(item => item.id === parseInt(id));
-                      return (
-                        <div key={id} className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                          <div 
-                            className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden cursor-pointer"
-                            onClick={() => showImageModal(equipment.image)}
-                          >
-                            <img
-                              src={equipment.image}
-                              alt={equipment.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-800 truncate">{equipment.name}</p>
-                            <div className="flex justify-between text-sm text-gray-500">
-                              <span className="truncate">รหัส: {equipment.code}</span>
-                              <span className="font-semibold">จำนวน: {qty} ชิ้น</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <form onSubmit={handleSubmitBorrow}>
-                  <div className="mb-4">
-                    <label className="block text-gray-700 font-medium mb-2">เหตุผลการขอยืม</label>
-                    <textarea
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      placeholder="กรุณากรอกเหตุผลการขอยืม..."
-                      rows={4}
-                      name="reason"
-                      value={borrowData.reason}
-                      onChange={handleInputChange}
-                      required
+        {/* Equipment Grid */}
+        <div className="mb-16 ">
+          {filteredEquipment.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">
+              {filteredEquipment.map((equipment) => (
+                <div key={equipment.id} className="card rounded-xl shadow-sm hover:shadow-md bg-white transition-transform duration-300 hover:scale-105  ">
+                  <figure className="px-4 pt-4 relative">
+                    <img 
+                      src={equipment.image} 
+                      alt={equipment.name} 
+                      className="rounded-xl h-40 w-full object-contain cursor-pointer" 
+                      onClick={() => showImageModal(equipment.image)}
                     />
-                  </div>
+                    <div className="absolute top-6 right-6 ">
+                      {getStatusBadge(equipment.status)}
+                    </div>
+                  </figure>
+                  <div className="card-body p-4 md:p-6">
+                    <div className="card-title flex flex-col gap-2">
+                      <h2 className="font-semibold line-clamp-1 text-lg md:text-xl">{equipment.name}</h2>
+                      <p className="text-sm">รหัสครุภัณฑ์ {equipment.code}</p>
+                    </div>
+                    
+                    <div className="flex flex-col items-center w-full mt-4">
+                      {equipment.status === 'พร้อมยืม' && (
+                        <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
+                      )}
+                      {equipment.dueDate && equipment.status !== 'พร้อมยืม' && (
+                        <p className="text-sm">กำหนดคืน {equipment.dueDate}</p>
+                      )}
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-2">วันที่ยืม</label>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                          name="borrowDate"
-                          value={borrowData.borrowDate}
-                          onChange={handleInputChange}
-                          min={new Date().toISOString().split('T')[0]}
-                          required
-                        />
+                    <div className="card-actions justify-center">
+                      {equipment.status === 'พร้อมยืม' ? (
+                        quantities[equipment.id] ? (
+                          <div className="join gap-2">
+                            <button 
+                              className={`join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${quantities[equipment.id] >= equipment.available ? 'btn-disabled' : 'btn-ghost'}`}
+                              onClick={() => handleIncrease(equipment.id)}
+                              disabled={quantities[equipment.id] >= equipment.available}
+                            >
+                              <MdAdd className="w-4 h-4" />
+                            </button>
+                            <span className="join-item btn btn-sm btn-ghost border px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700">
+                              {quantities[equipment.id]}
+                            </span>
+                            <button 
+                              className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700" 
+                              onClick={() => handleDecrease(equipment.id)}
+                            >
+                              <MdRemove className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            className={`btn btn-sm btn-ghoste px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${equipment.available <= 0 ? 'btn-disabled' : 'btn-ghost'}`}
+                            onClick={() => handleIncrease(equipment.id)}
+                            disabled={equipment.available <= 0}
+                          >
+                            {equipment.available > 0 ? (
+                              <MdAdd className="w-4 h-4 " />
+                            ) : 'ไม่พร้อมให้ยืม'}
+                          </button>
+                        )
+                      ) : (
                         <button 
-                          type="button" 
-                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
-                          onClick={() => document.querySelector('input[name="borrowDate"]').showPicker()}
+                          className="btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700"
+                          onClick={() => showEquipmentDetail(equipment)}
                         >
-                          <FaCalendarAlt />
+                          <MdSearch className="w-4 h-4" />
+                          รายละเอียด
                         </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-2 flex-none justify-start">
-                        <span>วันที่คืน</span>
-                        <span className="text-xs text-blue-600 font-normal"> (ไม่เกิน 7 วัน)</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                          name="returnDate"
-                          value={borrowData.returnDate}
-                          onChange={handleReturnDateChange}
-                          min={borrowData.borrowDate}
-                          max={calculateMaxReturnDate()}
-                          required
-                        />
-                        <button 
-                          type="button" 
-                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
-                          onClick={() => document.querySelector('input[name="returnDate"]').showPicker()}
-                        >
-                          <FaCalendarAlt />
-                        </button>
-                      </div>
+                      )}
                     </div>
                   </div>
-
-                  <div className="flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowBorrowDialog(false)}
-                      className="px-5 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors font-medium"
-                    >
-                      ยกเลิก
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-1"
-                    >
-                      ส่งคำขอยืม
-                    </button>
-                  </div>
-                </form>
-              </div>
+                </div>
+              ))}
             </div>
-          </div>
-        )}
-
-        {/* Equipment Detail Dialog */}
-        {showDetailDialog && selectedEquipment && (
-          <div className="fixed inset-0 backdrop-blur bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold text-gray-800">รายละเอียดครุภัณฑ์</h2>
-                  <button
-                    onClick={() => setShowDetailDialog(false)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <MdClose className="w-6 h-6" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <div className="bg-gray-100 rounded-lg overflow-hidden">
-                      <img
-                        src={selectedEquipment.image}
-                        alt={selectedEquipment.name}
-                        className="w-full h-full object-contain cursor-pointer"
-                        onClick={() => showImageModal(selectedEquipment.image)}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">{selectedEquipment.name}</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-gray-500">รหัสครุภัณฑ์</p>
-                        <p className="font-medium">{selectedEquipment.code}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">สถานะ</p>
-                        <div className="mt-1">{getStatusBadge(selectedEquipment.status)}</div>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">จำนวนคงเหลือ</p>
-                        <p className="font-medium">{selectedEquipment.available} ชิ้น</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">รายละเอียด</p>
-                        <p className="font-medium">{selectedEquipment.specifications}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">สถานที่จัดเก็บ</p>
-                        <p className="font-medium">{selectedEquipment.location}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">วันที่จัดซื้อ</p>
-                        <p className="font-medium">{selectedEquipment.purchaseDate}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">ราคา</p>
-                        <p className="font-medium">{selectedEquipment.price}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* History Section */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-3">ประวัติการใช้งาน</h3>
-                  <div className="space-y-4">
-                    {historyData[selectedEquipment.id]?.length > 0 ? (
-                      historyData[selectedEquipment.id].map((history, index) => (
-                        <div key={index} className="border-l-4 pl-4 py-2" 
-                          style={{ 
-                            borderLeftColor: history.type === 'borrow' ? '#383838' : '#383838',
-                            backgroundColor: history.type === 'borrow' ? '#e3e3e3' : '#e3e3e3'
-                          }}>
-                          {history.type === 'borrow' ? (
-                            <>
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="font-md text">การยืม <span className={`font-medium ${
-                                    history.status === 'คืนแล้ว' ? 'text-sm text-white bg-green-600 rounded-lg px-3 py-1' : 'text-sm bg-yellow-400 rounded-lg px-3 py-1'
-                                  }`}>{history.status}</span></p>
-                                  <p className="text-md mt-2">ผู้ยืม: {history.borrower}</p>
-                                  <p className="text-md">วันที่ยืม: {history.date}</p>
-                                  <p className="text-md ">วันที่คืน: {history.returnDate}</p>
-                                  <p className="text-md">เหตุผล: {history.reason}</p>
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="font-medium text">การซ่อมบำรุง <span className={`font-medium ${
-                                    history.status === 'ซ่อมเสร็จแล้ว' ? 'text-sm text-white bg-green-600 rounded-lg px-3 py-1' : 'text-sm text-white bg-red-600 rounded-lg px-3 py-1'
-                                  }`}>{history.status}</span></p>
-                                  <p className="text-md mt-2">วันที่ซ่อม: {history.date}</p>
-                                  <p className="text-md">รายละเอียด: {history.description}</p>
-                                  <p className="text-md">ค่าใช้จ่าย: {history.cost}</p>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-center py-4">ไม่มีประวัติการใช้งาน</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Image Modal */}
-        {selectedImage && (
-          <div
-            className="fixed inset-0 backdrop-blur bg-opacity-90 flex items-center justify-center z-50 p-4 transition-opacity duration-300" 
-            onClick={() => setSelectedImage(null)}
-          >
-            <div className="relative max-w-5xl w-full max-h-[90vh]">
-              <button
-                className="absolute top-4 right-4 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70 transition-colors z-10"
-                onClick={() => setSelectedImage(null)}
+          ) : (
+            <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+              <p className="text-gray-500 text-lg">ไม่พบครุภัณฑ์ที่ตรงกับการค้นหา</p>
+              <button 
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedStatus('ทั้งหมด');
+                  setSelectedCategory('ทั้งหมด');
+                }}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
-                <MdClose className="w-6 h-6" />
+                ล้างการค้นหา
               </button>
-              <div className="bg-white w-full h-full flex items-center justify-center rounded-lg shadow-xl">
-                <img
-                  src={selectedImage}
-                  alt="Equipment preview"
-                  className="w-full max-w-full h-full max-h-[80vh] object-contain"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Floating Cart Summary */}
+      {totalSelectedItems > 0 && (
+        <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-xl p-4 z-10 animate-bounce-once">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <MdShoppingCart className="h-6 w-6 text-blue-600" />
+              <span className="font-medium">
+                {totalSelectedItems} รายการที่เลือก
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setQuantities({})}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleConfirm}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                ยืนยันการยืม
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Dialogs */}
+      <BorrowDialog
+        showBorrowDialog={showBorrowDialog}
+        setShowBorrowDialog={setShowBorrowDialog}
+        quantities={quantities}
+        equipmentData={equipmentData}
+        borrowData={borrowData}
+        handleInputChange={handleInputChange}
+        handleReturnDateChange={handleReturnDateChange}
+        handleSubmitBorrow={handleSubmitBorrow}
+        calculateMaxReturnDate={calculateMaxReturnDate}
+        showImageModal={showImageModal}
+      />
+
+      <EquipmentDetailDialog
+        showDetailDialog={showDetailDialog}
+        setShowDetailDialog={setShowDetailDialog}
+        selectedEquipment={selectedEquipment}
+        historyData={historyData}
+        showImageModal={showImageModal}
+        getStatusBadge={getStatusBadge}
+      />
+
+      <ImageModal
+        selectedImage={selectedImage}
+        setSelectedImage={setSelectedImage}
+      />
     </div>
   );
 };
+
 export default Home;

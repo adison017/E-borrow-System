@@ -320,10 +320,10 @@ const PersonalInfoEdit = () => {
               </div>
             </div>
 
-            <div className="flex  gap-2 mt-auto md:flex-row justify-between items-center md:w-auto mt-6">
+            <div className="flex  gap-2 md:flex-row justify-between items-center md:w-auto mt-6">
               <button 
                 type="button" 
-                className="btn btn-outline btn-sm md:btn-md border-gray-700 hover:bg-red-600 hover:text-white flex-2 rounded-xl border-gray-300"
+                className="btn btn-outline btn-sm md:btn-md hover:bg-red-600 hover:text-white flex-2 rounded-xl border-gray-300"
               >
                 ยกเลิก
               </button>

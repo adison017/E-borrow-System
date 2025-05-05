@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
 
 const RequirementList = () => {
   const borrowingRequests = [
@@ -11,22 +12,26 @@ const RequirementList = () => {
         { 
           name: "โน้ตบุ๊ก", 
           quantity: 3,
+          equipmentId: "IT-LAPTOP-001",
           image: "https://media-cdn.bnn.in.th/366788/lenovo-notebook-ideapad-duet-5-12iru8-83b30058ta-storm-grey-1-square_medium.jpg"
         },
         { 
           name: "โปรเจคเตอร์", 
           quantity: 1,
+          equipmentId: "IT-LAPTOP-001",
           image: "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
         },
         { 
           name: "ลำโพง", 
           quantity: 2,
+          equipmentId: "IT-LAPTOP-001",
           image: "https://images.unsplash.com/photo-1593784991095-a205069470b6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
         }
       ],
       total: 6,
       dueDate: "20 สิงหาคม 2566",
-      borrowedDate: "15 สิงหาคม 2566"
+      borrowedDate: "15 สิงหาคม 2566",
+      currentStep: 2
     },
     {
       id: "IT-2023-002",
@@ -47,12 +52,15 @@ const RequirementList = () => {
       ],
       total: 3,
       dueDate: "20 สิงหาคม 2566",
-      borrowedDate: "15 สิงหาคม 2566"
+      borrowedDate: "15 สิงหาคม 2566",
+      currentStep: 3
     }
   ];
 
   const pendingRequests = borrowingRequests.filter(request => request.status === "รออนุมัติ");
   const [currentImageIndices, setCurrentImageIndices] = useState({});
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleNext = (requestId) => {
     setCurrentImageIndices(prev => {
@@ -63,6 +71,16 @@ const RequirementList = () => {
         [requestId]: currentIndex === items.length - 1 ? 0 : currentIndex + 1
       };
     });
+  };
+
+  const openDialog = (request) => {
+    setSelectedRequest(request);
+    setIsDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setSelectedRequest(null);
   };
 
   return (
@@ -171,17 +189,14 @@ const RequirementList = () => {
                           รวมทั้งหมด {request.total} ชิ้น
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
-                          <button className={`btn rounded-xl ${request.status === "อนุมัติแล้ว" ? "btn-primary" : "btn-outline"} btn-sm md:btn-md flex-2 md:flex-none`}>
-                            {request.status === "อนุมัติแล้ว" ? (
-                              "รับครุภัณฑ์"
-                            ) : (
-                              <>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                ดูรายละเอียด
-                              </>
-                            )}
+                          <button 
+                            className="btn btn-outline btn-sm md:btn-md flex-2 md:flex-none rounded-xl"
+                            onClick={() => openDialog(request)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            ดูรายละเอียด
                           </button>
                         </div>
                       </div>
@@ -193,6 +208,14 @@ const RequirementList = () => {
           );
         })}
       </div>
+
+      {/* Dialog for showing details */}
+      {isDialogOpen && (
+        <BorrowingRequestDialog 
+          request={selectedRequest} 
+          onClose={closeDialog} 
+        />
+      )}
     </div>
   );
 };
