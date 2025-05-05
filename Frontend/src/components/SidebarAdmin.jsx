@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTachometerAlt, 
+import { faTachometerAlt,
   faArrowRightArrowLeft ,
-  faCogs, 
-  faUsers, 
-  faListAlt, 
-  faGift 
+  faCogs,
+  faUsers,
+  faListAlt,
+  faGift
 } from '@fortawesome/free-solid-svg-icons';
 
 import { MdManageAccounts } from "react-icons/md";
 import { VscGraph } from "react-icons/vsc";
 import { AiFillProduct } from "react-icons/ai";
 import { BiLogOutCircle, BiPackage } from "react-icons/bi";
-import { FaHandshake,FaSignOutAlt } from "react-icons/fa";
+import { FaHandshake,FaSignOutAlt, FaUserEdit } from "react-icons/fa";
 import { GrCatalog } from "react-icons/gr";
 
 function SidebarAdmin() {
@@ -29,6 +29,7 @@ function SidebarAdmin() {
       setSidebarOpen(false);
     }
   };
+
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -54,13 +55,13 @@ function SidebarAdmin() {
   return (
     <React.Fragment>
       {/* Mobile toggle button */}
-      <button 
+      <button
         id="toggle-button"
         onClick={toggleSidebar}
-        data-drawer-target="separator-sidebar" 
-        data-drawer-toggle="separator-sidebar" 
-        aria-controls="separator-sidebar" 
-        type="button" 
+        data-drawer-target="separator-sidebar"
+        data-drawer-toggle="separator-sidebar"
+        aria-controls="separator-sidebar"
+        type="button"
         className="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 z-50"
       >
         <span className="sr-only">Open sidebar</span>
@@ -76,12 +77,12 @@ function SidebarAdmin() {
         <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
           <ul className="space-y-2 font-medium">
             <li>
-              <NavLink 
-                to="/DashboardAd" 
-                onClick={handleNavLinkClick} 
+              <NavLink
+                to="/DashboardAd"
+                onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                  isActive
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
                     : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
                 }`}
               >
@@ -90,12 +91,12 @@ function SidebarAdmin() {
               </NavLink>
             </li>
             <li>
-              <NavLink 
-                to="/equipment" 
-                onClick={handleNavLinkClick} 
+              <NavLink
+                to="/equipment"
+                onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                  isActive
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
                     : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
                 }`}
               >
@@ -104,12 +105,12 @@ function SidebarAdmin() {
               </NavLink>
             </li>
             <li>
-              <NavLink 
-                to="/members" 
-                onClick={handleNavLinkClick} 
+              <NavLink
+                to="/members"
+                onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                  isActive
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
                     : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
                 }`}
               >
@@ -118,12 +119,12 @@ function SidebarAdmin() {
               </NavLink>
             </li>
             <li>
-              <NavLink 
-                to="/category" 
-                onClick={handleNavLinkClick} 
+              <NavLink
+                to="/category"
+                onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                  isActive
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
                     : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
                 }`}
               >
@@ -132,12 +133,12 @@ function SidebarAdmin() {
               </NavLink>
             </li>
             <li>
-              <NavLink 
-                to="/borrow-list" 
+              <NavLink
+                to="/borrow-list"
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                  isActive
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
                     : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
                 }`}
               >
@@ -147,12 +148,12 @@ function SidebarAdmin() {
               </NavLink>
             </li>
             <li>
-              <NavLink 
-                to="/return-list" 
+              <NavLink
+                to="/return-list"
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                  isActive
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
                     : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
                 }`}
               >
@@ -162,12 +163,12 @@ function SidebarAdmin() {
               </NavLink>
             </li>
             <li>
-              <NavLink 
-                to="/ReceiveItem" 
+              <NavLink
+                to="/ReceiveItem"
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                  isActive
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
                     : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
                 }`}
               >
@@ -178,13 +179,25 @@ function SidebarAdmin() {
             </li>
           </ul>
           <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
+          <li>
+              <NavLink
+                to="/edit_profile"
+                onClick={handleNavLinkClick}
+                className={`flex items-center p-2 rounded-lg group ${isActive('/edit_profile')
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
+                  : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+              >
+                <FaUserEdit size={22} />
+                <span className="ms-3">แก้ไขข้อมูลส่วนตัว</span>
+              </NavLink>
+            </li>
             <li>
-              <NavLink 
-                to="/logout" 
+              <NavLink
+                to="/logout"
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
+                  isActive
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
                     : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
                 }`}
               >

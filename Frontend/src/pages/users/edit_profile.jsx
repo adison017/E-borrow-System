@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const PersonalInfoEdit = () => {
   const [formData, setFormData] = useState({
-    profileImage: '/pro.jpg',
+    profileImage: '/logo_it.png',
     idNumber: '65011211033',
     fullName: 'อดิศร หนูกลาง',
     username: 'adison300',
@@ -20,7 +20,7 @@ const PersonalInfoEdit = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const displayImage = previewImage || 
+  const displayImage = previewImage ||
   (typeof formData.profileImage === 'string' ? formData.profileImage : null);
 
     const handleImageChange = (e) => {
@@ -94,9 +94,9 @@ const PersonalInfoEdit = () => {
                   <label className="block text-sm font-medium text-gray-700">รูปภาพประจำตัว</label>
                   <div className="relative w-40 h-40 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 overflow-hidden shadow-sm hover:border-primary transition-colors duration-200">
                     {displayImage ? (
-                      <img 
-                        src={displayImage} 
-                        alt="Profile" 
+                      <img
+                        src={displayImage}
+                        alt="Profile"
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.target.onerror = null;
@@ -111,7 +111,7 @@ const PersonalInfoEdit = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <label className="cursor-pointer w-full">
                     <div className="btn btn-outline btn-primary btn-block btn-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,11 +119,11 @@ const PersonalInfoEdit = () => {
                       </svg>
                       {previewImage ? 'เปลี่ยนรูปภาพ' : 'อัปโหลดรูปภาพ'}
                     </div>
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/jpeg, image/png" 
-                      onChange={handleImageChange} 
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/jpeg, image/png"
+                      onChange={handleImageChange}
                     />
                   </label>
                   <p className="text-xs text-gray-500 text-center">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB</p>
@@ -144,52 +144,52 @@ const PersonalInfoEdit = () => {
                       <label className="label">
                         <span className="label-text text-gray-700">รหัสนิสิต/บุคลากร</span>
                       </label>
-                      <input 
-                        type="text" 
-                        name="idNumber" 
-                        className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300" 
-                        value={formData.idNumber} 
-                        onChange={handleChange} 
-                        required 
+                      <input
+                        type="text"
+                        name="idNumber"
+                        className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300"
+                        value={formData.idNumber}
+                        onChange={handleChange}
+                        required
                       />
                     </div>
                     <div className="form-control">
                       <label className="label">
                         <span className="label-text text-gray-700">ชื่อ-นามสกุล</span>
                       </label>
-                      <input 
-                        type="text" 
-                        name="fullName" 
-                        className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300" 
-                        value={formData.fullName} 
-                        onChange={handleChange} 
-                        required 
+                      <input
+                        type="text"
+                        name="fullName"
+                        className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                        required
                       />
                     </div>
                     <div className="form-control">
                       <label className="label">
                         <span className="label-text text-gray-700">ชื่อผู้ใช้งาน</span>
                       </label>
-                      <input 
-                        type="text" 
-                        name="username" 
-                        className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300" 
-                        value={formData.username} 
-                        onChange={handleChange} 
-                        required 
+                      <input
+                        type="text"
+                        name="username"
+                        className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300"
+                        value={formData.username}
+                        onChange={handleChange}
+                        required
                       />
                     </div>
                     <div className="form-control">
                       <label className="label">
                         <span className="label-text text-gray-700">รหัสผ่าน</span>
                       </label>
-                      <input 
-                        type="password" 
-                        name="password" 
-                        className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300" 
-                        value={formData.password} 
-                        onChange={handleChange} 
-                        required 
+                      <input
+                        type="password"
+                        name="password"
+                        className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300"
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
                       />
                     </div>
                   </div>
@@ -207,13 +207,13 @@ const PersonalInfoEdit = () => {
                   <label className="label">
                     <span className="label-text text-gray-700">อีเมล</span>
                   </label>
-                  <input 
-                    type="email" 
-                    name="email" 
-                    className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300" 
-                    value={formData.email} 
-                    onChange={handleChange} 
-                    required 
+                  <input
+                    type="email"
+                    name="email"
+                    className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
                 <div className="form-control">
@@ -224,13 +224,13 @@ const PersonalInfoEdit = () => {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ">
                       <span className="text-gray-500">+66</span>
                     </div>
-                    <input 
-                      type="tel" 
-                      name="phone" 
-                      className="input-neutral input-bordered w-full pl-12 focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300" 
-                      value={formData.phone} 
-                      onChange={handleChange} 
-                      required 
+                    <input
+                      type="tel"
+                      name="phone"
+                      className="input-neutral input-bordered w-full pl-12 focus:ring-2 focus:ring-primary focus:border-transparent h-9 rounded-xl border-gray-300"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required
                     />
                   </div>
                 </div>
@@ -249,13 +249,13 @@ const PersonalInfoEdit = () => {
                 <label className="label">
                   <span className="label-text text-gray-700">ที่อยู่ปัจจุบัน</span>
                 </label>
-                <textarea 
-                  name="currentAddress" 
-                  className="textarea-neutral textarea-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl border-gray-300" 
-                  rows="3" 
-                  value={formData.currentAddress} 
-                  onChange={handleChange} 
-                  required 
+                <textarea
+                  name="currentAddress"
+                  className="textarea-neutral textarea-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl border-gray-300"
+                  rows="3"
+                  value={formData.currentAddress}
+                  onChange={handleChange}
+                  required
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -263,13 +263,13 @@ const PersonalInfoEdit = () => {
                   <label className="label">
                     <span className="label-text text-gray-700">จังหวัด</span>
                   </label>
-                  <select 
-                    name="province" 
-                    value={formData.province} 
-                    onChange={handleChange} 
+                  <select
+                    name="province"
+                    value={formData.province}
+                    onChange={handleChange}
                     className="select-neutral select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl border-gray-300"
                   >
-                    {['มหาสารคาม', 'ชัยภูมิ', 'ขอนแก่น'].map(opt => 
+                    {['มหาสารคาม', 'ชัยภูมิ', 'ขอนแก่น'].map(opt =>
                       <option key={opt} value={opt}>{opt}</option>
                     )}
                   </select>
@@ -278,13 +278,13 @@ const PersonalInfoEdit = () => {
                   <label className="label">
                     <span className="label-text text-gray-700">อำเภอ</span>
                   </label>
-                  <select 
-                    name="district" 
-                    value={formData.district} 
-                    onChange={handleChange} 
+                  <select
+                    name="district"
+                    value={formData.district}
+                    onChange={handleChange}
                     className="select-neutral select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl border-gray-300"
                   >
-                    {['กันทรวิชัย', 'เมือง'].map(opt => 
+                    {['กันทรวิชัย', 'เมือง'].map(opt =>
                       <option key={opt} value={opt}>{opt}</option>
                     )}
                   </select>
@@ -293,13 +293,13 @@ const PersonalInfoEdit = () => {
                   <label className="label">
                     <span className="label-text text-gray-700">ตำบล</span>
                   </label>
-                  <select 
-                    name="subdistrict" 
-                    value={formData.subdistrict} 
-                    onChange={handleChange} 
+                  <select
+                    name="subdistrict"
+                    value={formData.subdistrict}
+                    onChange={handleChange}
                     className="select-neutral select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl border-gray-300"
                   >
-                    {['ขามเรียง', 'ท่าขอนยาง', 'คันธารราษฎร์'].map(opt => 
+                    {['ขามเรียง', 'ท่าขอนยาง', 'คันธารราษฎร์'].map(opt =>
                       <option key={opt} value={opt}>{opt}</option>
                     )}
                   </select>
@@ -308,28 +308,29 @@ const PersonalInfoEdit = () => {
                   <label className="label">
                     <span className="label-text text-gray-700">รหัสไปรษณีย์</span>
                   </label>
-                  <input 
-                    type="text" 
-                    name="postalCode" 
-                    className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl border-gray-300" 
-                    value={formData.postalCode} 
-                    onChange={handleChange} 
-                    required 
+                  <input
+                    type="text"
+                    name="postalCode"
+                    className="input-neutral input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl border-gray-300"
+                    value={formData.postalCode}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex  gap-2 md:flex-row justify-between items-center md:w-auto mt-6">
-              <button 
-                type="button" 
-                className="btn btn-outline btn-sm md:btn-md hover:bg-red-600 hover:text-white flex-2 rounded-xl border-gray-300"
+            <div className="flex  gap-2 mt-auto md:flex-row justify-between items-center md:w-auto mt-6">
+              <button
+                type="button"
+                className="btn btn-outline btn-sm md:btn-md border-gray-700 hover:bg-red-600 hover:text-white flex-2 rounded-xl border-gray-300"
+
               >
                 ยกเลิก
               </button>
-              <button 
-                type="submit" 
-                className={`btn btn-primary btn-sm md:btn-md text-white hover:bg-primary90 flex-2 shadow-md rounded-xl ${isLoading ? 'loading' : ''}`} 
+              <button
+                type="submit"
+                className={`btn btn-primary btn-sm md:btn-md text-white hover:bg-primary90 flex-2 shadow-md rounded-xl ${isLoading ? 'loading' : ''}`}
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -343,8 +344,8 @@ const PersonalInfoEdit = () => {
             </div>
               </div>
             </div>
-            
-            
+
+
           </form>
         </div>
       </div>

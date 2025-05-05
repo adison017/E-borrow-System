@@ -1,4 +1,4 @@
-import { 
+import {
   CheckCircleIcon as CheckCircleSolidIcon,
   ExclamationTriangleIcon,
   ClockIcon,
@@ -85,9 +85,9 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
           ></div>
 
           {/* Dialog with animation */}
-          <div className="modal-box w-11/12 max-w-xl p-0 bg-white rounded-lg shadow-2xl z-50 transform transition-all duration-300 ease-out scale-95 opacity-0 
+          <div className="modal-box w-11/12 max-w-xl p-0 bg-white rounded-lg shadow-2xl z-50 transform transition-all duration-300 ease-out scale-95 opacity-0
               [.modal-open_&]:scale-100 [.modal-open_&]:opacity-100">
-              
+
               {/* Header */}
               <div className="bg-gray-800 py-4 px-6 rounded-t-lg">
                   <div className="flex justify-between items-center">
@@ -97,7 +97,7 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                           </svg>
                           รายละเอียดการยืมครุภัณฑ์
                       </h2>
-                      <button 
+                      <button
                           onClick={onClose}
                           className="text-white hover:text-gray-200 focus:outline-none"
                       >
@@ -148,8 +148,8 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                       </h3>
                       <div className="flex items-center p-4">
                           <div className="w-16 h-16 rounded-lg overflow-hidden mr-4">
-                              <img 
-                                  src={borrow.equipment.image} 
+                              <img
+                                  src={borrow.equipment.image}
                                   alt={borrow.equipment.name}
                                   className="w-full h-full object-cover"
                               />
@@ -174,7 +174,7 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                       </div>
                   </div>
               </div>
-              
+
               {/* Footer with action buttons */}
               {borrow.status === "under_review" && (
                   <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-lg">
@@ -193,7 +193,7 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                               />
                           </div>
                       )}
-                      
+
                       <div className="flex flex-col sm:flex-row justify-end gap-3">
                           <button
                               type="button"
@@ -205,7 +205,7 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                               </svg>
                               ยกเลิก
                           </button>
-                          
+
                           {!showRejectReason ? (
                               <button
                                   type="button"
