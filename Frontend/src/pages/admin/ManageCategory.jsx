@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { 
-  MagnifyingGlassIcon, 
+import {
+  MagnifyingGlassIcon,
   TrashIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
-import { 
+import {
   PencilIcon,
 } from "@heroicons/react/24/solid";
-import { 
+import {
   Card,
   CardHeader,
   Input,
@@ -20,9 +20,9 @@ import {
   Tooltip,
   ThemeProvider,
 } from "@material-tailwind/react";
-import DeleteCategoryDialog from "./DeleteCategoryDialog";
-import EditCategoryDialog from "./EditCategoryDialog";
-import AddCategoryDialog from "./AddCategoryDialog";
+import DeleteCategoryDialog from "./dialog/DeleteCategoryDialog";
+import EditCategoryDialog from "./dialog/EditCategoryDialog";
+import AddCategoryDialog from "./dialog/AddCategoryDialog";
 import Notification from "../../components/Notification";
 
 // Theme configuration
@@ -81,20 +81,20 @@ function ManageCategory() {
     message: "",
     type: "success"
   });
-  
+
   const [editFormData, setEditFormData] = useState({
     category_id: "",
     category_code: "",
     name: "",
     description: ""
   });
-  
+
   const [addFormData, setAddFormData] = useState({
     category_code: "",
     name: "",
     description: ""
   });
-  
+
   const [searchTerm, setSearchTerm] = useState("");
 
   const showNotification = (message, type = "success") => {
@@ -136,16 +136,16 @@ function ManageCategory() {
   };
 
   const saveEdit = () => {
-    setCategoryList(categoryList.map(item => 
-      item.category_id === editFormData.category_id ? { 
-        ...editFormData, 
+    setCategoryList(categoryList.map(item =>
+      item.category_id === editFormData.category_id ? {
+        ...editFormData,
         updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
       } : item
     ));
     setEditDialogOpen(false);
     showNotification(`แก้ไขหมวดหมู่ ${editFormData.name} เรียบร้อยแล้ว`);
   };
-  
+
   const handleAddClick = () => {
     const newCode = `CAT-${String(categoryList.length + 1).padStart(3, '0')}`;
     setAddFormData({
@@ -155,7 +155,7 @@ function ManageCategory() {
     });
     setAddDialogOpen(true);
   };
-  
+
   const handleAddChange = (e) => {
     const { name, value } = e.target;
     setAddFormData(prev => ({
@@ -163,25 +163,25 @@ function ManageCategory() {
       [name]: value
     }));
   };
-  
+
   const saveNewCategory = () => {
     const now = new Date();
     const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
-    
+
     const newCategory = {
       ...addFormData,
       category_id: categoryList.length > 0 ? Math.max(...categoryList.map(c => c.category_id)) + 1 : 1,
       created_at: formattedDate,
       updated_at: formattedDate
     };
-    
+
     setCategoryList([...categoryList, newCategory]);
     setAddDialogOpen(false);
     showNotification(`เพิ่มหมวดหมู่ ${addFormData.name} เรียบร้อยแล้ว`);
   };
-  
+
   const filteredCategories = categoryList.filter(
-    category => 
+    category =>
       category.category_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -200,8 +200,8 @@ function ManageCategory() {
                 จัดการข้อมูลหมวดหมู่ทั้งหมด
               </Typography>
             </div>
-            <Button 
-              className="bg-blue-500 hover:bg-blue-600 text-white" 
+            <Button
+              className="bg-blue-500 hover:bg-blue-600 text-white"
               size="sm"
               onClick={handleAddClick}
             >
@@ -237,7 +237,7 @@ function ManageCategory() {
             </div>
           </div>
         </CardHeader>
-        
+
         <CardBody className="overflow-x-auto px-0">
           <table className="mt-4 w-full min-w-max table-auto text-left">
             <thead>
@@ -293,20 +293,20 @@ function ManageCategory() {
                             </IconButton>
                           </Tooltip>
                           <Tooltip content="แก้ไข">
-                            <IconButton 
-                              variant="text" 
-                              color="amber" 
-                              className="bg-amber-50 hover:bg-amber-100" 
+                            <IconButton
+                              variant="text"
+                              color="amber"
+                              className="bg-amber-50 hover:bg-amber-100"
                               onClick={() => handleEditClick({ category_id, category_code, name, description })}
                             >
                               <PencilIcon className="h-4 w-4" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip content="ลบ">
-                            <IconButton 
-                              variant="text" 
-                              color="red" 
-                              className="bg-red-50 hover:bg-red-100" 
+                            <IconButton
+                              variant="text"
+                              color="red"
+                              className="bg-red-50 hover:bg-red-100"
                               onClick={() => handleDeleteClick({ category_id, name })}
                             >
                               <TrashIcon className="h-4 w-4" />
@@ -329,7 +329,7 @@ function ManageCategory() {
             </tbody>
           </table>
         </CardBody>
-        
+
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-blue-gray-50 p-4">
           <Typography variant="small" className="font-normal text-black mb-3 sm:mb-0">
             แสดง 1 ถึง {filteredCategories.length} จากทั้งหมด {categoryList.length} รายการ
@@ -343,15 +343,15 @@ function ManageCategory() {
             </Button>
           </div>
         </CardFooter>
-        
+
         {/* Notification Component */}
-        <Notification 
-          show={notification.show} 
-          message={notification.message} 
-          type={notification.type} 
+        <Notification
+          show={notification.show}
+          message={notification.message}
+          type={notification.type}
           onClose={() => setNotification(prev => ({ ...prev, show: false }))}
         />
-        
+
         {/* Delete Confirmation Modal */}
         <DeleteCategoryDialog
           open={deleteDialogOpen}
@@ -359,23 +359,23 @@ function ManageCategory() {
           selectedCategory={selectedCategory}
           onConfirm={confirmDelete}
         />
-        
+
         {/* Edit Dialog Modal */}
         <EditCategoryDialog
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
           categoryData={selectedCategory}
           onSave={(updatedData) => {
-            setCategoryList(categoryList.map(item => 
-              item.category_id === updatedData.category_id ? { 
-                ...updatedData, 
+            setCategoryList(categoryList.map(item =>
+              item.category_id === updatedData.category_id ? {
+                ...updatedData,
                 updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
               } : item
             ));
             showNotification(`แก้ไขหมวดหมู่ ${updatedData.name} เรียบร้อยแล้ว`);
           }}
         />
-        
+
         {/* Add Category Dialog Modal */}
         <AddCategoryDialog
           open={addDialogOpen}
@@ -388,14 +388,14 @@ function ManageCategory() {
           onSave={(newCategory) => {
             const now = new Date();
             const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
-            
+
             const categoryWithId = {
               ...newCategory,
               category_id: categoryList.length > 0 ? Math.max(...categoryList.map(c => c.category_id)) + 1 : 1,
               created_at: formattedDate,
               updated_at: formattedDate
             };
-            
+
             setCategoryList([...categoryList, categoryWithId]);
             showNotification(`เพิ่มหมวดหมู่ ${newCategory.name} เรียบร้อยแล้ว`);
           }}

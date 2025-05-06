@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react"; // เพิ่ม useEffect
-import { 
-  MagnifyingGlassIcon, 
+import {
+  MagnifyingGlassIcon,
   TrashIcon,
-  EyeIcon 
+  EyeIcon
 } from "@heroicons/react/24/outline";
-import { 
+import {
   PencilIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -24,9 +24,9 @@ import {
   Tooltip,
   ThemeProvider,
 } from "@material-tailwind/react";
-import DeleteEquipmentDialog from "./DeleteEquipmentDialog";
-import EditEquipmentDialog from "./EditEquipmentDialog";
-import AddEquipmentDialog from "./AddEquipmentDialog";
+import DeleteEquipmentDialog from "./dialog/DeleteEquipmentDialog";
+import EditEquipmentDialog from "./dialog/EditEquipmentDialog";
+import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
 import Notification from "../../components/Notification";
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
@@ -133,7 +133,7 @@ function ManageEquipment() {
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("success");
-  
+
   // เพิ่ม state สำหรับฟอร์มเพิ่มครุภัณฑ์ใหม่
   const [addFormData, setAddFormData] = useState({
     id: "",
@@ -143,7 +143,7 @@ function ManageEquipment() {
     status: "พร้อมใช้งาน",
     pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png" // รูปเริ่มต้น
   });
-  
+
   // เพิ่มสถานะสำหรับการค้นหา
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -152,7 +152,7 @@ function ManageEquipment() {
     setAlertMessage(message);
     setAlertType(type);
     setShowAlert(true);
-    
+
     // ปิด Alert อัตโนมัติหลังจาก 3 วินาที
     setTimeout(() => {
       setShowAlert(false);
@@ -193,13 +193,13 @@ function ManageEquipment() {
   };
 
   const saveEdit = () => {
-    setEquipmentList(equipmentList.map(item => 
+    setEquipmentList(equipmentList.map(item =>
       item.id === editFormData.id ? editFormData : item
     ));
     setEditDialogOpen(false);
     showAlertMessage(`แก้ไขครุภัณฑ์ ${editFormData.name} เรียบร้อยแล้ว`, "success");
   };
-  
+
   // ฟังก์ชั่นสำหรับเปิด dialog เพิ่มครุภัณฑ์
   const handleAddClick = () => {
     // สร้าง ID ใหม่
@@ -214,7 +214,7 @@ function ManageEquipment() {
     });
     setAddDialogOpen(true);
   };
-  
+
   // ฟังก์ชั่นจัดการการเปลี่ยนแปลงในฟอร์มเพิ่ม
   const handleAddChange = (e) => {
     const { name, value } = e.target;
@@ -223,32 +223,32 @@ function ManageEquipment() {
       [name]: value
     }));
   };
-  
+
   // ฟังก์ชั่นบันทึกครุภัณฑ์ใหม่
   const saveNewEquipment = () => {
     // สร้างวันที่ปัจจุบัน
     const now = new Date();
     const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    
+
     // เพิ่มครุภัณฑ์ใหม่เข้าไปในรายการ
     const newEquipment = {
       ...addFormData,
       created_at: formattedDate
     };
-    
+
     setEquipmentList([...equipmentList, newEquipment]);
     setAddDialogOpen(false);
     showAlertMessage(`เพิ่มครุภัณฑ์ ${addFormData.name} เรียบร้อยแล้ว`, "success");
   };
-  
+
   // ฟังก์ชั่นสำหรับกรองข้อมูลตามคำค้นหา
   const filteredEquipment = equipmentList.filter(
-    item => 
+    item =>
       item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
+
   // สร้าง component แสดงสถานะที่สวยงาม
   const StatusDisplay = ({ status }) => {
     const config = statusConfig[status] || {
@@ -257,9 +257,9 @@ function ManageEquipment() {
       backgroundColor: "bg-gray-200",
       borderColor: "border-gray-100"
     };
-    
+
     const StatusIcon = config.icon;
-    
+
     return (
       <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${config.backgroundColor} ${config.borderColor} border`}>
         <StatusIcon className={`h-4 w-4 text-${config.color}-500`} />
@@ -274,14 +274,14 @@ function ManageEquipment() {
     <ThemeProvider value={theme}>
       <Card className="h-full w-full text-black">
        {/* Alert Notification */}
-       <Notification 
+       <Notification
           show={showAlert}
           message={alertMessage}
           type={alertType}
           onClose={() => setShowAlert(false)}
         />
 
-        
+
         <CardHeader floated={false} shadow={false} className="rounded-none">
           <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
@@ -292,8 +292,8 @@ function ManageEquipment() {
                 จัดการข้อมูลครุภัณฑ์ทั้งหมด
               </Typography>
             </div>
-            <Button 
-              className="bg-blue-500 hover:bg-blue-600 text-white" 
+            <Button
+              className="bg-blue-500 hover:bg-blue-600 text-white"
               size="sm"
               onClick={handleAddClick}
             >
@@ -368,9 +368,9 @@ function ManageEquipment() {
                       </td>
                       <td className={classes}>
                         <div className="flex items-center justify-center">
-                          <Avatar 
-                            src={pic} 
-                            alt={name} 
+                          <Avatar
+                            src={pic}
+                            alt={name}
                             size="md"
                             className="h-12 w-12 border border-blue-gray-50 shadow-sm object-contain p-1 bg-white"
                           />
@@ -441,7 +441,7 @@ function ManageEquipment() {
             </Button>
           </div>
         </CardFooter>
-        
+
         {/* Delete Confirmation Modal - DaisyUI */}
         <DeleteEquipmentDialog
           open={deleteDialogOpen}
@@ -456,13 +456,13 @@ function ManageEquipment() {
           onClose={() => setEditDialogOpen(false)}
           equipmentData={selectedEquipment}
           onSave={(updatedData) => {
-            setEquipmentList(equipmentList.map(item => 
+            setEquipmentList(equipmentList.map(item =>
               item.id === updatedData.id ? updatedData : item
             ));
             showAlertMessage(`แก้ไขครุภัณฑ์ ${updatedData.name} เรียบร้อยแล้ว`, "success");
           }}
         />
-        
+
         {/* Add Equipment Dialog Modal - DaisyUI */}
         <AddEquipmentDialog
           open={addDialogOpen}
@@ -478,7 +478,7 @@ function ManageEquipment() {
           onSave={(newEquipment) => {
             const now = new Date();
             const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-            
+
             setEquipmentList([...equipmentList, {
               ...newEquipment,
               created_at: formattedDate
