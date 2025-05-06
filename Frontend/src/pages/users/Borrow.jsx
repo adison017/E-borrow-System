@@ -139,11 +139,11 @@ const RequirementList = () => {
                 {/* Content section */}
                 <div className="md:w-2/3 w-full">
                   <div className="card-body p-4 md:p-6">
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                    <div className="flex flex-col md:flex-row md:justify-between justify-center md:items-start items-center gap-2">
                       <h2 className="card-title text-gray-800 text-lg md:text-xl">
                         {request.id}
                       </h2>
-                      <div className={`badge ${request.statusColor} text-white text-sm md:text-base`}>
+                      <div className={`badge ${request.statusColor} text-black md:text-base px-4 py-4 rounded-full text-sm font-medium `}>
                         {request.status}
                       </div>
                     </div>
@@ -155,7 +155,7 @@ const RequirementList = () => {
                     
                     <div className="mb-4">
                       <h3 className="font-semibold text-gray-700 mb-2">รายการครุภัณฑ์</h3>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 justify-start">
                         {request.items.map((item, index) => (
                           <span 
                             key={index} 
@@ -171,12 +171,12 @@ const RequirementList = () => {
                       </div>
                     </div>
 
-                    <div className="mb-4 grid grid-cols-2 gap-4">
-                      <div>
+                    <div className="mb-4 grid grid-cols-2 gap-4 ">
+                      <div className="bg-gray-100 px-4 py-4 rounded-lg text-sm font-medium">
                         <h3 className="font-semibold text-gray-700 mb-1">วันที่ยืม</h3>
                         <p className="text-gray-600 text-sm md:text-base">{request.borrowedDate}</p>
                       </div>
-                      <div>
+                      <div className="bg-gray-100 px-4 py-4 rounded-lg text-sm font-medium">
                         <h3 className="font-semibold text-gray-700 mb-1">วันที่ครบกำหนดคืน</h3>
                         <p className="text-gray-600 text-sm md:text-base">{request.dueDate}</p>
                       </div>
@@ -190,7 +190,7 @@ const RequirementList = () => {
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
                           <button 
-                            className="btn btn-outline btn-sm md:btn-md flex-2 md:flex-none rounded-xl"
+                            className="btn btn-outline btn-sm md:btn-md flex-2 md:flex-none rounded-xl hover:bg-blue-600 hover:border-blue-500 border-gray-200 bg-gray-200 transition-colors"
                             onClick={() => openDialog(request)}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

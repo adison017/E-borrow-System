@@ -353,7 +353,7 @@ const Home = () => {
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-2">หมวดหมู่</h3>
                 <select
-                  className="block w-full pl-3 pr-10 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm rounded-xl transition-colors hover:bg-blue-700"
+                  className="block w-full pl-3 pr-10 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm rounded-xl"
                   value={selectedCategory}
                   onChange={(e) => handleCategoryFilter(e.target.value)}
                 >
@@ -411,7 +411,7 @@ const Home = () => {
                             >
                               <MdAdd className="w-4 h-4" />
                             </button>
-                            <span className="join-item btn btn-sm btn-ghost border px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700">
+                            <span className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700">
                               {quantities[equipment.id]}
                             </span>
                             <button 
@@ -423,7 +423,7 @@ const Home = () => {
                           </div>
                         ) : (
                           <button 
-                            className={`btn btn-sm btn-ghoste px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${equipment.available <= 0 ? 'btn-disabled' : 'btn-ghost'}`}
+                            className={`btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${equipment.available <= 0 ? 'btn-disabled' : 'btn-ghost'}`}
                             onClick={() => handleIncrease(equipment.id)}
                             disabled={equipment.available <= 0}
                           >
@@ -455,7 +455,7 @@ const Home = () => {
                   setSelectedStatus('ทั้งหมด');
                   setSelectedCategory('ทั้งหมด');
                 }}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="mt-4 btn btn-md btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 transition-colors"
               >
                 ล้างการค้นหา
               </button>

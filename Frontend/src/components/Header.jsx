@@ -17,7 +17,7 @@ function Header() {
  
 
   return (
-    <header className="bg-[#1E3A8A] text-white py-5 px-8 rounded-l mb-6 shadow-lg">
+    <header className="bg-[#1E3A8A] text-white py-5 px-8 rounded-lg mb-6 shadow-lg">
       <div className="flex justify-between items-center">
         {/* Logo + System Name */}
         <div className="flex items-center space-x-4">
@@ -29,22 +29,20 @@ function Header() {
         {/* User Info + Logout */}
         <div className="flex items-center gap-3 sm:gap-5">
           {/* Profile Picture */}
+          
+
+          {/* Username + Role */}
+          <div className="text-xs sm:text-sm text-right  sm:block">
+            <div className="font-semibold">{username}</div>
+            <div className="text-blue-100">{role}</div>
+          </div>
+
           <img
             src="/lo.png"
             alt="Profile"
             className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover bg-white shadow-md"
           />
-
-          {/* Username + Role */}
-          <div className="text-xs sm:text-sm text-right hidden sm:block">
-            <div className="font-semibold">{username}</div>
-            <div className="text-blue-100">{role}</div>
-          </div>
-
-          {/* Logout Button */}
-          <button className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm shadow-md transition-all">
-            ออกจากระบบ
-          </button>
+        
         </div>
       </div>
     </header>
