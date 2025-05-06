@@ -13,7 +13,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 // Components
-import BorrowDetailsDialog from "./BorrowDetailsDialog";
+import BorrowDetailsDialog from "./dialog/BorrowDetailsDialog";
 import Notification from "../../components/Notification";
 import ConfirmDialog from "../../components/ConfirmDialog";
 

@@ -27,8 +27,8 @@ import {
 
 // Import components
 import ScannerDialog from "../../components/ScannerDialog";
-import ReturnFormDialog from "./ReturnFormDialog";
-import ReturndetailsDialog from "./ReturndetailsDialog";
+import ReturnFormDialog from "./dialog/ReturnFormDialog";
+import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import Notification from "../../components/Notification";
 
@@ -170,25 +170,25 @@ const ReturnList = () => {
   const [borrowedItems, setBorrowedItems] = useState(initialBorrowedItems);
   const [filteredReturns, setFilteredReturns] = useState(initialReturns);
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Dialog states
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isReturnFormOpen, setIsReturnFormOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  
+
   // Current data states
   const [selectedBorrowedItem, setSelectedBorrowedItem] = useState(null);
   const [selectedReturnItem, setSelectedReturnItem] = useState(null);
   const [selectedReturnId, setSelectedReturnId] = useState(null);
-  
+
   // Return processing states
   const [returnStatus, setReturnStatus] = useState({
     isOverdue: false,
     overdayCount: 0,
     fineAmount: 0
   });
-  
+
   // Notification state
   const [notification, setNotification] = useState({
     show: false,
@@ -200,7 +200,7 @@ const ReturnList = () => {
     if (searchTerm.trim() === "") {
       setFilteredReturns(returns);
     } else {
-      const filtered = returns.filter(item => 
+      const filtered = returns.filter(item =>
         item.return_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.borrow_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -217,12 +217,12 @@ const ReturnList = () => {
 
   const handleScanComplete = (code) => {
     setIsScannerOpen(false);
-    
+
     // Check if code matches a borrowed item
-    const borrowedItem = borrowedItems.find(item => 
+    const borrowedItem = borrowedItems.find(item =>
       item.borrow_code === code || item.equipment.code === code
     );
-    
+
     if (borrowedItem) {
       // Calculate overdue status
       const status = calculateReturnStatus(borrowedItem);
@@ -234,18 +234,18 @@ const ReturnList = () => {
       showNotification("ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่สแกน", "error");
     }
   };
-  
+
   const handleManualSearch = (code) => {
     setIsScannerOpen(false);
-    
+
     if (!code.trim()) return;
-    
+
     // Check if code matches a borrowed item
-    const borrowedItem = borrowedItems.find(item => 
-      item.borrow_code.toLowerCase() === code.toLowerCase() || 
+    const borrowedItem = borrowedItems.find(item =>
+      item.borrow_code.toLowerCase() === code.toLowerCase() ||
       item.equipment.code.toLowerCase() === code.toLowerCase()
     );
-    
+
     if (borrowedItem) {
       // Calculate overdue status
       const status = calculateReturnStatus(borrowedItem);
@@ -265,19 +265,19 @@ const ReturnList = () => {
       returnNotes: returnData.returnNotes,
       fineAmount: returnData.fineAmount
     }, returns);
-    
+
     // Add new return to returns list
     setReturns([newReturn, ...returns]);
-    
+
     // Remove returned item from borrowed items list
     const updatedBorrowedItems = borrowedItems.filter(
       item => item.borrow_code !== returnData.borrowedItem.borrow_code
     );
     setBorrowedItems(updatedBorrowedItems);
-    
+
     // Close return form
     setIsReturnFormOpen(false);
-    
+
     // Show success notification
     showNotification("บันทึกการคืนครุภัณฑ์เรียบร้อยแล้ว", "success");
   };
@@ -295,16 +295,16 @@ const ReturnList = () => {
   const confirmDelete = () => {
     // Find the deleted return item
     const deletedItem = returns.find(item => item.return_id === selectedReturnId);
-    
+
     // Filter out the deleted item
     const updatedReturns = returns.filter(item => item.return_id !== selectedReturnId);
     setReturns(updatedReturns);
-    
+
     // Add the item back to borrowed items if it's not in there already
     const isAlreadyInBorrowed = borrowedItems.some(
       item => item.borrow_code === deletedItem.borrow_code
     );
-    
+
     if (!isAlreadyInBorrowed) {
       const returnedToBorrowed = {
         borrow_id: deletedItem.return_id,
@@ -315,13 +315,13 @@ const ReturnList = () => {
         due_date: deletedItem.due_date,
         status: "active"
       };
-      
+
       setBorrowedItems([...borrowedItems, returnedToBorrowed]);
     }
-    
+
     // Close confirm dialog
     setIsDeleteConfirmOpen(false);
-    
+
     // Show success notification
     showNotification("ลบรายการคืนเรียบร้อยแล้ว", "success");
   };
@@ -332,7 +332,7 @@ const ReturnList = () => {
       message,
       type
     });
-    
+
     // Auto hide notification after 5 seconds
     setTimeout(() => {
       setNotification(prev => ({ ...prev, show: false }));
@@ -367,8 +367,8 @@ const ReturnList = () => {
         );
     }
   };
-  
-  
+
+
 
   return (
     <ThemeProvider value={theme}>
@@ -399,9 +399,9 @@ const ReturnList = () => {
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         </div>
       </div>
-      <Button 
-        className="flex items-center gap-2" 
-        color="blue" 
+      <Button
+        className="flex items-center gap-2"
+        color="blue"
         size="sm"
         onClick={() => setIsScannerOpen(true)}
       >
@@ -532,17 +532,17 @@ const ReturnList = () => {
           </div>
         </CardFooter>
       </Card>
-      
+
       {/* Scanner Dialog */}
-      <ScannerDialog 
+      <ScannerDialog
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onScanComplete={handleScanComplete}
         onManualInput={handleManualSearch}
       />
-      
+
       {/* Return Form Dialog */}
-      <ReturnFormDialog 
+      <ReturnFormDialog
         borrowedItem={selectedBorrowedItem}
         isOpen={isReturnFormOpen}
         onClose={() => setIsReturnFormOpen(false)}
@@ -552,23 +552,23 @@ const ReturnList = () => {
         fineAmount={returnStatus.fineAmount}
         setFineAmount={(amount) => setReturnStatus(prev => ({ ...prev, fineAmount: amount }))}
       />
-      
+
       {/* Return Details Dialog */}
-      <ReturndetailsDialog 
+      <ReturndetailsDialog
         returnItem={selectedReturnItem}
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
       />
-      
+
       {/* Delete Confirm Dialog */}
-      <ConfirmDialog 
+      <ConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onClose={() => setIsDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
         title="ยืนยันการลบ"
         message="คุณต้องการลบรายการคืนนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
       />
-      
+
       {/* Notification */}
       <Notification
         show={notification.show}

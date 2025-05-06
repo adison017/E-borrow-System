@@ -7,7 +7,7 @@ import {
     CheckIcon
   } from "@heroicons/react/24/outline";
   import { useEffect, useState } from "react";
-  
+
   import {
     CheckCircleIcon as CheckCircleSolidIcon,
     ClockIcon,
@@ -15,7 +15,7 @@ import {
     ArrowPathIcon,
     XCircleIcon
   } from "@heroicons/react/24/solid";
-  
+
   import {
     Button,
     Card,
@@ -27,13 +27,13 @@ import {
     Tooltip,
     Typography
   } from "@material-tailwind/react";
-  
+
   // Import components
   import ScannerDialog from "../../components/ScannerDialog";
   import ConfirmDialog from "../../components/ConfirmDialog";
   import Notification from "../../components/Notification";
-  import EquipmentDeliveryDialog from "./EquipmentDeliveryDialog";
-  
+  import EquipmentDeliveryDialog from "./dialog/EquipmentDeliveryDialog";
+
   // กำหนด theme สีพื้นฐานเป็นสีดำ
   const theme = {
     typography: {
@@ -43,7 +43,7 @@ import {
       },
     }
   };
-  
+
   const TABLE_HEAD = [
     "รหัสการยืม",
     "ผู้ยืม",
@@ -54,7 +54,7 @@ import {
     "สถานะ",
     "จัดการ"
   ];
-  
+
   const initialPendingDeliveries = [
     {
       borrow_id: 1,
@@ -114,7 +114,7 @@ import {
       delivery_date: null
     }
   ];
-  
+
   const initialCompletedDeliveries = [
     {
       borrow_id: 4,
@@ -138,7 +138,7 @@ import {
       receiver_signature: "signature.png"
     }
   ];
-  
+
   const ReceiveItem = () => {
     const [pendingDeliveries, setPendingDeliveries] = useState(initialPendingDeliveries);
     const [completedDeliveries, setCompletedDeliveries] = useState(initialCompletedDeliveries);
@@ -146,28 +146,28 @@ import {
     const [filteredDeliveries, setFilteredDeliveries] = useState([...initialPendingDeliveries, ...initialCompletedDeliveries]);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState("pending"); // "pending" หรือ "completed"
-    
+
     // Dialog states
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [isDeliveryDialogOpen, setIsDeliveryDialogOpen] = useState(false);
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-    
+
     // Current data states
     const [selectedBorrow, setSelectedBorrow] = useState(null);
     const [selectedBorrowId, setSelectedBorrowId] = useState(null);
-    
+
     // Notification state
     const [notification, setNotification] = useState({
       show: false,
       message: "",
       type: "success"
     });
-  
+
     useEffect(() => {
       // รวมรายการทั้งหมดเข้าด้วยกัน
       const combined = [...pendingDeliveries, ...completedDeliveries];
       setAllDeliveries(combined);
-      
+
       // กรองตาม tab ที่เลือก
       if (activeTab === "pending") {
         setFilteredDeliveries(pendingDeliveries);
@@ -175,7 +175,7 @@ import {
         setFilteredDeliveries(completedDeliveries);
       }
     }, [pendingDeliveries, completedDeliveries, activeTab]);
-  
+
     useEffect(() => {
       // กรองตามคำค้นหา
       if (searchTerm.trim() === "") {
@@ -186,7 +186,7 @@ import {
         }
       } else {
         const toFilter = activeTab === "pending" ? pendingDeliveries : completedDeliveries;
-        const filtered = toFilter.filter(item => 
+        const filtered = toFilter.filter(item =>
           item.borrow_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -195,19 +195,19 @@ import {
         setFilteredDeliveries(filtered);
       }
     }, [searchTerm, activeTab, pendingDeliveries, completedDeliveries]);
-  
+
     const handleSearch = (e) => {
       setSearchTerm(e.target.value);
     };
-  
+
     const handleScanComplete = (code) => {
       setIsScannerOpen(false);
-      
+
       // ตรวจสอบว่ารหัสที่สแกนตรงกับรายการยืมหรือไม่
-      const borrowedItem = allDeliveries.find(item => 
+      const borrowedItem = allDeliveries.find(item =>
         item.borrow_code === code || item.equipment.code === code
       );
-      
+
       if (borrowedItem) {
         setSelectedBorrow(borrowedItem);
         setIsDeliveryDialogOpen(true);
@@ -216,18 +216,18 @@ import {
         showNotification("ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่สแกน", "error");
       }
     };
-    
+
     const handleManualSearch = (code) => {
       setIsScannerOpen(false);
-      
+
       if (!code.trim()) return;
-      
+
       // ตรวจสอบว่ารหัสที่ป้อนตรงกับรายการยืมหรือไม่
-      const borrowedItem = allDeliveries.find(item => 
-        item.borrow_code.toLowerCase() === code.toLowerCase() || 
+      const borrowedItem = allDeliveries.find(item =>
+        item.borrow_code.toLowerCase() === code.toLowerCase() ||
         item.equipment.code.toLowerCase() === code.toLowerCase()
       );
-      
+
       if (borrowedItem) {
         setSelectedBorrow(borrowedItem);
         setIsDeliveryDialogOpen(true);
@@ -236,12 +236,12 @@ import {
         showNotification("ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่ป้อน", "error");
       }
     };
-  
+
     const handleViewDetails = (borrowItem) => {
       setSelectedBorrow(borrowItem);
       setIsDeliveryDialogOpen(true);
     };
-  
+
     const handleDeliveryConfirm = (deliveryData) => {
       // อัปเดตสถานะรายการยืม
       const updatedItem = {
@@ -251,53 +251,53 @@ import {
         delivery_note: deliveryData.deliveryNote,
         receiver_signature: deliveryData.signature || "signature.png" // สมมติว่ามีการเซ็นต์รับ
       };
-      
+
       // ลบรายการจาก pending และเพิ่มเข้า completed
       const updatedPending = pendingDeliveries.filter(
         item => item.borrow_id !== updatedItem.borrow_id
       );
       setPendingDeliveries(updatedPending);
       setCompletedDeliveries([updatedItem, ...completedDeliveries]);
-      
+
       // ปิด dialog
       setIsDeliveryDialogOpen(false);
-      
+
       // แสดงข้อความแจ้งเตือนสำเร็จ
       showNotification("ส่งมอบครุภัณฑ์เรียบร้อยแล้ว", "success");
     };
-  
+
     const handleCancelBorrow = (borrowId) => {
       setSelectedBorrowId(borrowId);
       setIsConfirmDialogOpen(true);
     };
-  
+
     const confirmCancel = () => {
       // ลบรายการยืมออกจากระบบ
       const updatedPending = pendingDeliveries.filter(
         item => item.borrow_id !== selectedBorrowId
       );
       setPendingDeliveries(updatedPending);
-      
+
       // ปิด dialog
       setIsConfirmDialogOpen(false);
-      
+
       // แสดงข้อความแจ้งเตือนสำเร็จ
       showNotification("ยกเลิกการยืมเรียบร้อยแล้ว", "success");
     };
-  
+
     const showNotification = (message, type) => {
       setNotification({
         show: true,
         message,
         type
       });
-      
+
       // ซ่อนการแจ้งเตือนอัตโนมัติหลังจาก 5 วินาที
       setTimeout(() => {
         setNotification(prev => ({ ...prev, show: false }));
       }, 5000);
     };
-  
+
     const getStatusBadge = (status) => {
       switch (status) {
         case "delivered":
@@ -320,7 +320,7 @@ import {
           );
       }
     };
-  
+
     return (
       <ThemeProvider value={theme}>
         <Card className="h-full w-full">
@@ -335,13 +335,13 @@ import {
                   จัดการและติดตามการส่งมอบครุภัณฑ์ให้กับผู้ใช้งาน
                 </Typography>
               </div>
-  
+
               {/* แท็บเลือกประเภทรายการ */}
               <div className="flex border-b border-blue-gray-200">
                 <button
                   className={`px-4 py-2 font-medium text-sm transition-all duration-200 ${
-                    activeTab === "pending" 
-                      ? "text-blue-500 border-b-2 border-blue-500" 
+                    activeTab === "pending"
+                      ? "text-blue-500 border-b-2 border-blue-500"
                       : "text-gray-500 hover:text-blue-500"
                   }`}
                   onClick={() => setActiveTab("pending")}
@@ -350,8 +350,8 @@ import {
                 </button>
                 <button
                   className={`px-4 py-2 font-medium text-sm transition-all duration-200 ${
-                    activeTab === "completed" 
-                      ? "text-blue-500 border-b-2 border-blue-500" 
+                    activeTab === "completed"
+                      ? "text-blue-500 border-b-2 border-blue-500"
                       : "text-gray-500 hover:text-blue-500"
                   }`}
                   onClick={() => setActiveTab("completed")}
@@ -359,7 +359,7 @@ import {
                   ส่งมอบแล้ว ({completedDeliveries.length})
                 </button>
               </div>
-  
+
               {/* ช่องค้นหาและปุ่มสแกน */}
               <div className="flex flex-col md:flex-row md:items-center gap-2">
                 <div className="w-full md:w-72">
@@ -374,9 +374,9 @@ import {
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
                   </div>
                 </div>
-                <Button 
-                  className="flex items-center gap-2" 
-                  color="blue" 
+                <Button
+                  className="flex items-center gap-2"
+                  color="blue"
                   size="sm"
                   onClick={() => setIsScannerOpen(true)}
                 >
@@ -385,7 +385,7 @@ import {
               </div>
             </div>
           </CardHeader>
-  
+
           <CardBody className="overflow-x-auto px-0">
             <table className="w-full min-w-max table-auto text-left">
               <thead>
@@ -411,7 +411,7 @@ import {
                   filteredDeliveries.map((item, index) => {
                     const isLast = index === filteredDeliveries.length - 1;
                     const classes = isLast ? "p-4" : "p-4 border-b border-blue-gray-50";
-  
+
                     return (
                       <tr key={item.borrow_id} className="hover:bg-gray-200">
                         <td className={classes}>
@@ -460,7 +460,7 @@ import {
                                 <EyeIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
-                            
+
                             {item.status === "pending_delivery" && (
                               <Tooltip content="ยกเลิกการยืม">
                                 <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100" onClick={() => handleCancelBorrow(item.borrow_id)}>
@@ -468,7 +468,7 @@ import {
                                 </IconButton>
                               </Tooltip>
                             )}
-                            
+
                             {/* {item.status === "delivered" && (
                               <Tooltip content="พิมพ์ใบส่งมอบ">
                                 <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100">
@@ -507,32 +507,32 @@ import {
             </div>
           </CardFooter>
         </Card>
-        
+
         {/* Scanner Dialog */}
-        <ScannerDialog 
+        <ScannerDialog
           isOpen={isScannerOpen}
           onClose={() => setIsScannerOpen(false)}
           onScanComplete={handleScanComplete}
           onManualInput={handleManualSearch}
         />
-        
+
         {/* Delivery Dialog */}
-        <EquipmentDeliveryDialog 
+        <EquipmentDeliveryDialog
           borrow={selectedBorrow}
           isOpen={isDeliveryDialogOpen}
           onClose={() => setIsDeliveryDialogOpen(false)}
           onConfirm={handleDeliveryConfirm}
         />
-        
+
         {/* Confirm Dialog */}
-        <ConfirmDialog 
+        <ConfirmDialog
           isOpen={isConfirmDialogOpen}
           onClose={() => setIsConfirmDialogOpen(false)}
           onConfirm={confirmCancel}
           title="ยืนยันการยกเลิก"
           message="คุณต้องการยกเลิกการยืมรายการนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
         />
-        
+
         {/* Notification */}
         <Notification
           show={notification.show}
@@ -543,5 +543,5 @@ import {
       </ThemeProvider>
     );
   };
-  
+
   export default ReceiveItem;
