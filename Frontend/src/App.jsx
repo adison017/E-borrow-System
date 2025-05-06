@@ -7,12 +7,11 @@ import SidebarExecutive from './components/SidebarExecutive';
 import SidebarUser from './components/SidebarUser';
 
 import BorrowList from './pages/admin/BorrowList';
-import CheckInfo from './pages/admin/CheckInfo';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 import ManageEquipment from './pages/admin/ManageEquipment';
 import ManageUser from './pages/admin/ManageUser';
 import ReturnList from './pages/admin/ReturnList';
-import DashboardExeutive from './pages/exeutive/DashboardExeutive';
+import DashboardExeutive from './pages/executive/DashboardExeutive';
 
 import DashboardUser from './pages/users/Dashboard';
 import Homes from './pages/users/Product';
@@ -26,9 +25,10 @@ import Fine from './pages/users/Fine';
 import ReceiveItem from './pages/admin/ReceiveItem';
 import Edit_pro from './pages/users/edit_profile';
 import ManageCategory from './pages/admin/ManageCategory';
+import BorrowApprovalList from './pages/executive/BorrowApprovalList'
 
 function AppInner() {
-  const [userRole, setUserRole] = useState('admin'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
+  const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -112,11 +112,12 @@ function AppInner() {
                 <Route path="/DashboardEx" element={<DashboardExeutive />} />
                 <Route path="/borrow-list" element={<BorrowList />} />
                 <Route path="/equipment" element={<ManageEquipment />} />
-                <Route path="/Check" element={<CheckInfo />} />
                 <Route path="/members" element={<ManageUser />} />
                 <Route path="/return-list" element={<ReturnList />} />
                 <Route path="/ReceiveItem" element={<ReceiveItem />} />
                 <Route path="/category" element={<ManageCategory />} />
+                <Route path="/edit_profile" element={<Edit_pro />} />
+                <Route path="/BorrowApprovalList" element={<BorrowApprovalList  />} />
               </>
             )}
             {(userRole === 'admin' || userRole === 'user') && (
