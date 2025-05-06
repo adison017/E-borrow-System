@@ -1,3 +1,4 @@
+import { RiArrowGoBackLine } from "react-icons/ri"; 
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaThList, FaShoppingBag, FaCheckCircle, FaMoneyBillAlt, FaExchangeAlt, FaArchive, FaUserEdit, FaSignOutAlt } from "react-icons/fa";
@@ -165,8 +166,8 @@ function SidebarAdmin() {
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
                       : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
                   >
-                    <FaExchangeAlt size={18} />
-                    <span className="ms-3">ส่งคืน</span>
+                    <RiArrowGoBackLine size={18} />
+                    <span className="ms-3">คืนครุภัณฑ์</span>
                   </Link>
                 </li>
                 <li>
@@ -178,7 +179,7 @@ function SidebarAdmin() {
                       : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
                   >
                     <FaMoneyBillAlt size={18} />
-                    <span className="ms-3">ค่าปรับ</span>
+                    <span className="ms-3">ค้างชำระเงิน</span>
                   </Link>
                 </li>
                 <li>

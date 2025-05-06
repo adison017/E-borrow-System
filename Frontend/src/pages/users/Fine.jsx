@@ -1,40 +1,13 @@
 import React, { useState } from "react";
+import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
 
 const RequirementList = () => {
   const borrowingRequests = [
-    {
-      id: "IT-2023-001",
-      status: "รออนุมัติ",
-      statusColor: "badge-warning",
-      reason: "ต้องการใช้สำหรับการจัดกิจกรรมสัปดาห์วิทยาศาสตร์ ระหว่างวันที่ 15-20 สิงหาคม 2566",
-      items: [
-        { 
-          name: "โน้ตบุ๊ก", 
-          quantity: 3,
-          image: "https://media-cdn.bnn.in.th/366788/lenovo-notebook-ideapad-duet-5-12iru8-83b30058ta-storm-grey-1-square_medium.jpg"
-        },
-        { 
-          name: "โปรเจคเตอร์", 
-          quantity: 1,
-          image: "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
-        },
-        { 
-          name: "ลำโพง", 
-          quantity: 2,
-          image: "https://images.unsplash.com/photo-1593784991095-a205069470b6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
-        }
-      ],
-      total: 6,
-      dueDate: "20 สิงหาคม 2566",
-      borrowedDate: "15 สิงหาคม 2566"
-    },
     {
       id: "IT-2023-002",
       status: "ค้างชำระเงิน",
       statusColor: "badge-error",
       reason: "ใช้สำหรับการประชุมสัมมนาวิชาการ วันที่ 10 กันยายน 2566",
-      penaltyReason: "คืนอุปกรณ์ล่าช้ากว่ากำหนด 3 วัน",
-      penaltyAmount: 1500,
       items: [
         { 
           name: "ไมโครโฟน", 
@@ -49,12 +22,20 @@ const RequirementList = () => {
       ],
       total: 3,
       dueDate: "20 สิงหาคม 2566",
-      borrowedDate: "15 สิงหาคม 2566"
+      borrowedDate: "15 สิงหาคม 2566",
+      fineReason: "อุปกรณ์เสียหาย",
+      overdueDays: 3, 
+      fineAmount: 1500, 
+      fineDetails: "ค่าปรับวันละ 500 บาท สำหรับการคืนล่าช้า", 
+      paymentQR: "https://promptpay.io/0801234567/1500", 
+      paymentAccount: "บัญชีธนาคารไทยพาณิชย์ 123-456-7890"
     }
   ];
 
   const pendingRequests = borrowingRequests.filter(request => request.status === "ค้างชำระเงิน");
   const [currentImageIndices, setCurrentImageIndices] = useState({});
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleNext = (requestId) => {
     setCurrentImageIndices(prev => {
@@ -67,9 +48,19 @@ const RequirementList = () => {
     });
   };
 
+  const openDialog = (request) => {
+    setSelectedRequest(request);
+    setIsDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setSelectedRequest(null);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">รายการค้างชำระเงินการยืมครุภัณฑ์</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">รายการรออนุมัติการยืมครุภัณฑ์</h1>
       
       <div className="space-y-6">
         {pendingRequests.map((request) => {
@@ -85,7 +76,7 @@ const RequirementList = () => {
                     <img
                       src={currentItem?.image || "https://via.placeholder.com/500?text=No+Image"}
                       alt="ครุภัณฑ์"
-                      className="object-cover w-full h-full md:max-h-80 md:max-w-90"
+                      className="object-cover w-90 h-full md:max-h-80 md:max-w-90"
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src = "https://via.placeholder.com/500?text=No+Image";
@@ -123,11 +114,11 @@ const RequirementList = () => {
                 {/* Content section */}
                 <div className="md:w-2/3 w-full">
                   <div className="card-body p-4 md:p-6">
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                    <div className="flex flex-col md:flex-row md:justify-between justify-center md:items-start items-center gap-2">
                       <h2 className="card-title text-gray-800 text-lg md:text-xl">
                         {request.id}
                       </h2>
-                      <div className={`badge ${request.statusColor} text-white text-sm md:text-base`}>
+                      <div className={`badge ${request.statusColor} text-white md:text-base px-4 py-4 rounded-full text-sm font-medium`}>
                         {request.status}
                       </div>
                     </div>
@@ -139,14 +130,17 @@ const RequirementList = () => {
 
                     <div className="bg-red-50 p-3 rounded-lg">
                       <h3 className="font-semibold text-red-700 mb-1">เหตุผลค่าปรับ</h3>
-                      <p className="text-red-800 text-xl font-bold">{request.penaltyReason}</p>
+                      <p className="text-red-800 text-xl font-bold">
+                        {request.fineReason && `${request.fineReason} `}
+                        {request.overdueDays > 0 && `(คืนช้า ${request.overdueDays} วัน)`}
+                      </p>
                     </div>
 
                     {/* ส่วนแสดงจำนวนเงินค่าปรับ */}
                     <div className="bg-yellow-50 p-3 rounded-lg">
                       <h3 className="font-semibold text-yellow-700 mb-1">จำนวนเงินค่าปรับ</h3>
                       <p className="text-yellow-800 text-xl font-bold">
-                        {request.penaltyAmount?.toLocaleString('th-TH')} บาท
+                        {request.fineAmount?.toLocaleString('th-TH')} บาท
                       </p>
                     </div>
                     
@@ -168,12 +162,12 @@ const RequirementList = () => {
                       </div>
                     </div>
 
-                    <div className="mb-4 grid grid-cols-2 gap-4">
-                      <div>
+                    <div className="mb-4 grid grid-cols-2 gap-4 ">
+                      <div className="bg-gray-100 px-4 py-4 rounded-lg text-sm font-medium">
                         <h3 className="font-semibold text-gray-700 mb-1">วันที่ยืม</h3>
                         <p className="text-gray-600 text-sm md:text-base">{request.borrowedDate}</p>
                       </div>
-                      <div>
+                      <div className="bg-gray-100 px-4 py-4 rounded-lg text-sm font-medium">
                         <h3 className="font-semibold text-gray-700 mb-1">วันที่ครบกำหนดคืน</h3>
                         <p className="text-gray-600 text-sm md:text-base">{request.dueDate}</p>
                       </div>
@@ -186,18 +180,21 @@ const RequirementList = () => {
                           รวมทั้งหมด {request.total} ชิ้น
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
-                          <button className={`btn rounded-xl ${request.status === "ค้างชำระเงิน" ? "btn-neutral" : "btn-outline"} btn-sm md:btn-md flex-2 md:flex-none`}>
-                            {request.status === "ค้างชำระเงิน" ? (
-                              "รับครุภัณฑ์"
-                            ) : (
-                              <>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                ดูรายละเอียด
-                              </>
-                            )}
-                          </button>
+                        <button 
+                          className={`btn rounded-xl ${request.status === "ค้างชำระเงิน" ? "btn-outline" : "btn-outline"}  text-white btn-sm md:btn-md flex-2 md:flex-none hover:bg-blue-600 hover:border-blue-500 border-gray-200 bg-black transition-colors`}
+                          onClick={() => openDialog(request)}
+                        >
+                          {request.status === "ค้างชำระเงิน" ? (
+                            "ชำระเงิน" 
+                          ) : (
+                            <>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
+                              ดูรายละเอียด
+                            </>
+                          )}
+                        </button>
                         </div>
                       </div>
                     </div>
@@ -208,6 +205,14 @@ const RequirementList = () => {
           );
         })}
       </div>
+
+      {/* Dialog for showing details */}
+      {isDialogOpen && (
+        <BorrowingRequestDialog 
+          request={selectedRequest} 
+          onClose={closeDialog} 
+        />
+      )}
     </div>
   );
 };
