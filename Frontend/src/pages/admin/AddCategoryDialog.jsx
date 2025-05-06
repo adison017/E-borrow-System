@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Typography } from "@material-tailwind/react";
+import { MdClose } from "react-icons/md";
 
 export default function AddCategoryDialog({
   open,
@@ -29,74 +29,82 @@ export default function AddCategoryDialog({
   const isFormValid = formData.name && formData.category_code;
 
   return (
-    <div className={`modal ${open ? "modal-open" : ""} transition-all duration-300 ease-in-out`}>
-      <div className={`modal-box max-w-xl w-full bg-white mx-auto p-8 shadow-xl transition-all duration-300 ease-in-out ${open ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}>
-        <h3 className="font-bold text-2xl text-black mb-6">เพิ่มหมวดหมู่ใหม่</h3>
-        <div className="space-y-6">
-          <div>
-            <label className="block text-base font-medium text-gray-700 mb-2">
-              รหัสหมวดหมู่
-            </label>
-            <input
-              type="text"
-              name="category_code"
-              value={formData.category_code || ""}
-              onChange={handleChange}
-              disabled
-              className="input input-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg"
-            />
-          </div>
+    open && (
+      <div className="fixed inset-0 backdrop-blur bg-opacity-30 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">เพิ่มหมวดหมู่ใหม่</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100"
+              >
+                <MdClose className="w-6 h-6" />
+              </button>
+            </div>
 
-          <div>
-            <label className="block text-base font-medium text-gray-700 mb-2">
-              ชื่อหมวดหมู่ <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name || ""}
-              onChange={handleChange}
-              className="input input-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="ระบุชื่อหมวดหมู่"
-              required
-            />
-          </div>
+            {/* Form Content */}
+            <div className="space-y-4">
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">รหัสหมวดหมู่</label>
+                <input
+                  type="text"
+                  name="category_code"
+                  value={formData.category_code || ""}
+                  onChange={handleChange}
+                  disabled
+                  className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                />
+              </div>
 
-          <div>
-            <label className="block text-base font-medium text-gray-700 mb-2">
-              คำอธิบาย
-            </label>
-            <textarea
-              name="description"
-              value={formData.description || ""}
-              onChange={handleChange}
-              className="textarea textarea-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="คำอธิบายเกี่ยวกับหมวดหมู่"
-              rows={4}
-            />
-          </div>
-        </div>
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">ชื่อหมวดหมู่ *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name || ""}
+                  onChange={handleChange}
+                  className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                  placeholder="ระบุชื่อหมวดหมู่"
+                  required
+                />
+              </div>
 
-        <div className="modal-action mt-8 flex justify-end space-x-3">
-          <button 
-            className="btn btn-outline btn-lg px-6 py-2 text-gray-700 border-gray-300 hover:bg-gray-50"
-            onClick={onClose}
-          >
-            ยกเลิก
-          </button>
-          <button
-            className="btn btn-success btn-lg text-white"
-            onClick={handleSubmit}
-            disabled={!isFormValid}
-          >
-            เพิ่มหมวดหมู่
-          </button>
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">คำอธิบาย</label>
+                <textarea
+                  name="description"
+                  value={formData.description || ""}
+                  onChange={handleChange}
+                  className="textarea textarea-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                  placeholder="คำอธิบายเกี่ยวกับหมวดหมู่"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="modal-action mt-6 flex justify-end space-x-2 border-t pt-4">
+              <button
+                className="btn btn-outline btn-base px-4 py-1 text-gray-700 border-gray-300 hover:bg-gray-50"
+                onClick={onClose}
+              >
+                ยกเลิก
+              </button>
+              <button
+                className="btn btn-success btn-base text-white"
+                onClick={handleSubmit}
+                disabled={!isFormValid}
+              >
+                เพิ่มหมวดหมู่
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-      <div
-        className="modal-backdrop bg-black/50 transition-opacity duration-300"
-        onClick={onClose}
-      ></div>
-    </div>
+    )
   );
 }

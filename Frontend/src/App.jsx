@@ -26,6 +26,9 @@ import ReceiveItem from './pages/admin/ReceiveItem';
 import Edit_pro from './pages/users/edit_profile';
 import ManageCategory from './pages/admin/ManageCategory';
 import BorrowApprovalList from './pages/executive/BorrowApprovalList'
+import RepairApprovalList from './pages/executive/RepairApprovalList'
+// import RepairApprovalList2 from './pages/executive/RepairApprovalList2'
+import Historybt from './pages/executive/Historybt'
 
 function AppInner() {
   const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
@@ -118,6 +121,9 @@ function AppInner() {
                 <Route path="/category" element={<ManageCategory />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />
                 <Route path="/BorrowApprovalList" element={<BorrowApprovalList  />} />
+                {/* <Route path="/BorrowApprovalList" element={<BorrowApprovalList2  />} /> */}
+                <Route path="/Repair" element={<RepairApprovalList  />} />
+                <Route path="/History" element={<Historybt />} />
               </>
             )}
             {(userRole === 'admin' || userRole === 'user') && (

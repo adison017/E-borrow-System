@@ -1,16 +1,12 @@
-import { useState, useEffect, useRef } from "react"; // ✅ ต้องเพิ่ม useRef ด้วย
-
-import { Typography } from "@material-tailwind/react";
+import { useState, useEffect, useRef } from "react";
+import { MdClose } from "react-icons/md";
 
 export default function EditUserDialog({ open, onClose, userData, onSave }) {
-  const [previewImage, setPreviewImage] = useState(null);
-  const fileInputRef = useRef(null); // ✅ ถูกต้อง
-
   const [formData, setFormData] = useState({
     user_id: "",
     user_code: "",
     username: "",
-    pic: "",
+    pic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
     email: "",
     phone: "",
     address: "",
@@ -19,6 +15,8 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     postal_no: "",
     password: ""
   });
+  const fileInputRef = useRef(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
     if (userData) {
@@ -26,7 +24,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         user_id: userData.user_id || "",
         user_code: userData.user_code || "",
         username: userData.username || "",
-        pic: userData.pic || "",
+        pic: userData.pic || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
         email: userData.email || "",
         phone: userData.phone || "",
         address: userData.address || "",
@@ -36,19 +34,28 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         password: ""
       });
 
-      // ถ้ามี URL รูปอยู่แล้ว
-      if (userData.pic && typeof userData.pic === "string") {
+      if (userData.pic) {
         setPreviewImage(userData.pic);
+      } else {
+        setPreviewImage("https://cdn-icons-png.flaticon.com/512/3135/3135715.png");
       }
     }
   }, [userData]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        pic: file,
+        pic: file
       }));
 
       const reader = new FileReader();
@@ -59,194 +66,195 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   const handleSubmit = () => {
-    onSave(formData); // ✅ ส่งข้อมูลออกไปให้ parent component
+    onSave(formData);
     onClose();
   };
 
   return (
-    <div className={`modal ${open ? 'modal-open' : ''} transition-all duration-300 ease-in-out`}>
-      <div className={`modal-box max-w-4xl w-11/12 bg-white mx-auto p-6 shadow-xl transition-all duration-300 ease-in-out ${open ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-        <h3 className="font-bold text-2xl text-black border-b pb-3 mb-4">แก้ไขผู้ใช้งาน</h3>
-        <div className="py-4 grid grid-cols-1 gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-base font-medium text-black mb-2">
-                รหัสผู้ใช้งาน
-              </label>
-              <input
-                type="text"
-                name="user_code"
-                value={formData.user_code}
-                onChange={handleChange}
-                disabled
-                className="input input-bordered w-full bg-gray-50 text-black text-lg"
-              />
+    open && (
+      <div className="fixed inset-0 backdrop-blur bg-opacity-30 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">แก้ไขผู้ใช้งาน</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100"
+              >
+                <MdClose className="w-6 h-6" />
+              </button>
             </div>
-            <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
-              <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center border">
-                <img 
-                  src={previewImage || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
-                  alt={formData.username}
-                  className="max-h-24 max-w-24 object-contain"
+
+            {/* Form Content */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">รหัสผู้ใช้งาน</label>
+                  <input
+                    type="text"
+                    name="user_code"
+                    value={formData.user_code}
+                    onChange={handleChange}
+                    disabled
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">ชื่อผู้ใช้งาน *</label>
+                  <input
+                    type="text"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                    placeholder="ระบุชื่อผู้ใช้งาน"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">อีเมล *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                    placeholder="example@domain.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">เบอร์โทรศัพท์ *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                    placeholder="0812345678"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">ที่อยู่</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                  placeholder="บ้านเลขที่, ถนน, ซอย"
                 />
               </div>
-              <div className="flex-1">
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
-                    อัพโหลดรูปภาพ
-                  </label>
+                  <label className="block font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
                   <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
+                    type="text"
+                    name="county"
+                    value={formData.county}
+                    onChange={handleChange}
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                    placeholder="เขต/อำเภอ"
                   />
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline"
-                    onClick={() => fileInputRef.current.click()}
-                  >
-                    เลือกไฟล์
-                  </button>
-                  {formData.pic && typeof formData.pic !== 'string' && (
-                    <p className="text-sm mt-2 text-gray-600">
-                      {formData.pic.name}
-                    </p>
-                  )}
+                </div>
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">จังหวัด</label>
+                  <input
+                    type="text"
+                    name="locality"
+                    value={formData.locality}
+                    onChange={handleChange}
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                    placeholder="จังหวัด"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
+                  <input
+                    type="text"
+                    name="postal_no"
+                    value={formData.postal_no}
+                    onChange={handleChange}
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                    placeholder="10110"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">รหัสผ่าน (เว้นว่างหากไม่ต้องการเปลี่ยน)</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                  placeholder="กรอกเฉพาะเมื่อต้องการเปลี่ยนรหัสผ่าน"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-md">
+                <div className="w-24 h-24 bg-white rounded-md flex items-center justify-center border">
+                  <img
+                    src={previewImage}
+                    alt="รูปภาพผู้ใช้"
+                    className="max-h-20 max-w-20 object-contain"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div>
+                    <label className="block text-base font-medium text-gray-700 mb-1">อัพโหลดรูปภาพ</label>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline"
+                      onClick={() => fileInputRef.current.click()}
+                    >
+                      เลือกไฟล์
+                    </button>
+                    {formData.pic?.name && (
+                      <p className="text-sm mt-1 text-gray-600">{formData.pic.name}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-            <div>
-              <label className="block text-base font-medium text-black mb-2">
-                ชื่อผู้ใช้งาน *
-              </label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                className="input input-bordered w-full bg-gray-50 text-black text-lg"
-                required
-              />
+
+            {/* Footer */}
+            <div className="modal-action mt-6 flex justify-end space-x-2 border-t pt-4">
+              <button
+                className="btn btn-outline btn-base px-4 py-1 text-gray-700 border-gray-300 hover:bg-gray-50"
+                onClick={onClose}
+              >
+                ยกเลิก
+              </button>
+              <button
+                className="btn btn-success btn-base text-white"
+                onClick={handleSubmit}
+              >
+                บันทึกการเปลี่ยนแปลง
+              </button>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-base font-medium text-black mb-2">
-                อีเมล *
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="input input-bordered w-full bg-gray-50 text-black text-lg"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-base font-medium text-black mb-2">
-                เบอร์โทรศัพท์ *
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="input input-bordered w-full bg-gray-50 text-black text-lg"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-base font-medium text-black mb-2">
-              ที่อยู่
-            </label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="input input-bordered w-full bg-gray-50 text-black text-lg"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-base font-medium text-black mb-2">
-                เขต/อำเภอ
-              </label>
-              <input
-                type="text"
-                name="county"
-                value={formData.county}
-                onChange={handleChange}
-                className="input input-bordered w-full bg-gray-50 text-black text-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-base font-medium text-black mb-2">
-                จังหวัด
-              </label>
-              <input
-                type="text"
-                name="locality"
-                value={formData.locality}
-                onChange={handleChange}
-                className="input input-bordered w-full bg-gray-50 text-black text-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-base font-medium text-black mb-2">
-                รหัสไปรษณีย์
-              </label>
-              <input
-                type="text"
-                name="postal_no"
-                value={formData.postal_no}
-                onChange={handleChange}
-                className="input input-bordered w-full bg-gray-50 text-black text-lg"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-base font-medium text-black mb-2">
-              รหัสผ่าน (เว้นว่างหากไม่ต้องการเปลี่ยน)
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="input input-bordered w-full bg-gray-50 text-black text-lg"
-              placeholder="กรอกเฉพาะเมื่อต้องการเปลี่ยนรหัสผ่าน"
-            />
-          </div>
-        </div>
-
-        <div className="modal-action border-t pt-4">
-          <button className="btn btn-outline btn-lg" onClick={onClose}>
-            ยกเลิก
-          </button>
-          <button className="btn btn-success btn-lg text-white" onClick={handleSubmit}>
-            บันทึกการเปลี่ยนแปลง
-          </button>
         </div>
       </div>
-      <div className="modal-backdrop bg-black/50 transition-opacity duration-300" onClick={onClose}></div>
-    </div>
+    )
   );
 }

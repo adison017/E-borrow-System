@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Typography } from "@material-tailwind/react";
+import { MdClose } from "react-icons/md";
 
 export default function AddEquipmentDialog({
   open,
@@ -81,7 +81,7 @@ export default function AddEquipmentDialog({
 
     return (
       <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-${config.color}-50 border border-${config.color}-100`}>
-        <span className={`text-${config.color}-700 font-medium text-sm`}>
+        <span className={`text-${config.color}-700 font-medium text-base`}>
           {status}
         </span>
       </div>
@@ -89,143 +89,145 @@ export default function AddEquipmentDialog({
   };
 
   return (
-    <div className={`modal ${open ? "modal-open" : ""} transition-all duration-300 ease-in-out`}>
-      <div className={`modal-box max-w-4xl w-11/12 bg-white mx-auto p-8 shadow-xl transition-all duration-300 ease-in-out ${open ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}>
-        <h3 className="font-bold text-2xl text-black mb-6">เพิ่มครุภัณฑ์ใหม่</h3>
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-base font-medium text-gray-700 mb-2">
-                รหัสครุภัณฑ์
-              </label>
-              <input
-                type="text"
-                name="id"
-                value={formData.id}
-                onChange={handleChange}
-                disabled
-                className="input input-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg"
-              />
+    open && (
+      <div className="fixed inset-0 backdrop-blur bg-opacity-30 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">เพิ่มครุภัณฑ์ใหม่</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100"
+              >
+                <MdClose className="w-6 h-6" />
+              </button>
             </div>
-            <div>
-              <label className="block text-base font-medium text-gray-700 mb-2">
-                ชื่อครุภัณฑ์ *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="input input-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="ระบุชื่อครุภัณฑ์"
-                required
-              />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-base font-medium text-gray-700 mb-2">
-              รายละเอียด
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              className="textarea textarea-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="รายละเอียดครุภัณฑ์"
-              rows={4}
-            />
-          </div>
+            {/* Form Content */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">รหัสครุภัณฑ์</label>
+                  <input
+                    type="text"
+                    name="id"
+                    value={formData.id}
+                    onChange={handleChange}
+                    disabled
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">ชื่อครุภัณฑ์ *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                    placeholder="ระบุชื่อครุภัณฑ์"
+                    required
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-base font-medium text-gray-700 mb-2">
-                จำนวน *
-              </label>
-              <input
-                type="text"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                className="input input-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="ระบุจำนวน (เช่น 5 ชิ้น)"
-                required
-              />
-            </div>
-             <div>
-                <label className="block text-base font-medium text-gray-700 mb-2">
-                  สถานะ
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">รายละเอียด</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
                   onChange={handleChange}
-                  className="select select-bordered w-full bg-gray-50 text-gray-800 text-base py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500 h-[48px] min-h-[48px]"
-                  >
-                  {Object.keys(statusConfig).map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-             </div>
-          </div>
-
-          <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
-            <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center border">
-              <img
-                src={previewImage}
-                alt="รูปภาพครุภัณฑ์"
-                className="max-h-24 max-w-24 object-contain"
-              />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-medium text-black mb-2">สถานะที่เลือก:</h4>
-              <StatusDisplay status={formData.status} />
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  อัพโหลดรูปภาพ
-                </label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
+                  className="textarea textarea-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                  placeholder="รายละเอียดครุภัณฑ์"
+                  rows={3}
                 />
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline"
-                  onClick={() => fileInputRef.current.click()}
-                >
-                  เลือกไฟล์
-                </button>
-                {formData.pic && formData.pic.name && (
-                  <p className="text-sm mt-2 text-gray-600">{formData.pic.name}</p>
-                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">จำนวน *</label>
+                  <input
+                    type="text"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleChange}
+                    className="input input-bordered w-full bg-gray-50 text-gray-800 py-2 px-3 text-base rounded-md"
+                    placeholder="ระบุจำนวน"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">สถานะ</label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="select select-bordered w-full bg-gray-50 text-gray-800 text-base py-2 px-3 rounded-md h-[40px] min-h-[40px]"
+                  >
+                    {Object.keys(statusConfig).map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-md">
+                <div className="w-24 h-24 bg-white rounded-md flex items-center justify-center border">
+                  <img
+                    src={previewImage}
+                    alt="รูปภาพครุภัณฑ์"
+                    className="max-h-20 max-w-20 object-contain"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-black mb-1">สถานะที่เลือก:</h4>
+                  <StatusDisplay status={formData.status} />
+                  <div className="mt-2">
+                    <label className="block text-base font-medium text-gray-700 mb-1">อัพโหลดรูปภาพ</label>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline"
+                      onClick={() => fileInputRef.current.click()}
+                    >
+                      เลือกไฟล์
+                    </button>
+                    {formData.pic?.name && (
+                      <p className="text-sm mt-1 text-gray-600">{formData.pic.name}</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Footer */}
+            <div className="modal-action mt-6 flex justify-end space-x-2 border-t pt-4">
+              <button
+                className="btn btn-outline btn-base px-4 py-1 text-gray-700 border-gray-300 hover:bg-gray-50"
+                onClick={onClose}
+              >
+                ยกเลิก
+              </button>
+              <button
+                className="btn btn-success btn-base text-white"
+                onClick={handleSubmit}
+                disabled={!isFormValid}
+              >
+                เพิ่มครุภัณฑ์
+              </button>
+            </div>
           </div>
         </div>
-
-        <div className="modal-action mt-8 flex justify-end space-x-3">
-          <button
-            className="btn btn-outline btn-lg px-6 py-2 text-gray-700 border-gray-300 hover:bg-gray-50"
-            onClick={onClose}
-          >
-            ยกเลิก
-          </button>
-          <button
-            className="btn btn-success btn-lg text-white"
-            onClick={handleSubmit}
-            disabled={!isFormValid}
-          >
-            เพิ่มครุภัณฑ์
-          </button>
-        </div>
       </div>
-      <div
-        className="modal-backdrop bg-black/50 transition-opacity duration-300"
-        onClick={onClose}
-      ></div>
-    </div>
+    )
   );
 }
