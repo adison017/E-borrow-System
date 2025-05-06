@@ -1,55 +1,50 @@
 import { useState, useEffect } from "react";
 import { CheckCircleIcon, XCircleIcon, ClockIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import BorrowDetailsDialog from "./BorrowDetailsDialog";
+import RepairApprovalDialog from "./RepairApprovalDialog";
 
-export default function BorrowApprovalList() {
-  const [borrowRequests, setBorrowRequests] = useState([]);
+export default function RepairApprovalList() {
+  const [repairRequests, setRepairRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "success"
-  });
 
-  // สถานะของคำขอยืม
+  // สถานะของคำขอซ่อม
   const statusOptions = [
     { value: "all", label: "ทั้งหมด" },
     { value: "pending", label: "รอการอนุมัติ" },
     { value: "approved", label: "อนุมัติแล้ว" },
     { value: "rejected", label: "ปฏิเสธ" },
-    { value: "borrowing", label: "กำลังยืม" },
-    { value: "returned", label: "คืนแล้ว" }
+    { value: "inprogress", label: "กำลังซ่อม" },
+    { value: "completed", label: "เสร็จสิ้น" }
   ];
 
   const statusBadgeStyle = {
     pending: "bg-yellow-100 text-yellow-800",
     approved: "bg-green-100 text-green-800",
     rejected: "bg-red-100 text-red-800",
-    borrowing: "bg-blue-100 text-blue-800",
-    returned: "bg-purple-100 text-purple-800"
+    inprogress: "bg-blue-100 text-blue-800",
+    completed: "bg-purple-100 text-purple-800"
   };
 
   const statusTranslation = {
     pending: "รอการอนุมัติ",
     approved: "อนุมัติแล้ว",
     rejected: "ปฏิเสธ",
-    borrowing: "กำลังยืม",
-    returned: "คืนแล้ว"
+    inprogress: "กำลังซ่อม",
+    completed: "เสร็จสิ้น"
   };
 
   useEffect(() => {
     // ข้อมูลตัวอย่าง - ในโปรเจ็กต์จริงควรดึงจาก API
     const mockData = [
       {
-        borrowId: "BOR-2025-0001",
+        requestId: "REP-2025-0001",
         equipment: {
           id: "EQP-001",
-          code: "LT-001",
-          name: "โน๊ตบุ๊ค Dell XPS 15",
+          code: "MN-001",
+          name: "เครื่องคอมพิวเตอร์ Dell",
           category: "อุปกรณ์คอมพิวเตอร์",
           image: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
         },
@@ -59,15 +54,17 @@ export default function BorrowApprovalList() {
           department: "แผนกไอที",
           avatar: "https://randomuser.me/api/portraits/men/32.jpg"
         },
-        purpose: "ใช้งานนอกสถานที่สำหรับงานประชุมที่ต่างจังหวัด",
+        description: "เครื่องคอมพิวเตอร์เปิดไม่ติด หน้าจอขึ้นข้อความ Error Code 0x0000098",
         status: "pending",
         requestDate: "2025-05-01",
-        borrowDate: "2025-05-05",
-        dueDate: "2025-05-12",
-        priority: "medium"
+        estimatedCost: 2500,
+        priority: "medium",
+        images: [
+          "https://media.istockphoto.com/id/1458149697/photo/pc-error-on-blue-screen-hardware-problem-during-windows-installation-close-up.jpg?s=1024x1024&w=is&k=20&c=1Uc7-VHUo8G4Q08XJjvIlWCYCDI9NMlwK1wn2QAEhak="
+        ]
       },
       {
-        borrowId: "BOR-2025-0002",
+        requestId: "REP-2025-0002",
         equipment: {
           id: "EQP-002",
           code: "PR-005",
@@ -81,21 +78,23 @@ export default function BorrowApprovalList() {
           department: "แผนกบัญชี",
           avatar: "https://randomuser.me/api/portraits/women/44.jpg"
         },
-        purpose: "พิมพ์เอกสารสำคัญในงานประชุม",
+        description: "เครื่องพิมพ์มีเสียงดังผิดปกติเวลาพิมพ์งาน และกระดาษติดบ่อยมาก",
         status: "pending",
         requestDate: "2025-05-03",
-        borrowDate: "2025-05-06",
-        dueDate: "2025-05-09",
-        priority: "low"
+        estimatedCost: 1200,
+        priority: "low",
+        images: [
+          "https://media.istockphoto.com/id/1340549421/photo/multifunction-printer-or-copy-machine-with-paper-jam-error-in-office.jpg?s=1024x1024&w=is&k=20&c=5AZ5MXRNGrVDv8rGSUKbkfmFiYQcxk8zNIZGXkVHuQA="
+        ]
       },
       {
-        borrowId: "BOR-2025-0003",
+        requestId: "REP-2025-0003",
         equipment: {
           id: "EQP-003",
-          code: "PJ-010",
-          name: "โปรเจคเตอร์ Epson",
-          category: "อุปกรณ์การประชุม",
-          image: "https://cdn-icons-png.flaticon.com/512/3474/3474348.png"
+          code: "AC-010",
+          name: "เครื่องปรับอากาศ Mitsubishi",
+          category: "เครื่องใช้ไฟฟ้า",
+          image: "https://cdn-icons-png.flaticon.com/512/1530/1530297.png"
         },
         requester: {
           id: "USR-003",
@@ -103,23 +102,26 @@ export default function BorrowApprovalList() {
           department: "แผนกทรัพยากรบุคคล",
           avatar: "https://randomuser.me/api/portraits/men/67.jpg"
         },
-        purpose: "ใช้นำเสนองานในการประชุมผู้บริหาร",
+        description: "แอร์ไม่เย็น มีน้ำหยดจากเครื่อง และมีกลิ่นอับชื้นเวลาเปิดเครื่อง",
         status: "approved",
         requestDate: "2025-04-28",
-        borrowDate: "2025-05-02",
-        dueDate: "2025-05-03",
+        estimatedCost: 4500,
         approvalDate: "2025-04-29",
-        approvalNotes: "อนุมัติตามคำขอ",
-        priority: "high"
+        assignedTo: "ช่างวิชัย",
+        budgetApproved: 5000,
+        priority: "high",
+        images: [
+          "https://media.istockphoto.com/id/521811168/photo/air-conditioner-with-water-leaking.jpg?s=1024x1024&w=is&k=20&c=vZPBSxeB4x9lsEhAQUjVVVw2HEOKiEw_vPzzzq73k0k="
+        ]
       },
       {
-        borrowId: "BOR-2025-0004",
+        requestId: "REP-2025-0004",
         equipment: {
           id: "EQP-004",
-          code: "CAM-007",
-          name: "กล้องถ่ายรูป Canon",
-          category: "อุปกรณ์มัลติมีเดีย",
-          image: "https://cdn-icons-png.flaticon.com/512/3063/3063190.png"
+          code: "NET-007",
+          name: "อุปกรณ์กระจายสัญญาณ",
+          category: "อุปกรณ์เครือข่าย",
+          image: "https://cdn-icons-png.flaticon.com/512/2329/2329087.png"
         },
         requester: {
           id: "USR-001",
@@ -127,23 +129,27 @@ export default function BorrowApprovalList() {
           department: "แผนกไอที",
           avatar: "https://randomuser.me/api/portraits/men/32.jpg"
         },
-        purpose: "ถ่ายภาพกิจกรรมประจำเดือนของบริษัทและงานสัมมนา",
-        status: "borrowing",
+        description: "อุปกรณ์กระจายสัญญาณ Switch ชั้น 2 ทำงานไม่เสถียร สัญญาณขาดหายเป็นช่วงๆ",
+        status: "inprogress",
         requestDate: "2025-04-25",
-        borrowDate: "2025-04-28",
-        dueDate: "2025-05-10",
+        estimatedCost: 8500,
         approvalDate: "2025-04-26",
-        approvalNotes: "อนุมัติตามคำขอ และขอให้ดูแลรักษาอุปกรณ์เป็นอย่างดี",
-        priority: "medium"
+        assignedTo: "ทีมเน็ตเวิร์ค",
+        budgetApproved: 9000,
+        priority: "urgent",
+        estimatedCompletionDate: "2025-05-10",
+        images: [
+          "https://media.istockphoto.com/id/1333772625/photo/internet-router-with-ethernet-cables-connected-networking-equipment-with-blinking-lights.jpg?s=1024x1024&w=is&k=20&c=UNkRMrm0HkiBHXRZSEiYwdxufTM5Bkz5ftGXwQqxh2E="
+        ]
       },
       {
-        borrowId: "BOR-2025-0005",
+        requestId: "REP-2025-0005",
         equipment: {
           id: "EQP-005",
-          code: "IPAD-023",
-          name: "iPad Pro",
-          category: "อุปกรณ์พกพา",
-          image: "https://cdn-icons-png.flaticon.com/512/149/149427.png"
+          code: "FUR-023",
+          name: "โต๊ะประชุม",
+          category: "เฟอร์นิเจอร์",
+          image: "https://cdn-icons-png.flaticon.com/512/7798/7798347.png"
         },
         requester: {
           id: "USR-004",
@@ -151,18 +157,20 @@ export default function BorrowApprovalList() {
           department: "แผนกบริหาร",
           avatar: "https://randomuser.me/api/portraits/men/45.jpg"
         },
-        purpose: "ขอยืมใช้ในการเดินทางไปอบรมต่างประเทศ",
+        description: "โต๊ะประชุมห้องประชุมใหญ่มีรอยแตกที่ขอบโต๊ะ และขาโต๊ะไม่มั่นคง",
         status: "rejected",
         requestDate: "2025-04-30",
-        borrowDate: "2025-05-05",
-        dueDate: "2025-05-20",
-        approvalDate: "2025-05-01",
-        approvalNotes: "ขออนุญาตปฏิเสธ เนื่องจากมีการจองใช้งานในช่วงเวลาเดียวกันแล้ว กรุณาเลือกอุปกรณ์อื่นหรือเปลี่ยนวันที่ยืม",
-        priority: "low"
+        estimatedCost: 12000,
+        approvalDate: "2025-05-02",
+        approvalNotes: "งบประมาณจำกัด ให้ใช้โต๊ะสำรองไปก่อน",
+        priority: "low",
+        images: [
+          "https://media.istockphoto.com/id/1213066789/photo/broken-wooden-table-with-cracks.jpg?s=1024x1024&w=is&k=20&c=d5-I4W5Sfk9BRoFBlPyP7XU9O79oNgkKLbgrxMGZzSE="
+        ]
       }
     ];
 
-    setBorrowRequests(mockData);
+    setRepairRequests(mockData);
     setLoading(false);
   }, []);
 
@@ -173,55 +181,36 @@ export default function BorrowApprovalList() {
 
   const handleApproveRequest = (approvedData) => {
     // ในโปรเจ็กต์จริงควรส่งข้อมูลไปยัง API
-    console.log("อนุมัติคำขอยืม:", approvedData);
+    console.log("อนุมัติคำขอซ่อม:", approvedData);
 
     // อัปเดตสถานะในรายการ
-    setBorrowRequests(prevRequests =>
+    setRepairRequests(prevRequests =>
       prevRequests.map(req =>
-        req.borrowId === approvedData.borrowId
+        req.requestId === approvedData.requestId
           ? { ...req, ...approvedData, status: "approved" }
           : req
       )
     );
-
-    // แสดงการแจ้งเตือน
-    showNotification("อนุมัติคำขอยืมเรียบร้อยแล้ว", "success");
   };
 
   const handleRejectRequest = (rejectedData) => {
     // ในโปรเจ็กต์จริงควรส่งข้อมูลไปยัง API
-    console.log("ปฏิเสธคำขอยืม:", rejectedData);
+    console.log("ปฏิเสธคำขอซ่อม:", rejectedData);
 
     // อัปเดตสถานะในรายการ
-    setBorrowRequests(prevRequests =>
+    setRepairRequests(prevRequests =>
       prevRequests.map(req =>
-        req.borrowId === rejectedData.borrowId
+        req.requestId === rejectedData.requestId
           ? { ...req, ...rejectedData, status: "rejected" }
           : req
       )
     );
-
-    // แสดงการแจ้งเตือน
-    showNotification("ปฏิเสธคำขอยืมเรียบร้อยแล้ว", "error");
-  };
-
-  // แสดงการแจ้งเตือน
-  const showNotification = (message, type) => {
-    setNotification({
-      show: true,
-      message,
-      type
-    });
-
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }));
-    }, 5000);
   };
 
   // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ
-  const filteredRequests = borrowRequests.filter(request => {
+  const filteredRequests = repairRequests.filter(request => {
     const matchSearch =
-      request.borrowId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.requester.name.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -231,20 +220,20 @@ export default function BorrowApprovalList() {
   });
 
   // จำนวนคำขอแต่ละสถานะ
-  const countByStatus = borrowRequests.reduce((acc, request) => {
+  const countByStatus = repairRequests.reduce((acc, request) => {
     acc[request.status] = (acc[request.status] || 0) + 1;
     return acc;
   }, {});
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-6">อนุมัติคำขอยืมอุปกรณ์</h1>
+      <h1 className="text-2xl font-bold mb-6">อนุมัติคำขอแจ้งซ่อม</h1>
 
       {/* สรุปข้อมูล */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white shadow-sm rounded-xl p-4 border-l-4 border-gray-500">
           <p className="text-gray-500 text-sm">คำขอทั้งหมด</p>
-          <p className="text-2xl font-semibold">{borrowRequests.length}</p>
+          <p className="text-2xl font-semibold">{repairRequests.length}</p>
         </div>
         <div className="bg-white shadow-sm rounded-xl p-4 border-l-4 border-yellow-500">
           <p className="text-gray-500 text-sm">รอการอนุมัติ</p>
@@ -255,8 +244,8 @@ export default function BorrowApprovalList() {
           <p className="text-2xl font-semibold">{countByStatus.approved || 0}</p>
         </div>
         <div className="bg-white shadow-sm rounded-xl p-4 border-l-4 border-blue-500">
-          <p className="text-gray-500 text-sm">กำลังยืม</p>
-          <p className="text-2xl font-semibold">{countByStatus.borrowing || 0}</p>
+          <p className="text-gray-500 text-sm">กำลังดำเนินการ</p>
+          <p className="text-2xl font-semibold">{countByStatus.inprogress || 0}</p>
         </div>
         <div className="bg-white shadow-sm rounded-xl p-4 border-l-4 border-red-500">
           <p className="text-gray-500 text-sm">ปฏิเสธ</p>
@@ -273,7 +262,7 @@ export default function BorrowApprovalList() {
             </div>
             <input
               type="text"
-              placeholder="ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้ขอยืม"
+              placeholder="ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้แจ้ง"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 input input-bordered w-full bg-gray-50"
@@ -315,18 +304,18 @@ export default function BorrowApprovalList() {
                 <tr className="bg-gray-50 text-black">
                   <th className="px-2">รหัส</th>
                   <th>อุปกรณ์</th>
-                  <th>ผู้ขอยืม</th>
-                  <th>วันที่ยืม</th>
-                  <th>กำหนดคืน</th>
+                  <th>ผู้แจ้ง</th>
+                  <th>วันที่แจ้ง</th>
+                  <th>ค่าใช้จ่าย (บาท)</th>
                   <th>สถานะ</th>
                   <th className="text-right">การจัดการ</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRequests.map((request) => (
-                  <tr key={request.borrowId} className="hover:bg-gray-50 border-b">
+                  <tr key={request.requestId} className="hover:bg-gray-50 border-b">
                     <td className="px-2">
-                      <div className="font-medium">{request.borrowId}</div>
+                      <div className="font-medium">{request.requestId}</div>
                     </td>
                     <td>
                       <div className="flex items-center gap-3">
@@ -361,8 +350,8 @@ export default function BorrowApprovalList() {
                         </div>
                       </div>
                     </td>
-                    <td>{request.borrowDate}</td>
-                    <td>{request.dueDate}</td>
+                    <td>{request.requestDate}</td>
+                    <td>{request.estimatedCost?.toLocaleString()}</td>
                     <td>
                       <span className={`px-2 py-1 rounded-md text-xs ${statusBadgeStyle[request.status]}`}>
                         {statusTranslation[request.status]}
@@ -396,32 +385,13 @@ export default function BorrowApprovalList() {
       </div>
 
       {/* Dialog สำหรับอนุมัติคำขอ */}
-      <BorrowDetailsDialog
+      <RepairApprovalDialog
         open={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
-        borrowRequest={selectedRequest}
+        repairRequest={selectedRequest}
         onApprove={handleApproveRequest}
         onReject={handleRejectRequest}
       />
-
-      {/* Notification Component */}
-      {notification.show && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg max-w-md transition-all duration-300 ${
-          notification.type === 'success' ? 'bg-green-100 border-l-4 border-green-500 text-green-700' :
-          notification.type === 'error' ? 'bg-red-100 border-l-4 border-red-500 text-red-700' :
-          'bg-blue-100 border-l-4 border-blue-500 text-blue-700'
-        }`}>
-          <div className="flex items-center gap-3">
-            {notification.type === 'success' && (
-              <CheckCircleIcon className="w-6 h-6 text-green-500" />
-            )}
-            {notification.type === 'error' && (
-              <XCircleIcon className="w-6 h-6 text-red-500" />
-            )}
-            <p className="font-medium">{notification.message}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
