@@ -66,10 +66,10 @@ function SidebarAdmin() {
       {/* Sidebar */}
       <aside 
         id="sidebar" 
-        className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 bg-gray-50 dark:bg-gray-800`} 
+        className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 bg-gray-50 from-blue-900 to-blue-700`} 
         aria-label="Admin sidebar"
       >
-        <div className="h-full px-2 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
+        <div className="h-full px-2 py-4 overflow-y-auto bg-indigo-950">
           <ul className="space-y">
             {/* ปุ่มเมนูใน sidebar - แสดงเฉพาะใน mobile */}
             <li className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white group sm:hidden">
@@ -88,7 +88,7 @@ function SidebarAdmin() {
             </li>
           </ul>
           
-          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
+          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-white">
             {/* Dashboard */}
             <li>
               <Link 
@@ -211,7 +211,7 @@ function SidebarAdmin() {
           </ul>
 
           {/* Profile and Logout Section */}
-          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
+          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-white">
             <li>
               <Link 
                 to="/edit_profile" 

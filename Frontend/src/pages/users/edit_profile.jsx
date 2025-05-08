@@ -74,7 +74,7 @@ const PersonalInfoEdit = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-8xl">
+    <div className="container mx-auto p-4 max-w-8xl ">
       <div className="card bg-white shadow-xl rounded-lg overflow-hidden">
         <div className="card-body p-6 md:p-8">
           {/* Header Section */}

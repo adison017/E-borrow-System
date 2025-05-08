@@ -18,7 +18,7 @@ export default function BorrowApprovalList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState(["approved", "returned" , "rejected" , "borrowing"]);
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -28,8 +28,6 @@ export default function BorrowApprovalList() {
 
   // สถานะของคำขอยืม
   const statusOptions = [
-    { value: "all", label: "ทั้งหมด", count: 0 },
-    { value: "pending", label: "รอการอนุมัติ", count: 0 },
     { value: "approved", label: "อนุมัติแล้ว", count: 0 },
     { value: "rejected", label: "ปฏิเสธ", count: 0 },
     { value: "borrowing", label: "กำลังยืม", count: 0 },
@@ -281,10 +279,18 @@ export default function BorrowApprovalList() {
       request.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.requester.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchStatus = statusFilter === "all" || request.status === statusFilter;
+    const matchStatus = statusFilter.includes(request.status);
 
     return matchSearch && matchStatus;
   });
+
+  const handleStatusFilterChange = (status) => {
+    setStatusFilter(prev => 
+      prev.includes(status)
+        ? prev.filter(s => s !== status) // ถ้ามีอยู่แล้วให้ลบออก
+        : [...prev, status] // ถ้าไม่มีให้เพิ่มเข้าไป
+    );
+  };
 
   // จำนวนคำขอแต่ละสถานะ
   const countByStatus = borrowRequests.reduce((acc, request) => {
@@ -298,6 +304,83 @@ export default function BorrowApprovalList() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอยืมอุปกรณ์</h1>
           <p className="text-gray-500 text-sm">จัดการคำขอยืมอุปกรณ์ทั้งหมดขององค์กร</p>
+        </div>
+      </div>
+
+      {/* สรุปข้อมูล */}
+      <div className="grid grid-cols-4 gap-3 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-400">
+          <p className="text-gray-500 text-sm">อนุมัติแล้ว</p>
+          <p className="text-2xl font-semibold text-gray-800">{countByStatus.approved || 0}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-400">
+          <p className="text-gray-500 text-sm">กำลังยืม</p>
+          <p className="text-2xl font-semibold text-gray-800">{countByStatus.borrowing || 0}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-400">
+          <p className="text-gray-500 text-sm">ปฏิเสธ</p>
+          <p className="text-2xl font-semibold text-gray-800">{countByStatus.rejected || 0}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-400">
+          <p className="text-gray-500 text-sm">คืนแล้ว</p>
+          <p className="text-2xl font-semibold text-gray-800">{countByStatus.returned || 0}</p>
+        </div>
+      </div>
+
+      {/* ค้นหาและตัวกรอง */}
+      <div className="bg-white p-4 rounded-lg shadow-sm mb-6 border border-gray-100">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <BiSearchAlt2 className="h-5 w-5 text-black" />
+            </div>
+            <input
+              type="text"
+              placeholder="ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้ขอยืม"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 input input-bordered w-full bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+            />
+          </div>
+
+          <div className="relative">
+            <button 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="btn btn-outline flex items-center gap-2 border border-gray-400 rounded-2xl"
+            >
+              <FunnelIcon className="w-4 h-4" />
+              <span>กรองสถานะ</span>
+              {isFilterOpen ? (
+                <ChevronUpIcon className="w-4 h-4" />
+              ) : (
+                <ChevronDownIcon className="w-4 h-4" />
+              )}
+            </button>
+            
+            {isFilterOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-10 border border-gray-200 p-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700 mb-1">สถานะคำขอ</label>
+                  {statusOptions.map(option => (
+                    <label key={option.value} className="flex items-center justify-between cursor-pointer">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox" // เปลี่ยนจาก radio เป็น checkbox
+                          checked={statusFilter.includes(option.value)}
+                          onChange={() => handleStatusFilterChange(option.value)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-gray-700">{option.label}</span>
+                      </div>
+                      <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                        {option.count}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

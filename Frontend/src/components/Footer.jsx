@@ -4,7 +4,7 @@ function Footer() {
   return (
     
 
-<footer className="footer sm:footer-horizontal bg-neutral text-neutral-content p-10">
+<footer className="footer sm:footer-horizontal bg-gradient-to-r from-indigo-950 to-blue-700 text-neutral-content p-10">
   <aside>
     <svg
       width="50"

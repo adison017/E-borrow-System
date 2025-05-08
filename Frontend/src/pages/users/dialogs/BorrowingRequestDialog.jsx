@@ -55,7 +55,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
   const showFine = request.status === "ค้างชำระเงิน";
 
   return (
-    <div className="fixed inset-0 z-50 bg-opacity-30 backdrop-blur flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-opacity-30 backdrop-blur-lg flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div className="p-4 md:p-6 space-y-6 md:space-y-8">
           {/* Header */}
