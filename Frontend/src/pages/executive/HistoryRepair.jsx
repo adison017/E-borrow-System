@@ -1,14 +1,24 @@
 import { useState, useEffect } from "react";
-import { CheckCircleIcon, XCircleIcon, ClockIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import RepairApprovalDialog from "./RepairApprovalDialog";
+import { BiSearchAlt2 } from "react-icons/bi";
+import { 
+  CheckCircleIcon, 
+  XCircleIcon, 
+  ClockIcon, 
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
+} from "@heroicons/react/24/outline";
+import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
 
 export default function RepairApprovalList() {
   const [repairRequests, setRepairRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState(["inprogress", "rejected", "completed"]);
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -17,9 +27,6 @@ export default function RepairApprovalList() {
 
   // สถานะของคำขอซ่อม
   const statusOptions = [
-    { value: "all", label: "ทั้งหมด", count: 0 },
-    { value: "pending", label: "รอการอนุมัติ", count: 0 },
-    { value: "approved", label: "อนุมัติแล้ว", count: 0 },
     { value: "rejected", label: "ปฏิเสธ", count: 0 },
     { value: "inprogress", label: "กำลังซ่อม", count: 0 },
     { value: "completed", label: "เสร็จสิ้น", count: 0 }
@@ -258,10 +265,18 @@ export default function RepairApprovalList() {
       request.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.requester.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchStatus = statusFilter === "all" || request.status === statusFilter;
+    const matchStatus = statusFilter.includes(request.status);
 
     return matchSearch && matchStatus;
   });
+
+  const handleStatusFilterChange = (status) => {
+    setStatusFilter(prev => 
+      prev.includes(status)
+        ? prev.filter(s => s !== status) // ถ้ามีอยู่แล้วให้ลบออก
+        : [...prev, status] // ถ้าไม่มีให้เพิ่มเข้าไป
+    );
+  };
 
   // จำนวนคำขอแต่ละสถานะ
   const countByStatus = repairRequests.reduce((acc, request) => {
@@ -277,6 +292,77 @@ export default function RepairApprovalList() {
           <p className="text-gray-500 text-sm">จัดการคำขอแจ้งซ่อมทั้งหมดขององค์กร</p>
         </div>
       </div>
+
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-400">
+          <p className="text-gray-500 text-sm">กำลังซ่อม</p>
+          <p className="text-2xl font-semibold text-gray-800">{countByStatus.inprogress || 0}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-400">
+          <p className="text-gray-500 text-sm">ปฏิเสธ</p>
+          <p className="text-2xl font-semibold text-gray-800">{countByStatus.rejected || 0}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-400">
+          <p className="text-gray-500 text-sm">เสร็จสิ้น</p>
+          <p className="text-2xl font-semibold text-gray-800">{countByStatus.completed || 0}</p>
+        </div>
+      </div>
+
+      <div className="p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <BiSearchAlt2 className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้ขอยืม"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="block w-full pl-10 pr-3 py-3 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl text-sm border-gray-200"
+            />
+          </div>
+
+          <div className="relative">
+            <button 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="btn btn-outline flex items-center gap-2 shadow-md bg-white rounded-2xl transition-colors border-gray-200 hover:text-white hover:bg-blue-700 hover:border-blue-700"
+            >
+              <FunnelIcon className="w-4 h-4" />
+              <span>กรองสถานะ</span>
+              {isFilterOpen ? (
+                <ChevronUpIcon className="w-4 h-4" />
+              ) : (
+                <ChevronDownIcon className="w-4 h-4" />
+              )}
+            </button>
+            
+            {isFilterOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-10 border border-gray-200 p-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700 mb-1">สถานะคำขอ</label>
+                  {statusOptions.map(option => (
+                    <label key={option.value} className="flex items-center justify-between cursor-pointer">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={statusFilter.includes(option.value)}
+                          onChange={() => handleStatusFilterChange(option.value)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-gray-700">{option.label}</span>
+                      </div>
+                      <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                        {countByStatus[option.value] || 0}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>     
 
       {/* ตารางรายการ */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">

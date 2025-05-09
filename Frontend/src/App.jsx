@@ -27,8 +27,8 @@ import Edit_pro from './pages/users/edit_profile';
 import ManageCategory from './pages/admin/ManageCategory';
 import BorrowApprovalList from './pages/executive/BorrowApprovalList'
 import RepairApprovalList from './pages/executive/RepairApprovalList'
-// import RepairApprovalList2 from './pages/executive/RepairApprovalList2'
-import Historybt from './pages/executive/Historybt'
+import Historybt from './pages/executive/Historyborrow'
+import HistoryRe from './pages/executive/HistoryRepair'
 
 function AppInner() {
   const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
@@ -74,40 +74,20 @@ function AppInner() {
   };
 
   return (
-    <div className=" min-h-screen flex flex-col md:flex-row bg-gray-50 text-black">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[linear-gradient(to_right,var(--tw-gradient-stops))] from-indigo-950 md:from-15% to-blue-700 text-black rounded-2xl">
       {/* Sidebar */}
-      <div className="w-full md:w-64 bg-white shadow-md">
+      <div className="w-full md:w-64 bg-gradient-to-r from-indigo-950 to-blue-700">
         <aside>{renderSidebar()}</aside>
       </div>
 
       {/* Main content */}
-      <main className="flex-1 p-4">
-        <Header />
-
-        {/* ปุ่มเปลี่ยนบทบาท (ใช้ทดสอบ) */}
-        <div className="mb-4 bg-gray-100 p-2 rounded flex gap-2">
-          <button
-            onClick={() => changeRole('admin')}
-            className={`px-3 py-1 rounded ${userRole === 'admin' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          >
-            ผู้ดูแลระบบ
-          </button>
-          <button
-            onClick={() => changeRole('user')}
-            className={`px-3 py-1 rounded ${userRole === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          >
-            ผู้ใช้งาน
-          </button>
-          <button
-            onClick={() => changeRole('executive')}
-            className={`px-3 py-1 rounded ${userRole === 'executive' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          >
-            ผู้บริหาร
-          </button>
-        </div>
-
+      <main className="flex-1">
+      <header className="bottom-0 z-50">
+          <Header userRole={userRole} changeRole={changeRole} />
+        </header>
+        
         {/* Routes */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-2 rounded-3xl">
           <Routes>
             {(userRole === 'admin' || userRole === 'executive') && (
               <>
@@ -120,30 +100,32 @@ function AppInner() {
                 <Route path="/ReceiveItem" element={<ReceiveItem />} />
                 <Route path="/category" element={<ManageCategory />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />
-                <Route path="/BorrowApprovalList" element={<BorrowApprovalList  />} />
-                {/* <Route path="/BorrowApprovalList" element={<BorrowApprovalList2  />} /> */}
-                <Route path="/Repair" element={<RepairApprovalList  />} />
+                <Route path="/BorrowApprovalList" element={<BorrowApprovalList />} />
+                <Route path="/Repair" element={<RepairApprovalList />} />
                 <Route path="/History" element={<Historybt />} />
+                <Route path="/History_repair" element={<HistoryRe />} />
               </>
             )}
             {(userRole === 'admin' || userRole === 'user') && (
               <>
-              <Route path="/DashboardUs" element={<DashboardUser />} />
-              <Route path="/equipment" element={<Homes />} />
-              <Route path="/re" element={<User_re />} />
-              <Route path="/approve" element={<Approve />} />
-              <Route path="/return" element={<Return />} />
-              <Route path="/completed" element={<Done />} />
-              <Route path="/borrow" element={<Borrow />} />
-              <Route path="/cancel" element={<Cancel_re />} />
-              <Route path="/fine" element={<Fine />} />
-              <Route path="/edit_profile" element={<Edit_pro />} />
+                <Route path="/DashboardUs" element={<DashboardUser />} />
+                <Route path="/equipment" element={<Homes />} />
+                <Route path="/re" element={<User_re />} />
+                <Route path="/approve" element={<Approve />} />
+                <Route path="/return" element={<Return />} />
+                <Route path="/completed" element={<Done />} />
+                <Route path="/borrow" element={<Borrow />} />
+                <Route path="/cancel" element={<Cancel_re />} />
+                <Route path="/fine" element={<Fine />} />
+                <Route path="/edit_profile" element={<Edit_pro />} />
               </>
             )}
           </Routes>
         </div>
 
-        <Footer />
+        <footer className="bottom-0 z-50">
+          <Footer />
+        </footer>
       </main>
     </div>
   );

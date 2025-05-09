@@ -1,13 +1,11 @@
+import { BsGraphUp } from "react-icons/bs"; 
+import { MdViewList } from "react-icons/md"; 
+import { TbCategory } from "react-icons/tb"; 
+import { MdOutlineEditNote } from "react-icons/md"; 
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTachometerAlt,
-  faArrowRightArrowLeft ,
-  faCogs,
-  faUsers,
-  faListAlt,
-  faGift
-} from '@fortawesome/free-solid-svg-icons';
+import { MdMenu } from "react-icons/md";
+import { RiArrowGoBackLine } from "react-icons/ri"; 
 
 import { MdManageAccounts } from "react-icons/md";
 import { VscGraph } from "react-icons/vsc";
@@ -72,22 +70,41 @@ function SidebarAdmin() {
 
       {/* Sidebar */}
       <aside id="separator-sidebar" className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform transform ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } sm:translate-x-0 bg-gray-50 dark:bg-gray-800`} aria-label="Sidebar">
-        <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
-          <ul className="space-y-2 font-medium">
+                sidebarOpen ? "translate-x-0" : "-translate-x-full"
+              } sm:translate-x-0 bg-gray-50 dark:bg-gray-800`} aria-label="Sidebar">
+                
+              <div className="h-full px-2 py-4 overflow-y-auto bg-indigo-950">
+                <ul className="space-y">
+                            {/* ปุ่มเมนูใน sidebar - แสดงเฉพาะใน mobile */}
+                            <li className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white group sm:hidden">
+                              <button onClick={toggleSidebar} className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
+                                <MdMenu size={30}/>
+                              </button>
+                            </li>
+                            <li className="flex justify-center p-2">
+                              <div className="w-full h-auto md:h-auto flex items-center justify-center">
+                                <img 
+                                  src="/logo_it.png" 
+                                  alt="Logo" 
+                                  className="object-cover w-full h-full md:max-h-80 md:max-w-90"
+                                />
+                              </div>
+                            </li>
+                          </ul>
+                          
+          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-white/50">
             <li>
               <NavLink
                 to="/DashboardAd"
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
-                <VscGraph size={25} />
-                <span className="ms-3">Dashboard Admin</span>
+                <BsGraphUp  size={25} />
+                <span className="ms-3">รายงาน</span>
               </NavLink>
             </li>
             <li>
@@ -96,26 +113,12 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
-                <AiFillProduct  size={25}/>
+                <MdOutlineEditNote size={25}/>
                 <span className="ms-3">จัดการครุภัณฑ์</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/members"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
-                }`}
-              >
-                <MdManageAccounts size={25}/>
-                <span className="flex-1 ms-3 whitespace-nowrap">จัดการสมาชิก</span>
               </NavLink>
             </li>
             <li>
@@ -124,12 +127,26 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
-                <GrCatalog size={25}/>
-                <span className="flex-1 ms-3 whitespace-nowrap">จัดการประเภท</span>
+                <TbCategory  size={25}/>
+                <span className="flex-1 ms-3 whitespace-nowrap">จัดการประเภทครุภัณฑ์</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/members"
+                onClick={handleNavLinkClick}
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'
+                }`}
+              >
+                <MdManageAccounts size={25}/>
+                <span className="flex-1 ms-3 whitespace-nowrap">จัดการสมาชิก</span>
               </NavLink>
             </li>
             <li>
@@ -138,12 +155,12 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
-                <FaHandshake size={25}/>
-                <span className="flex-1 ms-3 whitespace-nowrap">รายการยืม</span>
+                <MdViewList  size={25}/>
+                <span className="flex-1 ms-3 whitespace-nowrap">รายการขอยืมครุภัณฑ์</span>
                 <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
               </NavLink>
             </li>
@@ -153,12 +170,12 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
-                <BiLogOutCircle size={25} />
-                <span className="flex-1 ms-3 whitespace-nowrap">รายการคืน</span>
+                <RiArrowGoBackLine size={25} />
+                <span className="flex-1 ms-3 whitespace-nowrap">รายการคืนครุภัณฑ์</span>
                 <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
               </NavLink>
             </li>
@@ -168,8 +185,8 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                   ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
                 <BiPackage size={25} />
@@ -178,14 +195,14 @@ function SidebarAdmin() {
               </NavLink>
             </li>
           </ul>
-          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
+          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-white/50">
           <li>
               <NavLink
                 to="/edit_profile"
                 onClick={handleNavLinkClick}
                 className={`flex items-center p-2 rounded-lg group ${isActive('/edit_profile')
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                  : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
               >
                 <FaUserEdit size={22} />
                 <span className="ms-3">แก้ไขข้อมูลส่วนตัว</span>
@@ -197,8 +214,8 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
                 <FaSignOutAlt size={25} />

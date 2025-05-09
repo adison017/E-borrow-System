@@ -109,7 +109,7 @@ const RequirementList = () => {
                     />
                     
                     {/* Navigation Arrows - Right Side */}
-                    <div className="absolute right-0 top-0 h-full w-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute right-0 top-0 h-full w-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 ">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -137,7 +137,7 @@ const RequirementList = () => {
                 </div>
                 
                 {/* Content section */}
-                <div className="md:w-2/3 w-full">
+                <div className="md:w-2/3 w-full ">
                   <div className="card-body p-4 md:p-6">
                     <div className="flex flex-col md:flex-row md:justify-between justify-center md:items-start items-center gap-2">
                       <h2 className="card-title text-gray-800 text-lg md:text-xl">
@@ -183,8 +183,8 @@ const RequirementList = () => {
                     </div>
 
                     {/* Footer */}
-                    <div className="pt-4 border-t border-gray-200 mt-auto">
-                      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="pt-4 border-t border-gray-200 mt-auto ">
+                      <div className="flex flex-col md:flex-row justify-between items-center gap-4 ">
                         <div className="text-gray-700 font-medium text-sm md:text-base">
                           รวมทั้งหมด {request.total} ชิ้น
                         </div>

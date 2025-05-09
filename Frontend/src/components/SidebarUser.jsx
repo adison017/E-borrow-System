@@ -1,3 +1,4 @@
+import { AiFillHome } from "react-icons/ai"; 
 import { RiArrowGoBackLine } from "react-icons/ri"; 
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -56,24 +57,24 @@ function SidebarAdmin() {
         id="toggle-button"
         onClick={toggleSidebar}
         type="button"
-        className="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 z-50"
+        className="inline-flex items-center p-2 mt-2 mb-2 ms-3 text-sm text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 bg-gradient-to-r from-indigo-950 to-blue-700 dark:focus:ring-gray-600 z-50"
         aria-label="Toggle sidebar"
         aria-expanded={sidebarOpen}
       >
-        <MdMenu size={30} />
+        <MdMenu size={30} className="text-white"/>
       </button>
 
       {/* Sidebar */}
       <aside 
         id="sidebar" 
-        className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 bg-gray-50 dark:bg-gray-800`} 
+        className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 bg-gray-50 bg-gradient-to-r from-indigo-950 to-blue-700`} 
         aria-label="Admin sidebar"
       >
-        <div className="h-full px-2 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
+        <div className="h-full px-2 py-4 overflow-y-auto bg-indigo-950">
           <ul className="space-y">
             {/* ปุ่มเมนูใน sidebar - แสดงเฉพาะใน mobile */}
-            <li className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white group sm:hidden">
-              <button onClick={toggleSidebar} className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
+            <li className="flex items-center p-2 text-gray-900 rounded-2xl dark:text-white group sm:hidden">
+              <button onClick={toggleSidebar} className="p-1 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700">
                 <MdMenu size={30}/>
               </button>
             </li>
@@ -88,17 +89,17 @@ function SidebarAdmin() {
             </li>
           </ul>
           
-          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
+          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-white/50">
             {/* Dashboard */}
             <li>
               <Link 
                 to="/DashboardUs" 
                 onClick={handleNavigation}
-                className={`flex items-center p-2 rounded-lg group ${isActive('/DashboardUs') 
-                  ? 'bg-blue-100 text-white dark:bg-blue-900 dark:text-white' 
-                  : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                className={`flex items-center p-2 rounded-2xl group ${isActive('/DashboardUs') 
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
               >
-                <VscGraph size={22} />
+                <AiFillHome size={22} />
                 <span className="ms-3">หน้าแรก</span>
               </Link>
             </li>
@@ -108,9 +109,9 @@ function SidebarAdmin() {
               <Link 
                 to="/equipment" 
                 onClick={handleNavigation}
-                className={`flex items-center p-2 rounded-lg group ${isActive('/equipment') 
-                  ? 'bg-blue-100 text-white dark:bg-blue-900 dark:text-white' 
-                  : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                className={`flex items-center p-2 rounded-2xl group ${isActive('/equipment') 
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
               >
                 <FaShoppingBag size={22} />
                 <span className="flex-1 ms-3 whitespace-nowrap">รายการครุภัณฑ์</span>
@@ -121,13 +122,13 @@ function SidebarAdmin() {
             <li>
               <div 
                 onClick={handleMenuClick} 
-                className="flex items-center justify-between p-2 text-gray-900 rounded-lg hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 group cursor-pointer"
+                className="flex items-center justify-between p-2 hover:bg-white hover:text-black text-white rounded-2xl transition-colors group cursor-pointer"
                 aria-expanded={openSubMenu}
                 aria-controls="borrowing-submenu"
               >
                 <div className="flex items-center">
                   <FaThList size={22} />
-                  <span className="ms-3 whitespace-nowrap">รายการขอยืมครุภัณฑ์</span>
+                  <span className="ms-3 whitespace-nowrap ">รายการขอยืมครุภัณฑ์</span>
                 </div>
                 <MdKeyboardArrowRight size={20} className={`transition-transform ${openSubMenu ? "rotate-90" : ""}`} />
               </div>
@@ -138,9 +139,9 @@ function SidebarAdmin() {
                   <Link 
                     to="/borrow" 
                     onClick={handleNavigation}
-                    className={`flex items-center p-2 rounded-lg ${isActive('/borrow') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                    className={`flex items-center p-2 rounded-2xl ${isActive('/borrow') 
+                      ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                      : 'hover:bg-white hover:text-black text-white transition-colors'}`}
                   >
                     <MdAccessTimeFilled size={20} />
                     <span className="ms-3">รออนุมัติ</span>
@@ -150,9 +151,9 @@ function SidebarAdmin() {
                   <Link 
                     to="/approve" 
                     onClick={handleNavigation}
-                    className={`flex items-center p-2 rounded-lg ${isActive('/approve') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                    className={`flex items-center p-2 rounded-2xl ${isActive('/approve') 
+                      ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
                   >
                     <FaCheckCircle size={18} />
                     <span className="ms-3">อนุมัติ</span>
@@ -162,9 +163,9 @@ function SidebarAdmin() {
                   <Link 
                     to="/return" 
                     onClick={handleNavigation}
-                    className={`flex items-center p-2 rounded-lg ${isActive('/return') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                    className={`flex items-center p-2 rounded-2xl ${isActive('/return') 
+                      ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
                   >
                     <RiArrowGoBackLine size={18} />
                     <span className="ms-3">คืนครุภัณฑ์</span>
@@ -174,9 +175,9 @@ function SidebarAdmin() {
                   <Link 
                     to="/fine" 
                     onClick={handleNavigation}
-                    className={`flex items-center p-2 rounded-lg ${isActive('/fine') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                    className={`flex items-center p-2 rounded-2xl ${isActive('/fine') 
+                      ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
                   >
                     <FaMoneyBillAlt size={18} />
                     <span className="ms-3">ค้างชำระเงิน</span>
@@ -186,9 +187,9 @@ function SidebarAdmin() {
                   <Link 
                     to="/cancel" 
                     onClick={handleNavigation}
-                    className={`flex items-center p-2 rounded-lg ${isActive('/cancel') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                    className={`flex items-center p-2 rounded-2xl ${isActive('/cancel') 
+                      ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
                   >
                     <MdCancel size={20} />
                     <span className="ms-3">ปฏิเสธ</span>
@@ -198,9 +199,9 @@ function SidebarAdmin() {
                   <Link 
                     to="/completed" 
                     onClick={handleNavigation}
-                    className={`flex items-center p-2 rounded-lg ${isActive('/completed') 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                    className={`flex items-center p-2 rounded-2xl ${isActive('/completed') 
+                      ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
                   >
                     <FaArchive size={18} />
                     <span className="ms-3">เสร็จสิ้น</span>
@@ -211,14 +212,14 @@ function SidebarAdmin() {
           </ul>
 
           {/* Profile and Logout Section */}
-          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
+          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-white/50">
             <li>
               <Link 
                 to="/edit_profile" 
                 onClick={handleNavigation}
-                className={`flex items-center p-2 rounded-lg group ${isActive('/edit_profile') 
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white' 
-                  : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                className={`flex items-center p-2 rounded-2xl group ${isActive('/edit_profile') 
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
               >
                 <FaUserEdit size={22} />
                 <span className="ms-3">แก้ไขข้อมูลส่วนตัว</span>
@@ -227,7 +228,7 @@ function SidebarAdmin() {
             <li>
               <button 
                 onClick={handleLogout}
-                className="flex items-center w-full p-2 text-gray-900 rounded-lg hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 group"
+                className="flex items-center w-full p-2 rounded-2xl hover:bg-white hover:text-black text-white transition-colors group"
               >
                 <FaSignOutAlt size={22} />
                 <span className="ms-3">ออกจากระบบ</span>

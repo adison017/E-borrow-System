@@ -1,6 +1,18 @@
+import { BiSearchAlt2 } from "react-icons/bi";
+import { FaClock } from "react-icons/fa";
 import { useState, useEffect } from "react";
-import { CheckCircleIcon, XCircleIcon, ClockIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import BorrowDetailsDialog from "./dialog/BorrowDetailsDialog";
+
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
+} from "@heroicons/react/24/outline";
+import BorrowDetailsDialog from "./dialogs/borrowde";
+
 
 export default function BorrowApprovalList() {
   const [borrowRequests, setBorrowRequests] = useState([]);
@@ -8,29 +20,38 @@ export default function BorrowApprovalList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("pending");
   const [notification, setNotification] = useState({
     show: false,
     message: "",
     type: "success"
   });
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // สถานะของคำขอยืม
   const statusOptions = [
-    { value: "all", label: "ทั้งหมด" },
-    { value: "pending", label: "รอการอนุมัติ" },
-    { value: "approved", label: "อนุมัติแล้ว" },
-    { value: "rejected", label: "ปฏิเสธ" },
-    { value: "borrowing", label: "กำลังยืม" },
-    { value: "returned", label: "คืนแล้ว" }
+    { value: "all", label: "ทั้งหมด", count: 0 },
+    { value: "pending", label: "รอการอนุมัติ", count: 0 },
+    { value: "approved", label: "อนุมัติแล้ว", count: 0 },
+    { value: "rejected", label: "ปฏิเสธ", count: 0 },
+    { value: "borrowing", label: "กำลังยืม", count: 0 },
+    { value: "returned", label: "คืนแล้ว", count: 0 }
   ];
 
   const statusBadgeStyle = {
-    pending: "bg-yellow-100 text-yellow-800",
-    approved: "bg-green-100 text-green-800",
-    rejected: "bg-red-100 text-red-800",
-    borrowing: "bg-blue-100 text-blue-800",
-    returned: "bg-purple-100 text-purple-800"
+    pending: "bg-yellow-50 text-yellow-800 border-yellow-200",
+    approved: "bg-green-50 text-green-800 border-green-200",
+    rejected: "bg-red-50 text-red-800 border-red-200",
+    borrowing: "bg-blue-50 text-blue-800 border-blue-200",
+    returned: "bg-purple-50 text-purple-800 border-purple-200"
+  };
+
+  const statusIconStyle = {
+    pending: "text-yellow-500",
+    approved: "text-green-500",
+    rejected: "text-red-500",
+    borrowing: "text-blue-500",
+    returned: "text-purple-500"
   };
 
   const statusTranslation = {
@@ -46,26 +67,32 @@ export default function BorrowApprovalList() {
     const mockData = [
       {
         borrowId: "BOR-2025-0001",
-        equipment: {
+      equipments: [ // เปลี่ยนเป็น array
+        {
           id: "EQP-001",
           code: "LT-001",
           name: "โน๊ตบุ๊ค Dell XPS 15",
           category: "อุปกรณ์คอมพิวเตอร์",
           image: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
         },
-        requester: {
-          id: "USR-001",
-          name: "ชัยวัฒน์ มีสุข",
-          department: "แผนกไอที",
-          avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-        },
-        purpose: "ใช้งานนอกสถานที่สำหรับงานประชุมที่ต่างจังหวัด",
-        status: "pending",
-        requestDate: "2025-05-01",
-        borrowDate: "2025-05-05",
-        dueDate: "2025-05-12",
-        priority: "medium"
+        {
+          id: "EQP-002",
+          code: "PR-005",
+          name: "เครื่องพิมพ์ HP LaserJet",
+          category: "อุปกรณ์สำนักงาน",
+          image: "https://cdn-icons-png.flaticon.com/512/4299/4299443.png"
+        }
+      ],
+      requester: {
+        id: "USR-001",
+        name: "ชัยวัฒน์ มีสุข",
+        department: "แผนกไอที"
       },
+      purpose: "ใช้งานนอกสถานที่สำหรับงานประชุมที่ต่างจังหวัด",
+      status: "pending",
+      borrowDate: "2025-05-05",
+      dueDate: "2025-05-12",
+    },
       {
         borrowId: "BOR-2025-0002",
         equipment: {
@@ -83,10 +110,8 @@ export default function BorrowApprovalList() {
         },
         purpose: "พิมพ์เอกสารสำคัญในงานประชุม",
         status: "pending",
-        requestDate: "2025-05-03",
         borrowDate: "2025-05-06",
         dueDate: "2025-05-09",
-        priority: "low"
       },
       {
         borrowId: "BOR-2025-0003",
@@ -105,12 +130,10 @@ export default function BorrowApprovalList() {
         },
         purpose: "ใช้นำเสนองานในการประชุมผู้บริหาร",
         status: "approved",
-        requestDate: "2025-04-28",
         borrowDate: "2025-05-02",
         dueDate: "2025-05-03",
         approvalDate: "2025-04-29",
         approvalNotes: "อนุมัติตามคำขอ",
-        priority: "high"
       },
       {
         borrowId: "BOR-2025-0004",
@@ -129,12 +152,10 @@ export default function BorrowApprovalList() {
         },
         purpose: "ถ่ายภาพกิจกรรมประจำเดือนของบริษัทและงานสัมมนา",
         status: "borrowing",
-        requestDate: "2025-04-25",
         borrowDate: "2025-04-28",
         dueDate: "2025-05-10",
         approvalDate: "2025-04-26",
         approvalNotes: "อนุมัติตามคำขอ และขอให้ดูแลรักษาอุปกรณ์เป็นอย่างดี",
-        priority: "medium"
       },
       {
         borrowId: "BOR-2025-0005",
@@ -153,14 +174,47 @@ export default function BorrowApprovalList() {
         },
         purpose: "ขอยืมใช้ในการเดินทางไปอบรมต่างประเทศ",
         status: "rejected",
-        requestDate: "2025-04-30",
         borrowDate: "2025-05-05",
         dueDate: "2025-05-20",
         approvalDate: "2025-05-01",
         approvalNotes: "ขออนุญาตปฏิเสธ เนื่องจากมีการจองใช้งานในช่วงเวลาเดียวกันแล้ว กรุณาเลือกอุปกรณ์อื่นหรือเปลี่ยนวันที่ยืม",
-        priority: "low"
+      },
+      {
+        borrowId: "BOR-2025-0006",
+        equipment: {
+          id: "EQP-006",
+          code: "MIC-012",
+          name: "ไมโครโฟนไร้สาย",
+          category: "อุปกรณ์เสียง",
+          image: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png"
+        },
+        requester: {
+          id: "USR-005",
+          name: "สมหญิง จริงใจ",
+          department: "แผนกการตลาด",
+          avatar: "https://randomuser.me/api/portraits/women/65.jpg"
+        },
+        purpose: "ใช้ในการจัดงานสัมมนาลูกค้า",
+        status: "returned",
+        borrowDate: "2025-04-22",
+        dueDate: "2025-04-25",
+        returnDate: "2025-04-24",
+        approvalDate: "2025-04-21",
+        approvalNotes: "อนุมัติตามคำขอ",
       }
     ];
+
+    // Calculate counts for each status
+    const counts = mockData.reduce((acc, request) => {
+      acc[request.status] = (acc[request.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Update status options with counts
+    const updatedOptions = statusOptions.map(option => ({
+      ...option,
+      count: counts[option.value] || 0
+    }));
 
     setBorrowRequests(mockData);
     setLoading(false);
@@ -237,151 +291,120 @@ export default function BorrowApprovalList() {
   }, {});
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-6">อนุมัติคำขอยืมอุปกรณ์</h1>
-
-      {/* สรุปข้อมูล */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white shadow-sm rounded-xl p-4 border-l-4 border-gray-500">
-          <p className="text-gray-500 text-sm">คำขอทั้งหมด</p>
-          <p className="text-2xl font-semibold">{borrowRequests.length}</p>
-        </div>
-        <div className="bg-white shadow-sm rounded-xl p-4 border-l-4 border-yellow-500">
-          <p className="text-gray-500 text-sm">รอการอนุมัติ</p>
-          <p className="text-2xl font-semibold">{countByStatus.pending || 0}</p>
-        </div>
-        <div className="bg-white shadow-sm rounded-xl p-4 border-l-4 border-green-500">
-          <p className="text-gray-500 text-sm">อนุมัติแล้ว</p>
-          <p className="text-2xl font-semibold">{countByStatus.approved || 0}</p>
-        </div>
-        <div className="bg-white shadow-sm rounded-xl p-4 border-l-4 border-blue-500">
-          <p className="text-gray-500 text-sm">กำลังยืม</p>
-          <p className="text-2xl font-semibold">{countByStatus.borrowing || 0}</p>
-        </div>
-        <div className="bg-white shadow-sm rounded-xl p-4 border-l-4 border-red-500">
-          <p className="text-gray-500 text-sm">ปฏิเสธ</p>
-          <p className="text-2xl font-semibold">{countByStatus.rejected || 0}</p>
-        </div>
-      </div>
-
-      {/* ค้นหาและตัวกรอง */}
-      <div className="bg-white p-4 rounded-xl shadow-sm mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้ขอยืม"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 input input-bordered w-full bg-gray-50"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 whitespace-nowrap">กรองตามสถานะ:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="select select-bordered bg-white"
-            >
-              {statusOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="container mx-auto py-6 max-w-7xl">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอยืมอุปกรณ์</h1>
+          <p className="text-gray-500 text-sm">จัดการคำขอยืมอุปกรณ์ทั้งหมดขององค์กร</p>
         </div>
       </div>
 
       {/* ตารางรายการ */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
         {loading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-gray-500">ไม่พบรายการที่ตรงกับการค้นหา</p>
+            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <MagnifyingGlassIcon className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-700 mb-1">ไม่พบรายการที่ตรงกับการค้นหา</h3>
+            <p className="text-gray-500">ลองเปลี่ยนคำค้นหาหรือตัวกรองสถานะ</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="table w-full">
-              <thead>
-                <tr className="bg-gray-50 text-black">
-                  <th className="px-2">รหัส</th>
-                  <th>อุปกรณ์</th>
-                  <th>ผู้ขอยืม</th>
-                  <th>วันที่ยืม</th>
-                  <th>กำหนดคืน</th>
-                  <th>สถานะ</th>
-                  <th className="text-right">การจัดการ</th>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                    รหัสคำขอ
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                    อุปกรณ์
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                    ผู้ขอยืม
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                    วันที่ยืม
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                    กำหนดคืน
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
+                    สถานะ
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
+                    การจัดการ
+                  </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {filteredRequests.map((request) => (
-                  <tr key={request.borrowId} className="hover:bg-gray-50 border-b">
-                    <td className="px-2">
-                      <div className="font-medium">{request.borrowId}</div>
+                  <tr key={request.borrowId} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{request.borrowId}</div>
+                      <div className="text-xs text-gray-500">{request.requestDate}</div>
                     </td>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="avatar">
-                          <div className="w-12 h-12 p-1 rounded bg-gray-100">
-                            <img
-                              src={request.equipment?.image || "/placeholder-equipment.png"}
-                              alt={request.equipment?.name}
-                              className="object-contain"
-                            />
-                          </div>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <img
+                            className="h-10 w-10 object-contain p-1 bg-gray-100 rounded"
+                            src={request.equipment?.image || "/placeholder-equipment.png"}
+                            alt={request.equipment?.name}
+                          />
                         </div>
-                        <div>
-                          <div className="font-medium">{request.equipment?.name}</div>
-                          <div className="text-sm text-gray-500">{request.equipment?.code}</div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{request.equipment?.name}</div>
+                          <div className="text-xs text-gray-500">{request.equipment?.category}</div>
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="avatar">
-                          <div className="w-8 h-8 rounded-full">
-                            <img
-                              src={request.requester?.avatar || "/placeholder-user.png"}
-                              alt={request.requester?.name}
-                            />
-                          </div>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8">
+                          <img
+                            className="h-8 w-8 rounded-full"
+                            src={request.requester?.avatar || "/placeholder-user.png"}
+                            alt={request.requester?.name}
+                          />
                         </div>
-                        <div>
-                          <div>{request.requester?.name}</div>
-                          <div className="text-sm text-gray-500">{request.requester?.department}</div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900">{request.requester?.name}</div>
+                          <div className="text-xs text-gray-500">{request.requester?.department}</div>
                         </div>
                       </div>
                     </td>
-                    <td>{request.borrowDate}</td>
-                    <td>{request.dueDate}</td>
-                    <td>
-                      <span className={`px-2 py-1 rounded-md text-xs ${statusBadgeStyle[request.status]}`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{request.borrowDate}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{request.dueDate}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
+                        {request.status === "pending" }
+                        {request.status === "approved"}
+                        {request.status === "rejected"}
                         {statusTranslation[request.status]}
                       </span>
                     </td>
-                    <td className="text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                       {request.status === "pending" ? (
-                        <div className="flex justify-end gap-1">
-                          <button
-                            onClick={() => handleOpenDialog(request)}
-                            className="btn btn-sm btn-primary text-white"
-                          >
-                            พิจารณา
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleOpenDialog(request)}
+                          className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md text-sm mx-auto"
+                        >
+                          พิจารณา
+                        </button>
                       ) : (
                         <button
                           onClick={() => handleOpenDialog(request)}
-                          className="btn btn-sm btn-ghost"
+                          className="cursor-pointer text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-md text-sm mx-auto"
                         >
                           ดูรายละเอียด
                         </button>
@@ -406,19 +429,37 @@ export default function BorrowApprovalList() {
 
       {/* Notification Component */}
       {notification.show && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg max-w-md transition-all duration-300 ${
-          notification.type === 'success' ? 'bg-green-100 border-l-4 border-green-500 text-green-700' :
-          notification.type === 'error' ? 'bg-red-100 border-l-4 border-red-500 text-red-700' :
-          'bg-blue-100 border-l-4 border-blue-500 text-blue-700'
+        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg max-w-md transition-all duration-300 transform ${
+          notification.show ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'
+        } ${
+          notification.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' :
+          notification.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' :
+          'bg-blue-50 border border-blue-200 text-blue-700'
         }`}>
-          <div className="flex items-center gap-3">
-            {notification.type === 'success' && (
-              <CheckCircleIcon className="w-6 h-6 text-green-500" />
-            )}
-            {notification.type === 'error' && (
-              <XCircleIcon className="w-6 h-6 text-red-500" />
-            )}
-            <p className="font-medium">{notification.message}</p>
+          <div className="flex items-start gap-3">
+            <div className={`flex-shrink-0 ${
+              notification.type === 'success' ? 'text-green-400' :
+              notification.type === 'error' ? 'text-red-400' :
+              'text-blue-400'
+            }`}>
+              {notification.type === 'success' && (
+                <CheckCircleIcon className="w-5 h-5" />
+              )}
+              {notification.type === 'error' && (
+                <XCircleIcon className="w-5 h-5" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">{notification.message}</p>
+            </div>
+            <button
+              onClick={() => setNotification(prev => ({ ...prev, show: false }))}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
       )}

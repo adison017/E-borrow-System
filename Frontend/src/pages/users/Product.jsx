@@ -295,7 +295,7 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Header Section */}
       <header className="bg-white">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -309,7 +309,7 @@ const Home = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 bg-white">
         {/* Search and Filter Section */}
-        <div className="mb-8">
+        <div className="mb-8 ">
           {/* Search Bar */}
           <div className="mb-6">
             <div className="relative max-w-3xl mx-auto ">
@@ -327,11 +327,11 @@ const Home = () => {
           </div>
 
           {/* Filter Controls */}
-          <div className="bg-white p-4 rounded-lg mb-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="bg-white p-6 mb-6 bg-gradient-to-r from-indigo-950 to-blue-700 rounded-2xl">
+            <div className="flex flex-col px-6 md:flex-row md:items-center md:justify-between gap-4">
               {/* Status Filters */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">สถานะ</h3>
+                <h3 className="text-sm font-medium text-white mb-2">สถานะ</h3>
                 <div className="flex flex-wrap gap-2">
                   {['ทั้งหมด', 'พร้อมยืม', 'ถูกยืม', 'กำลังซ่อม'].map((status) => (
                     <button
@@ -339,7 +339,7 @@ const Home = () => {
                       onClick={() => handleStatusFilter(status)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                         selectedStatus === status
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-blue-700 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -351,9 +351,9 @@ const Home = () => {
 
               {/* Category Filter */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">หมวดหมู่</h3>
+                <h3 className="text-sm font-medium text-white mb-2">หมวดหมู่</h3>
                 <select
-                  className="block w-full pl-3 pr-10 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm rounded-xl"
+                  className="block w-full pl-3 pr-10 py-2 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 text-sm rounded-xl"
                   value={selectedCategory}
                   onChange={(e) => handleCategoryFilter(e.target.value)}
                 >
@@ -371,7 +371,7 @@ const Home = () => {
         {/* Equipment Grid */}
         <div className="mb-16 ">
           {filteredEquipment.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16 ">
               {filteredEquipment.map((equipment) => (
                 <div key={equipment.id} className="card rounded-xl shadow-sm hover:shadow-md bg-white transition-transform duration-300 hover:scale-105  ">
                   <figure className="px-4 pt-4 relative">
@@ -466,24 +466,24 @@ const Home = () => {
 
       {/* Floating Cart Summary */}
       {totalSelectedItems > 0 && (
-        <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-xl p-4 z-10 animate-bounce-once">
-          <div className="flex items-center gap-4">
+        <div className="fixed bottom-6 right-11 md:bottom-6 md:right-6 bg-white shadow-xl p-4 z-10 animate-bounce-once rounded-2xl">
+          <div className="flex items-center gap-4 ">
             <div className="flex items-center gap-2">
-              <MdShoppingCart className="h-6 w-6 text-blue-600" />
+              <MdShoppingCart className="h-6 w-6 text-blue-600 " />
               <span className="font-medium">
                 {totalSelectedItems} รายการที่เลือก
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 ">
               <button
                 onClick={() => setQuantities({})}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 bg-gray-200 text-gray-700  hover:bg-gray-300 transition-colors rounded-2xl"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleConfirm}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-2xl" 
               >
                 ยืนยันการยืม
               </button>
