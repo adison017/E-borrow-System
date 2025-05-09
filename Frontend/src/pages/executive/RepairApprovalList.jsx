@@ -278,7 +278,7 @@ export default function RepairApprovalList() {
   }, {});
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="container mx-auto py-6 max-w-7xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอแจ้งซ่อม</h1>
@@ -304,27 +304,27 @@ export default function RepairApprovalList() {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     รหัสคำขอ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     อุปกรณ์
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     ผู้แจ้งซ่อม
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     วันที่แจ้ง
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     ค่าใช้จ่าย (บาท)
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
                     สถานะ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
                     การจัดการ
                   </th>
                 </tr>
@@ -382,14 +382,14 @@ export default function RepairApprovalList() {
                       {request.status === "pending" ? (
                         <button
                           onClick={() => handleOpenDialog(request)}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md text-sm mx-auto"
+                          className="cursor-pointer text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md text-sm mx-auto"
                         >
                           พิจารณา
                         </button>
                       ) : (
                         <button
                           onClick={() => handleOpenDialog(request)}
-                          className="text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-md text-sm mx-auto"
+                          className="cursor-pointer text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-md text-sm mx-auto"
                         >
                           ดูรายละเอียด
                         </button>

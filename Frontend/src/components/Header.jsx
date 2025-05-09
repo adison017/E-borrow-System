@@ -31,7 +31,7 @@ function Header({ userRole, changeRole }) {
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
         {/* Logo + System Name */}
         <div className="flex items-center space-x-3 sm:space-x-4">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
+          <h1 className="text-xl sm:text-2xl md:text-4xl font-bold tracking-tight">
             ระบบยืม-คืนครุภัณฑ์
           </h1>
         </div>
@@ -83,7 +83,7 @@ function Header({ userRole, changeRole }) {
             
             {/* Logout Button (optional) */}
             <button 
-              className="hidden md:flex items-center justify-center p-2 rounded-full hover:bg-blue-700 transition-colors"
+              className="md:flex items-center justify-center p-2 rounded-full hover:bg-blue-700 transition-colors"
               title="ออกจากระบบ"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
