@@ -1,3 +1,4 @@
+import { BsGraphUp } from "react-icons/bs"; 
 import { FaShoppingCart } from "react-icons/fa"; 
 import { MdAnnouncement } from "react-icons/md"; 
 import { GiAutoRepair } from "react-icons/gi"; 
@@ -93,14 +94,14 @@ function SidebarExecutive() {
               <NavLink
                 to="/DashboardEx"
                 onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                className={({ isActive }) => `flex items-center p-2 rounded-2xl group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}
                 }`}
               >
-                <VscGraph size={25} />
-                <span className="ms-3 text-sm">รายงาน</span>
+                <BsGraphUp  size={25} />
+                <span className="ms-3 ">รายงาน</span>
               </NavLink>
             </li>
 
@@ -108,29 +109,29 @@ function SidebarExecutive() {
               <NavLink
                 to="/BorrowApprovalList"
                 onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                className={({ isActive }) => `flex items-center p-2 rounded-2xl group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}
                 }`}
               >
                 <FaShoppingCart size={25}/>
-                <span className="flex-1 ms-3 whitespace-nowrap text-sm">รายการขอยืมครุภัณฑ์</span>
-                <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
+                <span className="flex-1 ms-3 whitespace-nowrap ">รายการขอยืมครุภัณฑ์</span>
+                <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3  font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
               </NavLink>
             </li>
             <li>
               <NavLink
                 to="/History"
                 onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                className={({ isActive }) => `flex items-center p-2 rounded-2xl group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}
                 }`}
               >
                 <AiOutlineHistory  size={25} />
-                <span className="flex-1 ms-3 whitespace-nowrap text-sm">ประวัติอนุมัติการยืม
+                <span className="flex-1 ms-3 whitespace-nowrap ">ประวัติอนุมัติการยืม
 
                 </span>
                 <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
@@ -140,14 +141,14 @@ function SidebarExecutive() {
               <NavLink
                 to="/Repair"
                 onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                className={({ isActive }) => `flex items-center p-2 rounded-2xl group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}
                 }`}
               >
                 <MdAnnouncement size={25} />
-                <span className="flex-1 ms-3 whitespace-nowrap text-sm">รายการแจ้งซ่อมครุภัณฑ์</span>
+                <span className="flex-1 ms-3 whitespace-nowrap ">อนุมัติการซ่อมครุภัณฑ์</span>
                 <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
               </NavLink>
             </li>
@@ -155,14 +156,14 @@ function SidebarExecutive() {
               <NavLink
                 to="/History_Repair"
                 onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                className={({ isActive }) => `flex items-center p-2 rounded-2xl group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}
                 }`}
               >
                 <GiAutoRepair size={25} />
-                <span className="flex-1 ms-3 whitespace-nowrap text-sm">ประวัติซ่อมครุภัณฑ์</span>
+                <span className="flex-1 ms-3 whitespace-nowrap ">ประวัติซ่อมครุภัณฑ์</span>
                 <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
               </NavLink>
             </li>
@@ -172,26 +173,26 @@ function SidebarExecutive() {
                   <NavLink
                     to="/edit_profile"
                     onClick={handleNavLinkClick}
-                    className={`flex items-center p-2 rounded-lg group ${isActive('/edit_profile')
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                      : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'}`}
+                    className={`flex items-center p-2 rounded-2xl group ${isActive('/edit_profile')
+                      ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}}`}
                     >
                     <FaUserEdit size={22} />
-                    <span className="ms-3 text-sm">แก้ไขข้อมูลส่วนตัว</span>
+                    <span className="ms-3 ">แก้ไขข้อมูลส่วนตัว</span>
                   </NavLink>
               </li>
             <li>
               <NavLink
                 to="/logout"
                 onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                className={({ isActive }) => `flex items-center p-2 rounded-2xl group ${
                   isActive
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-white'
-                    : 'text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  : 'hover:bg-white hover:text-black text-white transition-colors'}
                 }`}
               >
                 <FaSignOutAlt size={25} />
-                <span className="flex-1 ms-3 whitespace-nowrap text-sm">ออกจากระบบ</span>
+                <span className="flex-1 ms-3 whitespace-nowrap ">ออกจากระบบ</span>
               </NavLink>
             </li>
           </ul>

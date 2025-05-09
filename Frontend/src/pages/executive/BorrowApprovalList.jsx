@@ -65,26 +65,32 @@ export default function BorrowApprovalList() {
     const mockData = [
       {
         borrowId: "BOR-2025-0001",
-        equipment: {
+      equipments: [ // เปลี่ยนเป็น array
+        {
           id: "EQP-001",
           code: "LT-001",
           name: "โน๊ตบุ๊ค Dell XPS 15",
           category: "อุปกรณ์คอมพิวเตอร์",
           image: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
         },
-        requester: {
-          id: "USR-001",
-          name: "ชัยวัฒน์ มีสุข",
-          department: "แผนกไอที",
-          avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-        },
-        purpose: "ใช้งานนอกสถานที่สำหรับงานประชุมที่ต่างจังหวัด",
-        status: "pending",
-        requestDate: "2025-05-01",
-        borrowDate: "2025-05-05",
-        dueDate: "2025-05-12",
-        priority: "medium"
+        {
+          id: "EQP-002",
+          code: "PR-005",
+          name: "เครื่องพิมพ์ HP LaserJet",
+          category: "อุปกรณ์สำนักงาน",
+          image: "https://cdn-icons-png.flaticon.com/512/4299/4299443.png"
+        }
+      ],
+      requester: {
+        id: "USR-001",
+        name: "ชัยวัฒน์ มีสุข",
+        department: "แผนกไอที"
       },
+      purpose: "ใช้งานนอกสถานที่สำหรับงานประชุมที่ต่างจังหวัด",
+      status: "pending",
+      borrowDate: "2025-05-05",
+      dueDate: "2025-05-12",
+    },
       {
         borrowId: "BOR-2025-0002",
         equipment: {
@@ -102,10 +108,8 @@ export default function BorrowApprovalList() {
         },
         purpose: "พิมพ์เอกสารสำคัญในงานประชุม",
         status: "pending",
-        requestDate: "2025-05-03",
         borrowDate: "2025-05-06",
         dueDate: "2025-05-09",
-        priority: "low"
       },
       {
         borrowId: "BOR-2025-0003",
@@ -124,12 +128,10 @@ export default function BorrowApprovalList() {
         },
         purpose: "ใช้นำเสนองานในการประชุมผู้บริหาร",
         status: "approved",
-        requestDate: "2025-04-28",
         borrowDate: "2025-05-02",
         dueDate: "2025-05-03",
         approvalDate: "2025-04-29",
         approvalNotes: "อนุมัติตามคำขอ",
-        priority: "high"
       },
       {
         borrowId: "BOR-2025-0004",
@@ -148,12 +150,10 @@ export default function BorrowApprovalList() {
         },
         purpose: "ถ่ายภาพกิจกรรมประจำเดือนของบริษัทและงานสัมมนา",
         status: "borrowing",
-        requestDate: "2025-04-25",
         borrowDate: "2025-04-28",
         dueDate: "2025-05-10",
         approvalDate: "2025-04-26",
         approvalNotes: "อนุมัติตามคำขอ และขอให้ดูแลรักษาอุปกรณ์เป็นอย่างดี",
-        priority: "medium"
       },
       {
         borrowId: "BOR-2025-0005",
@@ -172,12 +172,10 @@ export default function BorrowApprovalList() {
         },
         purpose: "ขอยืมใช้ในการเดินทางไปอบรมต่างประเทศ",
         status: "rejected",
-        requestDate: "2025-04-30",
         borrowDate: "2025-05-05",
         dueDate: "2025-05-20",
         approvalDate: "2025-05-01",
         approvalNotes: "ขออนุญาตปฏิเสธ เนื่องจากมีการจองใช้งานในช่วงเวลาเดียวกันแล้ว กรุณาเลือกอุปกรณ์อื่นหรือเปลี่ยนวันที่ยืม",
-        priority: "low"
       },
       {
         borrowId: "BOR-2025-0006",
@@ -196,13 +194,11 @@ export default function BorrowApprovalList() {
         },
         purpose: "ใช้ในการจัดงานสัมมนาลูกค้า",
         status: "returned",
-        requestDate: "2025-04-20",
         borrowDate: "2025-04-22",
         dueDate: "2025-04-25",
         returnDate: "2025-04-24",
         approvalDate: "2025-04-21",
         approvalNotes: "อนุมัติตามคำขอ",
-        priority: "medium"
       }
     ];
 
@@ -293,7 +289,7 @@ export default function BorrowApprovalList() {
   }, {});
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="container mx-auto py-6 max-w-7xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอยืมอุปกรณ์</h1>
@@ -319,27 +315,27 @@ export default function BorrowApprovalList() {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     รหัสคำขอ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     อุปกรณ์
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     ผู้ขอยืม
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     วันที่ยืม
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     กำหนดคืน
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
                     สถานะ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
                     การจัดการ
                   </th>
                 </tr>
@@ -406,7 +402,7 @@ export default function BorrowApprovalList() {
                       ) : (
                         <button
                           onClick={() => handleOpenDialog(request)}
-                          className="text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-md text-sm mx-auto"
+                          className="cursor-pointer text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-md text-sm mx-auto"
                         >
                           ดูรายละเอียด
                         </button>

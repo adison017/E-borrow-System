@@ -1,3 +1,4 @@
+import { AiFillHome } from "react-icons/ai"; 
 import { RiArrowGoBackLine } from "react-icons/ri"; 
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -98,7 +99,7 @@ function SidebarAdmin() {
                   ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
                   : 'hover:bg-white hover:text-black text-white transition-colors'}`}
               >
-                <VscGraph size={22} />
+                <AiFillHome size={22} />
                 <span className="ms-3">หน้าแรก</span>
               </Link>
             </li>
