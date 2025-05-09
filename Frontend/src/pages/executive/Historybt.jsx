@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { CheckCircleIcon, XCircleIcon, ClockIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import BorrowDetailsDialog from "./BorrowDetailsDialog";
-import RepairDetailsDialog from "./RepairApprovalDialog";
+import BorrowDetailsDialog from "./dialog/BorrowDetailsDialog";
+import RepairDetailsDialog from "./dialog/RepairApprovalDialog";
 
 export default function BorrowRepairHistory() {
   const [activeTab, setActiveTab] = useState("borrow");

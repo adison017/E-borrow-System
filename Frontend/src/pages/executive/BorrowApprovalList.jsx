@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckCircleIcon, XCircleIcon, ClockIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import BorrowDetailsDialog from "./BorrowDetailsDialog";
+import BorrowDetailsDialog from "./dialog/BorrowDetailsDialog";
 
 export default function BorrowApprovalList() {
   const [borrowRequests, setBorrowRequests] = useState([]);
