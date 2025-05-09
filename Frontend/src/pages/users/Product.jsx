@@ -339,7 +339,7 @@ const Home = () => {
                       onClick={() => handleStatusFilter(status)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                         selectedStatus === status
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-blue-700 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -353,7 +353,7 @@ const Home = () => {
               <div>
                 <h3 className="text-sm font-medium text-white mb-2">หมวดหมู่</h3>
                 <select
-                  className="block w-full pl-3 pr-10 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm rounded-xl"
+                  className="block w-full pl-3 pr-10 py-2 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 text-sm rounded-xl"
                   value={selectedCategory}
                   onChange={(e) => handleCategoryFilter(e.target.value)}
                 >
