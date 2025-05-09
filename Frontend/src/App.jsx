@@ -74,7 +74,7 @@ function AppInner() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[linear-gradient(to_right,var(--tw-gradient-stops))] from-indigo-950 from-15% to-blue-700 text-black rounded-2xl">
+    <div className="min-h-screen flex flex-col md:flex-row  bg-[linear-gradient(to_right,var(--tw-gradient-stops))] from-indigo-950 from-15% to-blue-700 text-black rounded-2xl">
       {/* Sidebar */}
       <div className="w-full md:w-64 bg-gradient-to-r from-indigo-950 to-blue-700">
         <aside>{renderSidebar()}</aside>
