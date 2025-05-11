@@ -30,7 +30,8 @@ export default function AddCategoryDialog({
 
   return (
     open && (
-      <div className="fixed inset-0 backdrop-blur bg-opacity-30 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+      <div className="fixed inset-0 backdrop-blur bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+
         <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             {/* Header */}

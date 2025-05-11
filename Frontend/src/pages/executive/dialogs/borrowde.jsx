@@ -90,8 +90,8 @@ export default function BorrowDetailsDialog({
       return;
     }
 
-    const finalNotes = rejectReason.includes("อื่นๆ") 
-      ? approvalNotes 
+    const finalNotes = rejectReason.includes("อื่นๆ")
+      ? approvalNotes
       : `${rejectReason}. ${approvalNotes || ''}`.trim();
 
     setApprovalNotes(finalNotes);
@@ -157,7 +157,7 @@ export default function BorrowDetailsDialog({
                 </button>
               </div>
             </div>
-        
+
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-2 mt-3">ข้อมูลผู้ขอยืม</h4>
               <div className="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
@@ -181,14 +181,14 @@ export default function BorrowDetailsDialog({
                 <h4 className="text-sm font-medium text-gray-500 mb-2">ข้อมูลอุปกรณ์</h4>
                 <div className="flex items-center gap-4 p-3 bg-base-200 rounded-lg">
                   <img
-                    src={borrowRequest.equipment.image}
-                    alt={borrowRequest.equipment.name}
+                    src={borrowRequest?.equipment?.image || '/placeholder-equipment.png'}
+                    alt={borrowRequest?.equipment?.name || 'Equipment'}
                     className="h-16 w-16 object-contain bg-white p-1 rounded"
                   />
                   <div>
-                    <h5 className="font-medium">{borrowRequest.equipment.name}</h5>
+                    <h5 className="font-medium">{borrowRequest?.equipment?.name || 'ไม่ระบุชื่ออุปกรณ์'}</h5>
                     <p className="text-sm text-gray-500">
-                      รหัส: {borrowRequest.equipment.code}
+                      รหัส: {borrowRequest?.equipment?.code || 'ไม่ระบุรหัส'}
                     </p>
                   </div>
                 </div>
