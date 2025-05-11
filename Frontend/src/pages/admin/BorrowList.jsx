@@ -43,29 +43,9 @@ const TABLE_HEAD = [
 ];
 
 const initialBorrows = [
+
   {
     borrow_id: 1,
-    borrow_code: "BR-001",
-    borrower: {
-      name: "John Doe",
-      department: "แผนก IT",
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg"
-    },
-    equipment: {
-      name: "โน๊ตบุ๊ค Dell XPS 15",
-      code: "EQ-1001",
-      image: "/lo.png"
-    },
-    borrow_date: "2023-10-01",
-    due_date: "2023-10-15",
-    return_date: null,
-    status: "approved", // อนุมัติ/กำลังยืม
-    purpose: "ใช้งานนอกสถานที่",
-    notes: "",
-    request_date: "2023-09-28"
-  },
-  {
-    borrow_id: 2,
     borrow_code: "BR-002",
     borrower: {
       name: "Jane Smith",
@@ -86,7 +66,7 @@ const initialBorrows = [
     request_date: "2023-10-01"
   },
   {
-    borrow_id: 3,
+    borrow_id: 2,
     borrow_code: "BR-003",
     borrower: {
       name: "Robert Johnson",
@@ -120,13 +100,13 @@ const theme = {
 
 const BorrowList = () => {
   const [borrows, setBorrows] = useState(initialBorrows);
-  const [filteredBorrows, setFilteredBorrows] = useState(initialBorrows);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
 
   // Dialog states
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isCheckDataOpen, setIsCheckDataOpen] = useState(false); // New state for check data dialog
+  const [isCheckDataOpen, setIsCheckDataOpen] = useState(false);
 
   // Current data states
   const [selectedBorrow, setSelectedBorrow] = useState(null);
@@ -138,20 +118,6 @@ const BorrowList = () => {
     message: "",
     type: "success"
   });
-
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredBorrows(borrows);
-    } else {
-      const filtered = borrows.filter(item =>
-        item.borrow_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.equipment.code.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredBorrows(filtered);
-    }
-  }, [searchTerm, borrows]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -273,6 +239,35 @@ const BorrowList = () => {
         );
     }
   };
+
+  // Compute filtered borrows
+  const filteredBorrows = borrows
+    .filter(borrow => {
+      const matchesSearch =
+        borrow.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        borrow.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        borrow.borrower.department.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = statusFilter === "ทั้งหมด" || borrow.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      // Sort by status priority
+      const statusPriority = {
+        "under_review": 0, // รอตรวจสอบ gets highest priority
+        "pending_approval": 1,
+        "approved": 2,
+        "rejected": 3
+      };
+
+      if (statusPriority[a.status] !== statusPriority[b.status]) {
+        return statusPriority[a.status] - statusPriority[b.status];
+      }
+
+      // If same status, sort by borrow date
+      return new Date(b.borrow_date) - new Date(a.borrow_date);
+    });
 
   return (
     <ThemeProvider value={theme}>

@@ -19,9 +19,9 @@ export default function AddEquipmentDialog({
   const [previewImage, setPreviewImage] = useState(null);
 
   const statusConfig = {
+    "ชำรุด": { color: "red", icon: "XCircleIcon" },
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
     "อยู่ระหว่างซ่อม": { color: "amber", icon: "ClockIcon" },
-    "ชำรุด": { color: "red", icon: "XCircleIcon" },
     "ถูกยืม": { color: "blue", icon: "ExclamationCircleIcon" }
   };
 

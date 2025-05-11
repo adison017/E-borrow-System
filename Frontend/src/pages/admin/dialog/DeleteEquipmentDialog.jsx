@@ -1,10 +1,10 @@
 import { Typography } from "@material-tailwind/react";
 
-export default function DeleteEquipmentDialog({ 
-  open, 
-  onClose, 
-  selectedEquipment, 
-  onConfirm 
+export default function DeleteEquipmentDialog({
+  open,
+  onClose,
+  selectedEquipment,
+  onConfirm
 }) {
   return (
     <div className={`modal ${open ? 'modal-open' : ''} transition-all duration-300 ease-in-out`}>
@@ -15,14 +15,14 @@ export default function DeleteEquipmentDialog({
           (รหัส: {selectedEquipment?.id}) ใช่หรือไม่?
         </div>
         <div className="modal-action flex justify-center gap-3">
-          <button 
-            className="btn btn-outline" 
+          <button
+            className="btn btn-outline"
             onClick={onClose}
           >
             ยกเลิก
           </button>
-          <button 
-            className="btn btn-error text-white" 
+          <button
+            className="btn btn-error text-white"
             onClick={onConfirm}
           >
             ยืนยันการลบ

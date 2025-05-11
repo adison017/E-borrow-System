@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckCircleIcon, XCircleIcon, ClockIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import RepairApprovalDialog from "./RepairApprovalDialog";
+import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
 
 export default function RepairApprovalList() {
   const [repairRequests, setRepairRequests] = useState([]);

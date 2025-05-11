@@ -2,7 +2,8 @@ import { useState, useEffect } from "react"; // เพิ่ม useEffect
 import {
   MagnifyingGlassIcon,
   TrashIcon,
-  EyeIcon
+  EyeIcon,
+  WrenchIcon
 } from "@heroicons/react/24/outline";
 import {
   PencilIcon,
@@ -23,11 +24,19 @@ import {
   IconButton,
   Tooltip,
   ThemeProvider,
+  Menu,
+  MenuHandler,
+  MenuList,
+  MenuItem
 } from "@material-tailwind/react";
 import DeleteEquipmentDialog from "./dialog/DeleteEquipmentDialog";
 import EditEquipmentDialog from "./dialog/EditEquipmentDialog";
 import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
 import Notification from "../../components/Notification";
+import RepairRequestDialog from "./dialog/RepairRequestDialog";
+// import EquipmentInspectionDialog from "./dialog/EquipmentInspectionDialog";
+import { FunnelIcon } from "@heroicons/react/24/outline";
+import InspectRepairedEquipmentDialog from './dialog/InspectRepairedEquipmentDialog';
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -64,7 +73,7 @@ const initialEquipment = [
     name: "ไมโครโฟน",
     description: "ไมโครโฟนเสียงคมชัด",
     quantity: "5 ชิ้น",
-    status: "อยู่ระหว่างซ่อม",
+    status: "ระหว่างซ่อม",
     created_at: "2023-09-25 14:30:00",
     pic: "https://cdn-icons-png.flaticon.com/512/3652/3652191.png"
   },
@@ -90,29 +99,35 @@ const initialEquipment = [
 
 // กำหนดสีและไอคอนตามสถานะ
 const statusConfig = {
-  "พร้อมใช้งาน": {
-    color: "green",
-    icon: CheckCircleIcon,
-    backgroundColor: "bg-green-50",
-    borderColor: "border-green-100"
-  },
-  "อยู่ระหว่างซ่อม": {
-    color: "amber",
-    icon: ClockIcon,
-    backgroundColor: "bg-amber-50",
-    borderColor: "border-amber-100"
-  },
   "ชำรุด": {
     color: "red",
     icon: XCircleIcon,
     backgroundColor: "bg-red-50",
     borderColor: "border-red-100"
   },
-  "ถูกยืม": {
+  "รออนุมัติซ่อม": {
+    color: "amber",
+    icon: ClockIcon,
+    backgroundColor: "bg-amber-50",
+    borderColor: "border-amber-100"
+  },
+  "ระหว่างซ่อม": {
     color: "blue",
-    icon: ExclamationCircleIcon,
+    icon: ClockIcon,
     backgroundColor: "bg-blue-50",
     borderColor: "border-blue-100"
+  },
+  "พร้อมใช้งาน": {
+    color: "green",
+    icon: CheckCircleIcon,
+    backgroundColor: "bg-green-50",
+    borderColor: "border-green-100"
+  },
+  "ถูกยืม": {
+    color: "purple",
+    icon: ExclamationCircleIcon,
+    backgroundColor: "bg-purple-50",
+    borderColor: "border-purple-100"
   }
 };
 
@@ -133,6 +148,11 @@ function ManageEquipment() {
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("success");
+  const [repairDialogOpen, setRepairDialogOpen] = useState(false);
+  const [selectedEquipmentForRepair, setSelectedEquipmentForRepair] = useState(null);
+  const [showInspectionDialog, setShowInspectionDialog] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
+  const [showInspectDialog, setShowInspectDialog] = useState(false);
 
   // เพิ่ม state สำหรับฟอร์มเพิ่มครุภัณฑ์ใหม่
   const [addFormData, setAddFormData] = useState({
@@ -241,13 +261,23 @@ function ManageEquipment() {
     showAlertMessage(`เพิ่มครุภัณฑ์ ${addFormData.name} เรียบร้อยแล้ว`, "success");
   };
 
-  // ฟังก์ชั่นสำหรับกรองข้อมูลตามคำค้นหา
-  const filteredEquipment = equipmentList.filter(
-    item =>
-      item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // ฟังก์ชั่นสำหรับกรองข้อมูลตามคำค้นหาและสถานะ
+  const filteredEquipment = equipmentList
+    .filter(
+      item =>
+        (item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (statusFilter === "ทั้งหมด" || item.status === statusFilter)
+    )
+    .sort((a, b) => {
+      // ถ้า a เป็น "ชำรุด" ให้ขึ้นก่อน
+      if (a.status === "ชำรุด" && b.status !== "ชำรุด") return -1;
+      // ถ้า b เป็น "ชำรุด" ให้ขึ้นก่อน
+      if (b.status === "ชำรุด" && a.status !== "ชำรุด") return 1;
+      // ถ้าไม่ใช่ทั้งคู่ ให้เรียงตาม id
+      return a.id.localeCompare(b.id);
+    });
 
   // สร้าง component แสดงสถานะที่สวยงาม
   const StatusDisplay = ({ status }) => {
@@ -268,6 +298,56 @@ function ManageEquipment() {
         </span>
       </div>
     );
+  };
+
+  const handleRepairRequest = (equipment) => {
+    setSelectedEquipmentForRepair(equipment);
+    setRepairDialogOpen(true);
+  };
+
+  const handleRepairSubmit = (repairData) => {
+    // Update equipment status to 'รออนุมัติซ่อม'
+    const updatedEquipment = equipmentList.map(item => {
+      if (item.id === repairData.equipment.code) {
+        return { ...item, status: 'รออนุมัติซ่อม' };
+      }
+      return item;
+    });
+    setEquipmentList(updatedEquipment);
+    setRepairDialogOpen(false);
+    setSelectedEquipmentForRepair(null);
+  };
+
+  const handleApproveRepair = (equipmentId) => {
+    // Update equipment status to 'ระหว่างซ่อม'
+    const updatedEquipment = equipmentList.map(item => {
+      if (item.id === equipmentId) {
+        return { ...item, status: 'ระหว่างซ่อม' };
+      }
+      return item;
+    });
+    setEquipmentList(updatedEquipment);
+  };
+
+  const handleInspectEquipment = (equipment) => {
+    setSelectedEquipment(equipment);
+    setShowInspectDialog(true);
+  };
+
+  const handleInspectSubmit = (inspectionData) => {
+    // Update equipment status to 'พร้อมใช้งาน'
+    const updatedEquipment = equipmentList.map(item => {
+      if (item.id === inspectionData.equipment.code) {
+        return { ...item, status: 'พร้อมใช้งาน' };
+      }
+      return item;
+    });
+    setEquipmentList(updatedEquipment);
+    setShowInspectDialog(false);
+  };
+
+  const handleStatusFilter = (status) => {
+    setStatusFilter(status);
   };
 
   return (
@@ -323,9 +403,57 @@ function ManageEquipment() {
             <button className="px-4 py-2 text-sm border border-black text-black rounded-md hover:bg-gray-100 transition-colors">
               ส่งออก Excel
             </button>
-            <button className="px-4 py-2 text-sm border border-black text-black rounded-md hover:bg-gray-100 transition-colors">
-              ตัวกรอง
-            </button>
+            <Menu>
+              <MenuHandler>
+                <button className="px-4 py-2 text-sm border border-black text-black rounded-md hover:bg-gray-100 transition-colors flex items-center gap-2">
+                  <FunnelIcon className="h-4 w-4" />
+                  ตัวกรอง
+                  {statusFilter !== "ทั้งหมด" && (
+                    <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                      {statusFilter}
+                    </span>
+                  )}
+                </button>
+              </MenuHandler>
+              <MenuList className="min-w-[200px] bg-white text-black">
+                <MenuItem
+                  className={`flex items-center gap-2 ${statusFilter === "ทั้งหมด" ? "bg-blue-50" : ""}`}
+                  onClick={() => handleStatusFilter("ทั้งหมด")}
+                >
+                  <span>ทั้งหมด</span>
+                </MenuItem>
+                <MenuItem
+                  className={`flex items-center gap-2 ${statusFilter === "พร้อมใช้งาน" ? "bg-blue-50" : ""}`}
+                  onClick={() => handleStatusFilter("พร้อมใช้งาน")}
+                >
+                  <span>พร้อมใช้งาน</span>
+                </MenuItem>
+                <MenuItem
+                  className={`flex items-center gap-2 ${statusFilter === "ชำรุด" ? "bg-blue-50" : ""}`}
+                  onClick={() => handleStatusFilter("ชำรุด")}
+                >
+                  <span>ชำรุด</span>
+                </MenuItem>
+                <MenuItem
+                  className={`flex items-center gap-2 ${statusFilter === "รออนุมัติซ่อม" ? "bg-blue-50" : ""}`}
+                  onClick={() => handleStatusFilter("รออนุมัติซ่อม")}
+                >
+                  <span>รออนุมัติซ่อม</span>
+                </MenuItem>
+                <MenuItem
+                  className={`flex items-center gap-2 ${statusFilter === "ระหว่างซ่อม" ? "bg-blue-50" : ""}`}
+                  onClick={() => handleStatusFilter("ระหว่างซ่อม")}
+                >
+                  <span>ระหว่างซ่อม</span>
+                </MenuItem>
+                <MenuItem
+                  className={`flex items-center gap-2 ${statusFilter === "ถูกยืม" ? "bg-blue-50" : ""}`}
+                  onClick={() => handleStatusFilter("ถูกยืม")}
+                >
+                  <span>ถูกยืม</span>
+                </MenuItem>
+              </MenuList>
+            </Menu>
           </div>
         </div>
         </CardHeader>
@@ -395,12 +523,28 @@ function ManageEquipment() {
                         </Typography>
                       </td>
                       <td className={classes}>
-                        <div className="flex gap-1">
-                          <Tooltip content="ดูรายละเอียด">
-                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100">
-                              <EyeIcon className="h-4 w-4" />
-                            </IconButton>
-                          </Tooltip>
+                        <div className="flex gap-2">
+                          {status === 'ชำรุด' && (
+                            <Tooltip content="แจ้งซ่อม">
+                              <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100" onClick={() => handleRepairRequest({ id, name, description, quantity, status, pic })}>
+                                <WrenchIcon className="h-4 w-4" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {status === 'รออนุมัติซ่อม' && (
+                            <Tooltip content="อนุมัติซ่อม">
+                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100" onClick={() => handleApproveRepair(id)}>
+                                <CheckCircleIcon className="h-4 w-4" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {status === 'ระหว่างซ่อม' && (
+                            <Tooltip content="ตรวจรับครุภัณฑ์">
+                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100" onClick={() => handleInspectEquipment({ id, name, description, quantity, status, created_at, pic })}>
+                                <CheckCircleIcon className="h-4 w-4" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                           <Tooltip content="แก้ไข">
                             <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100" onClick={() => handleEditClick({ id, name, description, quantity, status, pic })}>
                               <PencilIcon className="h-4 w-4" />
@@ -485,6 +629,33 @@ function ManageEquipment() {
             }]);
             showAlertMessage(`เพิ่มครุภัณฑ์ ${newEquipment.name} เรียบร้อยแล้ว`, "success");
           }}
+        />
+
+        {/* Repair Request Dialog */}
+        <RepairRequestDialog
+          open={repairDialogOpen}
+          onClose={() => {
+            setRepairDialogOpen(false);
+            setSelectedEquipmentForRepair(null);
+          }}
+          equipment={selectedEquipmentForRepair}
+          onSubmit={handleRepairSubmit}
+        />
+
+        {/* Equipment Inspection Dialog
+        <EquipmentInspectionDialog
+          open={showInspectionDialog}
+          onClose={() => setShowInspectionDialog(false)}
+          onSubmit={handleInspectSubmit}
+          equipment={selectedEquipment}
+        /> */}
+
+        {/* Inspect Equipment Dialog */}
+        <InspectRepairedEquipmentDialog
+          open={showInspectDialog}
+          onClose={() => setShowInspectDialog(false)}
+          equipment={selectedEquipment}
+          onSubmit={handleInspectSubmit}
         />
       </Card>
     </ThemeProvider>
