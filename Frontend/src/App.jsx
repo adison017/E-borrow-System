@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { MdMenu } from 'react-icons/md';
 import { Route, BrowserRouter as Router, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Footer from './components/Footer';
 import Header from './components/Header';
@@ -6,42 +7,50 @@ import SidebarAdmin from './components/SidebarAdmin';
 import SidebarExecutive from './components/SidebarExecutive';
 import SidebarUser from './components/SidebarUser';
 
+// Admin Pages
 import BorrowList from './pages/admin/BorrowList';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
+import ManageCategory from './pages/admin/ManageCategory';
 import ManageEquipment from './pages/admin/ManageEquipment';
 import ManageUser from './pages/admin/ManageUser';
+import ReceiveItem from './pages/admin/ReceiveItem';
 import ReturnList from './pages/admin/ReturnList';
-import DashboardExeutive from './pages/executive/DashboardExeutive';
+import Success from './pages/admin/Success';
 
-import DashboardUser from './pages/users/Dashboard';
-import Homes from './pages/users/Product';
-import User_re from './pages/users/Requirement';
-import Approve from './pages/users/Approve';
-import Return from './pages/users/Return';
+// Executive Pages
+import BorrowApprovalList from './pages/executive/BorrowApprovalList';
+import DashboardExeutive from './pages/executive/DashboardExeutive';
+import Historybt from './pages/executive/Historyborrow';
+import HistoryRe from './pages/executive/HistoryRepair';
+import RepairApprovalList from './pages/executive/RepairApprovalList';
+
+// User Pages
 import Done from './pages/users/All_done';
+import Approve from './pages/users/Approve';
 import Borrow from './pages/users/Borrow';
 import Cancel_re from './pages/users/Cancel_re';
-import Fine from './pages/users/Fine';
-import ReceiveItem from './pages/admin/ReceiveItem';
+import DashboardUser from './pages/users/Dashboard';
 import Edit_pro from './pages/users/edit_profile';
-import ManageCategory from './pages/admin/ManageCategory';
-import BorrowApprovalList from './pages/executive/BorrowApprovalList'
-import RepairApprovalList from './pages/executive/RepairApprovalList'
-import Historybt from './pages/executive/Historyborrow'
-import HistoryRe from './pages/executive/HistoryRepair'
-import Success from './pages/admin/Success'
+import Fine from './pages/users/Fine';
+import Homes from './pages/users/Product';
+import User_re from './pages/users/Requirement';
+import Return from './pages/users/Return';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
+  const [userRole, setUserRole] = useState('admin');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // เปลี่ยนบทบาท (สำหรับทดสอบ)
   const changeRole = (role) => {
     setUserRole(role);
   };
 
-  // หากอยู่หน้า '/' ให้ redirect ไปยัง dashboard ตามบทบาท
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
   useEffect(() => {
     if (location.pathname === '/') {
       switch (userRole) {
@@ -60,55 +69,106 @@ function AppInner() {
     }
   }, [userRole, navigate, location.pathname]);
 
-  // แสดง Sidebar ตามบทบาท
+  // ปิด sidebar overlay อัตโนมัติเมื่อจอกว้างขึ้น (desktop)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const renderSidebar = () => {
     switch (userRole) {
       case 'admin':
-        return <SidebarAdmin />;
+        return (
+          <SidebarAdmin 
+            isCollapsed={isSidebarCollapsed} 
+            toggleCollapse={toggleSidebarCollapse} 
+          />
+        );
       case 'user':
-        return <SidebarUser />;
+        return (
+          <SidebarUser 
+            isCollapsed={isSidebarCollapsed} 
+            toggleCollapse={toggleSidebarCollapse} 
+          />
+        );
       case 'executive':
-        return <SidebarExecutive />;
+        return (
+          <SidebarExecutive 
+            isCollapsed={isSidebarCollapsed} 
+            toggleCollapse={toggleSidebarCollapse} 
+          />
+        );
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[linear-gradient(to_right,var(--tw-gradient-stops))] from-indigo-950 md:from-15% to-blue-700 text-black rounded-2xl">
-      {/* Sidebar */}
-      <div className="w-full md:w-64 bg-gradient-to-r from-indigo-950 to-blue-700">
-        <aside>{renderSidebar()}</aside>
+    <div className="min-h-screen flex flex-row bg-gradient-to-r from-indigo-950 to-blue-700 text-black">
+      {/* Hamburger button (mobile only) */}
+      {!mobileOpen && (
+        <button
+          className="fixed top-4 left-4 z-50 block lg:hidden p-2 rounded-lg hover:bg-blue-700 text-white bg-gray-900/50 shadow-lg transition-all duration-200"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open sidebar"
+        >
+          <MdMenu size={28} />
+        </button>
+      )}
+
+      {/* Sidebar overlay (mobile) */}
+      {mobileOpen && userRole === 'user' && (
+        <SidebarUser
+          isCollapsed={false}
+          mobileOpen={mobileOpen}
+          setMobileOpen={setMobileOpen}
+          toggleCollapse={() => {}}
+        />
+      )}
+
+      {/* Sidebar (desktop) */}
+      <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white transition-all duration-300 flex-none hidden lg:block rounded-r-2xl fixed top-0 left-0 h-full z-30 shadow-xl`}>
+        {renderSidebar()}
       </div>
 
       {/* Main content */}
-      <main className="flex-1">
-      <header className="bottom-0 z-50">
-          <Header userRole={userRole} changeRole={changeRole} />
-        </header>
-
-        {/* Routes */}
-        <div className="bg-white p-2 rounded-3xl">
+      <main className={`flex-1 flex flex-col transition-all duration-300 w-full ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
+        <Header userRole={userRole} changeRole={changeRole} />
+        {/* Content */}
+        <div className="bg-white p-4 m-4 rounded-xl flex-1 min-h-0 shadow-lg">
           <Routes>
-            {(userRole === 'admin' || userRole === 'executive') && (
+            {/* Admin Routes */}
+            {userRole === 'admin' && (
               <>
                 <Route path="/DashboardAd" element={<DashboardAdmin />} />
-                <Route path="/DashboardEx" element={<DashboardExeutive />} />
                 <Route path="/borrow-list" element={<BorrowList />} />
                 <Route path="/equipment" element={<ManageEquipment />} />
                 <Route path="/members" element={<ManageUser />} />
                 <Route path="/return-list" element={<ReturnList />} />
                 <Route path="/ReceiveItem" element={<ReceiveItem />} />
                 <Route path="/category" element={<ManageCategory />} />
-                <Route path="/edit_profile" element={<Edit_pro />} />
+                <Route path="/success" element={<Success />} />
+              </>
+            )}
+
+            {/* Executive Routes */}
+            {userRole === 'executive' && (
+              <>
+                <Route path="/DashboardEx" element={<DashboardExeutive />} />
                 <Route path="/BorrowApprovalList" element={<BorrowApprovalList />} />
                 <Route path="/Repair" element={<RepairApprovalList />} />
                 <Route path="/History" element={<Historybt />} />
                 <Route path="/History_repair" element={<HistoryRe />} />
-                <Route path="/success" element={<Success />} />.0
               </>
             )}
-            {(userRole === 'admin' || userRole === 'user') && (
+
+            {/* User Routes */}
+            {userRole === 'user' && (
               <>
                 <Route path="/DashboardUs" element={<DashboardUser />} />
                 <Route path="/equipment" element={<Homes />} />
@@ -124,16 +184,12 @@ function AppInner() {
             )}
           </Routes>
         </div>
-
-        <footer className="bottom-0 z-50">
-          <Footer />
-        </footer>
+        <Footer />
       </main>
     </div>
   );
 }
 
-// ครอบ AppInner ด้วย Router
 function App() {
   return (
     <Router>

@@ -1,246 +1,219 @@
+import React from 'react';
+import { BiPackage } from "react-icons/bi";
 import { BsGraphUp } from "react-icons/bs";
-import { MdViewList } from "react-icons/md";
-import { TbCategory } from "react-icons/tb";
-import { MdOutlineEditNote } from "react-icons/md";
-import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { MdMenu } from "react-icons/md";
+import { FaHandshake, FaSignOutAlt, FaUserEdit } from "react-icons/fa";
+import { MdManageAccounts, MdMenu, MdOutlineEditNote, MdViewList } from "react-icons/md";
 import { RiArrowGoBackLine } from "react-icons/ri";
+import { TbCategory } from "react-icons/tb";
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-import { MdManageAccounts } from "react-icons/md";
-import { VscGraph } from "react-icons/vsc";
-import { AiFillProduct } from "react-icons/ai";
-import { BiLogOutCircle, BiPackage } from "react-icons/bi";
-import { FaHandshake,FaSignOutAlt, FaUserEdit } from "react-icons/fa";
-import { GrCatalog } from "react-icons/gr";
-
-function SidebarAdmin() {
-  const [open, setOpen] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }) {
+  const navigate = useNavigate();
   const location = useLocation();
 
-  const handleOpen = (value) => {
-    setOpen(open === value ? 0 : value);
-  };
-  const handleNavLinkClick = () => {
-    if (sidebarOpen) {
-      setSidebarOpen(false);
-    }
-  };
-
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (sidebarOpen && !event.target.closest('#sidebar') && !event.target.closest('#toggle-button')) {
-        setSidebarOpen(false);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [sidebarOpen]);
-
-  // Check if current route matches to set active state
   const isActive = (path) => location.pathname === path;
 
+  const handleLogout = () => {
+    if (setMobileOpen) setMobileOpen(false);
+    navigate('/login');
+  };
+
+  const handleMenuClick = (to) => {
+    if (setMobileOpen) setMobileOpen(false);
+    if (to) navigate(to);
+  };
+
   return (
-    <React.Fragment>
-      {/* Mobile toggle button */}
-      <button
-        id="toggle-button"
-        onClick={toggleSidebar}
-        data-drawer-target="separator-sidebar"
-        data-drawer-toggle="separator-sidebar"
-        aria-controls="separator-sidebar"
-        type="button"
-        className="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 z-50"
-      >
-        <span className="sr-only">Open sidebar</span>
-        <svg className="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-          <path clipRule="evenodd" fillRule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
-        </svg>
-      </button>
-
-      {/* Sidebar */}
-      <aside id="separator-sidebar" className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform transform ${
-                sidebarOpen ? "translate-x-0" : "-translate-x-full"
-              } sm:translate-x-0 bg-gray-50 dark:bg-gray-800`} aria-label="Sidebar">
-
-              <div className="h-full px-2 py-4 overflow-y-auto bg-indigo-950">
-                <ul className="space-y">
-                            {/* ปุ่มเมนูใน sidebar - แสดงเฉพาะใน mobile */}
-                            <li className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white group sm:hidden">
-                              <button onClick={toggleSidebar} className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
-                                <MdMenu size={30}/>
-                              </button>
-                            </li>
-                            <li className="flex justify-center p-2">
-                              <div className="w-full h-auto md:h-auto flex items-center justify-center">
-                                <img
-                                  src="/logo_it.png"
-                                  alt="Logo"
-                                  className="object-cover w-full h-full md:max-h-80 md:max-w-90"
-                                />
-                              </div>
-                            </li>
-                          </ul>
-
-          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-white/50">
-            <li>
-              <NavLink
-                to="/DashboardAd"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'
-                }`}
-              >
-                <BsGraphUp  size={25} />
-                <span className="ms-3">รายงาน</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/equipment"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'
-                }`}
-              >
-                <MdOutlineEditNote size={25}/>
-                <span className="ms-3">จัดการครุภัณฑ์</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/category"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'
-                }`}
-              >
-                <TbCategory  size={25}/>
-                <span className="flex-1 ms-3 whitespace-nowrap">จัดการประเภทครุภัณฑ์</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/members"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'
-                }`}
-              >
-                <MdManageAccounts size={25}/>
-                <span className="flex-1 ms-3 whitespace-nowrap">จัดการสมาชิก</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/borrow-list"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'
-                }`}
-              >
-                <MdViewList  size={25}/>
-                <span className="flex-1 ms-3 whitespace-nowrap">รายการขอยืมครุภัณฑ์</span>
-                <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/return-list"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'
-                }`}
-              >
-                <RiArrowGoBackLine size={25} />
-                <span className="flex-1 ms-3 whitespace-nowrap">รายการคืนครุภัณฑ์</span>
-                <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/ReceiveItem"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                   ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'
-                }`}
-              >
-                <BiPackage size={25} />
-                <span className="flex-1 ms-3 whitespace-nowrap">ส่งมอบครุภัณฑ์</span>
-                <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/success"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                   ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'
-                }`}
-              >
-                <FaHandshake size={25} />
-                <span className="flex-1 ms-3 whitespace-nowrap">รายการการเสร็จสิ้น</span>
-                <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
-              </NavLink>
-            </li>
-          </ul>
-          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-white/50">
-          <li>
-              <NavLink
-                to="/edit_profile"
-                onClick={handleNavLinkClick}
-                className={`flex items-center p-2 rounded-lg group ${isActive('/edit_profile')
-                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'}`}
-              >
-                <FaUserEdit size={22} />
-                <span className="ms-3">แก้ไขข้อมูลส่วนตัว</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/logout"
-                onClick={handleNavLinkClick}
-                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
-                  isActive
-                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
-                  : 'hover:bg-white hover:text-black text-white transition-colors'
-                }`}
-              >
-                <FaSignOutAlt size={25} />
-                <span className="flex-1 ms-3 whitespace-nowrap">ออกจากระบบ</span>
-              </NavLink>
-            </li>
-          </ul>
+    <div
+      className={
+        mobileOpen
+          ? "fixed top-0 left-0 h-full w-72 z-50 bg-white shadow-2xl rounded-r-2xl transition-all duration-300 ease-in-out overflow-y-auto"
+          : `${isCollapsed ? 'w-16' : 'w-64'} flex-none bg-white border-r border-gray-200 transition-all duration-300 h-full hidden lg:block rounded-r-2xl overflow-y-auto`
+      }
+      style={mobileOpen ? { maxWidth: '85vw' } : {}}
+    >
+      <div className={mobileOpen ? "py-4 h-full flex flex-col" : "py-6"}>
+        {/* Mobile Header */}
+        <div className={mobileOpen ? "flex items-center justify-between mb-6 px-6 border-b border-gray-100" : "flex flex-col items-center justify-between mb-6 px-4"}>
+          {/* ปุ่มปิด sidebar เฉพาะ mobile overlay */}
+          {mobileOpen && (
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+              aria-label="Close sidebar"
+            >
+              <MdMenu size={26} />
+            </button>
+          )}
         </div>
-      </aside>
-    </React.Fragment>
+
+        <ul className={isCollapsed ? "flex flex-col min-h-full justify-center items-center space-y-3" : mobileOpen ? "space-y-3 font-medium w-full px-6" : "space-y-3 font-medium px-4"}>
+          {/* Hamburger menu for desktop */}
+          {!mobileOpen && (
+            <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+              <button
+                onClick={toggleCollapse}
+                className={isCollapsed
+                  ? "flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 hover:bg-gray-100 text-gray-700"
+                  : "flex items-center p-3 rounded-xl hover:bg-gray-100 text-gray-700 w-full justify-start transition-all duration-200"}
+                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <MdMenu size={24} />
+              </button>
+            </li>
+          )}
+
+          {/* Dashboard */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <Link
+              to="/DashboardAd"
+              onClick={() => handleMenuClick('/DashboardAd')}
+              className={isCollapsed
+                ? `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group ${isActive('/DashboardAd') ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-100 text-gray-700'}`
+                : `flex items-center p-3 rounded-xl group ${isActive('/DashboardAd') ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'} w-full justify-start`}
+              title="รายงาน"
+            >
+              <BsGraphUp size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">รายงาน</span>}
+            </Link>
+          </li>
+
+          {/* Equipment Management */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <Link
+              to="/equipment"
+              onClick={() => handleMenuClick('/equipment')}
+              className={isCollapsed
+                ? `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group ${isActive('/equipment') ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-100 text-gray-700'}`
+                : `flex items-center p-3 rounded-xl group ${isActive('/equipment') ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'} w-full justify-start`}
+              title="จัดการครุภัณฑ์"
+            >
+              <MdOutlineEditNote size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">จัดการครุภัณฑ์</span>}
+            </Link>
+          </li>
+
+          {/* Category Management */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <Link
+              to="/category"
+              onClick={() => handleMenuClick('/category')}
+              className={isCollapsed
+                ? `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group ${isActive('/category') ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-100 text-gray-700'}`
+                : `flex items-center p-3 rounded-xl group ${isActive('/category') ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'} w-full justify-start`}
+              title="จัดการประเภทครุภัณฑ์"
+            >
+              <TbCategory size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">จัดการประเภทครุภัณฑ์</span>}
+            </Link>
+          </li>
+
+          {/* Member Management */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <Link
+              to="/members"
+              onClick={() => handleMenuClick('/members')}
+              className={isCollapsed
+                ? `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group ${isActive('/members') ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-100 text-gray-700'}`
+                : `flex items-center p-3 rounded-xl group ${isActive('/members') ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'} w-full justify-start`}
+              title="จัดการสมาชิก"
+            >
+              <MdManageAccounts size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">จัดการสมาชิก</span>}
+            </Link>
+          </li>
+
+          {/* Borrow List */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <Link
+              to="/borrow-list"
+              onClick={() => handleMenuClick('/borrow-list')}
+              className={isCollapsed
+                ? `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group ${isActive('/borrow-list') ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-100 text-gray-700'}`
+                : `flex items-center p-3 rounded-xl group ${isActive('/borrow-list') ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'} w-full justify-start`}
+              title="รายการขอยืมครุภัณฑ์"
+            >
+              <MdViewList size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">รายการขอยืมครุภัณฑ์</span>}
+            </Link>
+          </li>
+
+          {/* Return List */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <Link
+              to="/return-list"
+              onClick={() => handleMenuClick('/return-list')}
+              className={isCollapsed
+                ? `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group ${isActive('/return-list') ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-100 text-gray-700'}`
+                : `flex items-center p-3 rounded-xl group ${isActive('/return-list') ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'} w-full justify-start`}
+              title="รายการคืนครุภัณฑ์"
+            >
+              <RiArrowGoBackLine size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">รายการคืนครุภัณฑ์</span>}
+            </Link>
+          </li>
+
+          {/* Receive Item */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <Link
+              to="/ReceiveItem"
+              onClick={() => handleMenuClick('/ReceiveItem')}
+              className={isCollapsed
+                ? `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group ${isActive('/ReceiveItem') ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-100 text-gray-700'}`
+                : `flex items-center p-3 rounded-xl group ${isActive('/ReceiveItem') ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'} w-full justify-start`}
+              title="ส่งมอบครุภัณฑ์"
+            >
+              <BiPackage size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">ส่งมอบครุภัณฑ์</span>}
+            </Link>
+          </li>
+
+          {/* Success List */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <Link
+              to="/success"
+              onClick={() => handleMenuClick('/success')}
+              className={isCollapsed
+                ? `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group ${isActive('/success') ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-100 text-gray-700'}`
+                : `flex items-center p-3 rounded-xl group ${isActive('/success') ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'} w-full justify-start`}
+              title="รายการการเสร็จสิ้น"
+            >
+              <FaHandshake size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">รายการการเสร็จสิ้น</span>}
+            </Link>
+          </li>
+
+          {/* Profile */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <Link
+              to="/edit_profile"
+              onClick={() => handleMenuClick('/edit_profile')}
+              className={isCollapsed
+                ? `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group ${isActive('/edit_profile') ? 'bg-blue-100 text-blue-800' : 'hover:bg-blue-100 text-gray-700'}`
+                : `flex items-center p-3 rounded-xl group ${isActive('/edit_profile') ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'} w-full justify-start`}
+              title="แก้ไขข้อมูลส่วนตัว"
+            >
+              <FaUserEdit size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">แก้ไขข้อมูลส่วนตัว</span>}
+            </Link>
+          </li>
+
+          {/* Logout */}
+          <li className={isCollapsed ? "w-full flex justify-center" : undefined}>
+            <button
+              onClick={handleLogout}
+              className={isCollapsed
+                ? "flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 hover:bg-blue-100 text-gray-700"
+                : "flex items-center w-full p-3 rounded-xl hover:bg-gray-100 text-gray-700 justify-start transition-all duration-200"}
+              title="ออกจากระบบ"
+            >
+              <FaSignOutAlt size={22} />
+              {!isCollapsed && <span className="ms-3 font-medium">ออกจากระบบ</span>}
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
   );
 }
 
