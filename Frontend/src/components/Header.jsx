@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 function Header({ userRole, changeRole }) {
   const username = "อดิศร";
@@ -27,17 +27,24 @@ function Header({ userRole, changeRole }) {
   }, []);
 
   return (
-    <header className="bg-gradient-to-r from-indigo-950 to-blue-700 text-white py-4 px-6 mb-6">
+    <header className="bg-gradient-to-r from-slate-950 to-slate-800 text-white py-4 px-10 mb-1">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
         {/* Logo + System Name */}
-        <div className="flex items-center space-x-3 sm:space-x-4">
-          <h1 className="text-xl sm:text-2xl md:text-4xl font-bold tracking-tight">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center p-1 w-30 h-20">
+            <img 
+              src="/logo_it.png" 
+              alt="Logo" 
+              className="object-contain md:w-40 md:h-50"
+            />
+          </div>
+          <h1 className="text-lg md:text-2xl lg:text-3xl font-bold tracking-tight drop-shadow-sm whitespace-nowrap">
             ระบบยืม-คืนครุภัณฑ์
           </h1>
         </div>
 
         {/* Right side container */}
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 ">
           {/* Role switcher */}
           <div className="flex gap-2 bg-indigo-900/30 p-1 rounded-full">
             <button
