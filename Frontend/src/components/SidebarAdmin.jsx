@@ -1,11 +1,11 @@
-import { BsGraphUp } from "react-icons/bs"; 
-import { MdViewList } from "react-icons/md"; 
-import { TbCategory } from "react-icons/tb"; 
-import { MdOutlineEditNote } from "react-icons/md"; 
+import { BsGraphUp } from "react-icons/bs";
+import { MdViewList } from "react-icons/md";
+import { TbCategory } from "react-icons/tb";
+import { MdOutlineEditNote } from "react-icons/md";
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { MdMenu } from "react-icons/md";
-import { RiArrowGoBackLine } from "react-icons/ri"; 
+import { RiArrowGoBackLine } from "react-icons/ri";
 
 import { MdManageAccounts } from "react-icons/md";
 import { VscGraph } from "react-icons/vsc";
@@ -72,7 +72,7 @@ function SidebarAdmin() {
       <aside id="separator-sidebar" className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform transform ${
                 sidebarOpen ? "translate-x-0" : "-translate-x-full"
               } sm:translate-x-0 bg-gray-50 dark:bg-gray-800`} aria-label="Sidebar">
-                
+
               <div className="h-full px-2 py-4 overflow-y-auto bg-indigo-950">
                 <ul className="space-y">
                             {/* ปุ่มเมนูใน sidebar - แสดงเฉพาะใน mobile */}
@@ -83,15 +83,15 @@ function SidebarAdmin() {
                             </li>
                             <li className="flex justify-center p-2">
                               <div className="w-full h-auto md:h-auto flex items-center justify-center">
-                                <img 
-                                  src="/logo_it.png" 
-                                  alt="Logo" 
+                                <img
+                                  src="/logo_it.png"
+                                  alt="Logo"
                                   className="object-cover w-full h-full md:max-h-80 md:max-w-90"
                                 />
                               </div>
                             </li>
                           </ul>
-                          
+
           <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-white/50">
             <li>
               <NavLink
@@ -99,7 +99,7 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
                   : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
@@ -113,7 +113,7 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
                   : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
@@ -127,7 +127,7 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
                   : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
@@ -141,7 +141,7 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
                   : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
@@ -155,7 +155,7 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
                   : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
@@ -170,7 +170,7 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                    ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
                   : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
@@ -185,12 +185,27 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                   ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                   ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
                   : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >
                 <BiPackage size={25} />
                 <span className="flex-1 ms-3 whitespace-nowrap">ส่งมอบครุภัณฑ์</span>
+                <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/success"
+                onClick={handleNavLinkClick}
+                className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
+                  isActive
+                   ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
+                  : 'hover:bg-white hover:text-black text-white transition-colors'
+                }`}
+              >
+                <FaHandshake size={25} />
+                <span className="flex-1 ms-3 whitespace-nowrap">รายการการเสร็จสิ้น</span>
                 <span className="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">3</span>
               </NavLink>
             </li>
@@ -201,7 +216,7 @@ function SidebarAdmin() {
                 to="/edit_profile"
                 onClick={handleNavLinkClick}
                 className={`flex items-center p-2 rounded-lg group ${isActive('/edit_profile')
-                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
                   : 'hover:bg-white hover:text-black text-white transition-colors'}`}
               >
                 <FaUserEdit size={22} />
@@ -214,7 +229,7 @@ function SidebarAdmin() {
                 onClick={handleNavLinkClick}
                 className={({ isActive }) => `flex items-center p-2 rounded-lg group ${
                   isActive
-                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors' 
+                  ? 'bg-gradient-to-r from-blue-950 to-blue-700 text-white transition-colors'
                   : 'hover:bg-white hover:text-black text-white transition-colors'
                 }`}
               >

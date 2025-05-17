@@ -1,13 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
-  CheckCircleIcon, 
-  XCircleIcon, 
-  ClockIcon, 
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  ChevronDownIcon,
-  ChevronUpIcon
-} from "@heroicons/react/24/outline";
+import { CheckCircleIcon, XCircleIcon, ClockIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
 
 export default function RepairApprovalList() {

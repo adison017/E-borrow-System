@@ -29,6 +29,7 @@ import BorrowApprovalList from './pages/executive/BorrowApprovalList'
 import RepairApprovalList from './pages/executive/RepairApprovalList'
 import Historybt from './pages/executive/Historyborrow'
 import HistoryRe from './pages/executive/HistoryRepair'
+import Success from './pages/admin/Success'
 
 function AppInner() {
   const [userRole, setUserRole] = useState('executive'); // เริ่มต้นเป็น user (แก้ทีหลังเป็นจากระบบ login)
@@ -85,7 +86,7 @@ function AppInner() {
       <header className="bottom-0 z-50">
           <Header userRole={userRole} changeRole={changeRole} />
         </header>
-        
+
         {/* Routes */}
         <div className="bg-white p-2 rounded-3xl">
           <Routes>
@@ -104,6 +105,7 @@ function AppInner() {
                 <Route path="/Repair" element={<RepairApprovalList />} />
                 <Route path="/History" element={<Historybt />} />
                 <Route path="/History_repair" element={<HistoryRe />} />
+                <Route path="/success" element={<Success />} />.0
               </>
             )}
             {(userRole === 'admin' || userRole === 'user') && (

@@ -1,16 +1,18 @@
-import { BiSearchAlt2 } from "react-icons/bi"; 
-import { FaClock } from "react-icons/fa"; 
+import { BiSearchAlt2 } from "react-icons/bi";
+import { FaClock } from "react-icons/fa";
 import { useState, useEffect } from "react";
-import { 
-  CheckCircleIcon, 
-  XCircleIcon, 
-  ClockIcon, 
+
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
   ChevronDownIcon,
   ChevronUpIcon
 } from "@heroicons/react/24/outline";
 import BorrowDetailsDialog from "./dialogs/borrowde";
+
 
 export default function BorrowApprovalList() {
   const [borrowRequests, setBorrowRequests] = useState([]);
@@ -385,7 +387,7 @@ export default function BorrowApprovalList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
-                        {request.status === "pending" }  
+                        {request.status === "pending" }
                         {request.status === "approved"}
                         {request.status === "rejected"}
                         {statusTranslation[request.status]}
