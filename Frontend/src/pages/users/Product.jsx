@@ -1,5 +1,6 @@
+import { motion } from 'framer-motion';
 import React, { useState } from 'react';
-import { MdShoppingCart, MdClose, MdSearch, MdAdd, MdRemove, MdSend } from "react-icons/md";
+import { MdAdd, MdRemove, MdSearch, MdShoppingCart } from "react-icons/md";
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
@@ -294,25 +295,64 @@ const Home = () => {
     setShowDetailDialog(true);
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.5
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <motion.div 
+      className="bg-white"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Header Section */}
-      <header className="bg-white">
+      <motion.header 
+        className="bg-white"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-center text-center">
             <h1 className="text-3xl font-bold text-gray-900">ระบบยืมคืนครุภัณฑ์</h1>
             <p className="mt-2 text-lg text-gray-600">คณะวิทยาการสารสนเทศ</p>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 bg-white">
+      <main className="max-w-auto mx-auto px-4 py-6 sm:px-6 lg:px-8 bg-white">
         {/* Search and Filter Section */}
-        <div className="mb-8 ">
+        <motion.div 
+          className="mb-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative max-w-3xl mx-auto ">
+          <motion.div 
+            className="mb-6"
+            variants={itemVariants}
+          >
+            <div className="relative max-w-3xl mx-auto">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <MdSearch className="h-5 w-5 text-gray-400" />
               </div>
@@ -324,10 +364,14 @@ const Home = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Filter Controls */}
-          <div className="bg-white p-6 mb-6 bg-gradient-to-r from-indigo-950 to-blue-700 rounded-2xl">
+          <motion.div 
+            className="bg-white p-6 mb-6 bg-gradient-to-r from-indigo-950 to-blue-700 rounded-2xl"
+            variants={itemVariants}
+            whileHover={{ scale: 1.01 }}
+          >
             <div className="flex flex-col px-6 md:flex-row md:items-center md:justify-between gap-4">
               {/* Status Filters */}
               <div>
@@ -365,15 +409,28 @@ const Home = () => {
                 </select>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Equipment Grid */}
-        <div className="mb-16 ">
+        <motion.div 
+          className="mb-16"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {filteredEquipment.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16 ">
-              {filteredEquipment.map((equipment) => (
-                <div key={equipment.id} className="card rounded-xl shadow-sm hover:shadow-md bg-white transition-transform duration-300 hover:scale-105  ">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+              {filteredEquipment.map((equipment, index) => (
+                <motion.div 
+                  key={equipment.id} 
+                  className="card rounded-2xl shadow-md hover:shadow-xl bg-white"
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.02 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
                   <figure className="px-4 pt-4 relative">
                     <img 
                       src={equipment.image} 
@@ -381,7 +438,7 @@ const Home = () => {
                       className="rounded-xl h-40 w-full object-contain cursor-pointer" 
                       onClick={() => showImageModal(equipment.image)}
                     />
-                    <div className="absolute top-6 right-6 ">
+                    <div className="absolute top-6 right-6">
                       {getStatusBadge(equipment.status)}
                     </div>
                   </figure>
@@ -404,50 +461,61 @@ const Home = () => {
                       {equipment.status === 'พร้อมยืม' ? (
                         quantities[equipment.id] ? (
                           <div className="join gap-2">
-                            <button 
+                            <motion.button 
                               className={`join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${quantities[equipment.id] >= equipment.available ? 'btn-disabled' : 'btn-ghost'}`}
                               onClick={() => handleIncrease(equipment.id)}
                               disabled={quantities[equipment.id] >= equipment.available}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
                             >
                               <MdAdd className="w-4 h-4" />
-                            </button>
+                            </motion.button>
                             <span className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700">
                               {quantities[equipment.id]}
                             </span>
-                            <button 
+                            <motion.button 
                               className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700" 
                               onClick={() => handleDecrease(equipment.id)}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
                             >
                               <MdRemove className="w-4 h-4" />
-                            </button>
+                            </motion.button>
                           </div>
                         ) : (
-                          <button 
+                          <motion.button 
                             className={`btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${equipment.available <= 0 ? 'btn-disabled' : 'btn-ghost'}`}
                             onClick={() => handleIncrease(equipment.id)}
                             disabled={equipment.available <= 0}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
                           >
                             {equipment.available > 0 ? (
-                              <MdAdd className="w-4 h-4 " />
+                              <MdAdd className="w-4 h-4" />
                             ) : 'ไม่พร้อมให้ยืม'}
-                          </button>
+                          </motion.button>
                         )
                       ) : (
-                        <button 
+                        <motion.button 
                           className="btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700"
                           onClick={() => showEquipmentDetail(equipment)}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
                         >
                           <MdSearch className="w-4 h-4" />
                           รายละเอียด
-                        </button>
+                        </motion.button>
                       )}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+            <motion.div 
+              className="text-center py-12 bg-white rounded-lg shadow-sm"
+              variants={itemVariants}
+            >
               <p className="text-gray-500 text-lg">ไม่พบครุภัณฑ์ที่ตรงกับการค้นหา</p>
               <button 
                 onClick={() => {
@@ -459,37 +527,51 @@ const Home = () => {
               >
                 ล้างการค้นหา
               </button>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </main>
 
       {/* Floating Cart Summary */}
       {totalSelectedItems > 0 && (
-        <div className="fixed bottom-6 right-11 md:bottom-6 md:right-6 bg-white shadow-xl p-4 z-10 animate-bounce-once rounded-2xl">
-          <div className="flex items-center gap-4 ">
+        <motion.div 
+          className="fixed bottom-6 right-11 md:bottom-6 md:right-6 bg-white shadow-xl p-4 z-10 rounded-2xl"
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 100 }}
+        >
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <MdShoppingCart className="h-6 w-6 text-blue-600 " />
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              >
+                <MdShoppingCart className="h-6 w-6 text-blue-600" />
+              </motion.div>
               <span className="font-medium">
                 {totalSelectedItems} รายการที่เลือก
               </span>
             </div>
-            <div className="flex gap-2 ">
-              <button
+            <div className="flex gap-2">
+              <motion.button
                 onClick={() => setQuantities({})}
-                className="px-4 py-2 bg-gray-200 text-gray-700  hover:bg-gray-300 transition-colors rounded-2xl"
+                className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-2xl"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 ยกเลิก
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={handleConfirm}
-                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-2xl" 
+                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 ยืนยันการยืม
-              </button>
+              </motion.button>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Dialogs */}
@@ -519,7 +601,7 @@ const Home = () => {
         selectedImage={selectedImage}
         setSelectedImage={setSelectedImage}
       />
-    </div>
+    </motion.div>
   );
 };
 

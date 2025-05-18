@@ -6,6 +6,7 @@ import Header from './components/Header';
 import SidebarAdmin from './components/SidebarAdmin';
 import SidebarExecutive from './components/SidebarExecutive';
 import SidebarUser from './components/SidebarUser';
+import './sidebar.css';
 
 // Admin Pages
 import BorrowList from './pages/admin/BorrowList';
@@ -33,7 +34,6 @@ import DashboardUser from './pages/users/Dashboard';
 import Edit_pro from './pages/users/edit_profile';
 import Fine from './pages/users/Fine';
 import Homes from './pages/users/Product';
-import User_re from './pages/users/Requirement';
 import Return from './pages/users/Return';
 
 function AppInner() {
@@ -132,12 +132,24 @@ function AppInner() {
       )}
 
       {/* Sidebar (desktop) */}
-      <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white transition-all duration-300 flex-none hidden lg:block rounded-r-2xl fixed top-0 left-0 h-full z-30 shadow-xl`}>
-        {renderSidebar()}
+      <div
+        className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white transition-all duration-300 ease-in-out flex-none hidden lg:block rounded-r-2xl fixed top-0 left-0 h-full z-30 shadow-xl`}
+        style={{
+          animation: isSidebarCollapsed ? 'none' : 'slideIn 0.3s ease-in-out'
+        }}
+      >
+        {userRole === 'user' ? (
+          <SidebarUser
+            isCollapsed={isSidebarCollapsed}
+            toggleCollapse={toggleSidebarCollapse}
+            mobileOpen={false}
+            setMobileOpen={() => {}}
+          />
+        ) : renderSidebar()}
       </div>
 
       {/* Main content */}
-      <main className={`flex-1 flex flex-col transition-all duration-300 w-full ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
+      <main className={`flex-1 flex flex-col transition-all duration-300 w-full ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
         <Header userRole={userRole} changeRole={changeRole} />
         {/* Content */}
         <div className="bg-white p-4 m-4 rounded-xl flex-1 min-h-0 shadow-lg">
@@ -153,6 +165,7 @@ function AppInner() {
                 <Route path="/ReceiveItem" element={<ReceiveItem />} />
                 <Route path="/category" element={<ManageCategory />} />
                 <Route path="/success" element={<Success />} />
+                <Route path="/edit_profile" element={<Edit_pro />} />
               </>
             )}
 
@@ -164,6 +177,7 @@ function AppInner() {
                 <Route path="/Repair" element={<RepairApprovalList />} />
                 <Route path="/History" element={<Historybt />} />
                 <Route path="/History_repair" element={<HistoryRe />} />
+                <Route path="/edit_profile" element={<Edit_pro />} />
               </>
             )}
 
@@ -172,7 +186,6 @@ function AppInner() {
               <>
                 <Route path="/DashboardUs" element={<DashboardUser />} />
                 <Route path="/equipment" element={<Homes />} />
-                <Route path="/re" element={<User_re />} />
                 <Route path="/approve" element={<Approve />} />
                 <Route path="/return" element={<Return />} />
                 <Route path="/completed" element={<Done />} />
