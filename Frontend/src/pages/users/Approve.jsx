@@ -85,7 +85,7 @@ const RequirementList = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">รายการรออนุมัติการยืมครุภัณฑ์</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">รายการอนุมัติการยืมครุภัณฑ์</h1>
       
       <div className="space-y-6">
         {pendingRequests.map((request) => {

@@ -270,7 +270,7 @@ export default function RepairApprovalList() {
   }, {});
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl">
+    <div className="container mx-auto py-6 max-w-8xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอแจ้งซ่อม</h1>

@@ -10,7 +10,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon
 } from "@heroicons/react/24/outline";
-import BorrowDetailsDialog from "./dialogs/borrowde";
+import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
 
 export default function BorrowApprovalList() {
   const [borrowRequests, setBorrowRequests] = useState([]);
@@ -18,7 +18,7 @@ export default function BorrowApprovalList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState(["approved", "returned" , "rejected" , "borrowing"]);
+  const [statusFilter, setStatusFilter] = useState(["returned" , "rejected" , "borrowing"]);
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -28,7 +28,6 @@ export default function BorrowApprovalList() {
 
   // สถานะของคำขอยืม
   const statusOptions = [
-    { value: "approved", label: "อนุมัติแล้ว", count: 0 },
     { value: "rejected", label: "ปฏิเสธ", count: 0 },
     { value: "borrowing", label: "กำลังยืม", count: 0 },
     { value: "returned", label: "คืนแล้ว", count: 0 }
@@ -299,7 +298,7 @@ export default function BorrowApprovalList() {
   }, {});
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl">
+    <div className="container mx-auto py-6 max-w-8xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอยืมอุปกรณ์</h1>
@@ -308,11 +307,7 @@ export default function BorrowApprovalList() {
       </div>
 
       {/* สรุปข้อมูล */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-400">
-          <p className="text-gray-500 text-sm">อนุมัติแล้ว</p>
-          <p className="text-2xl font-semibold text-gray-800">{countByStatus.approved || 0}</p>
-        </div>
+      <div className="grid grid-cols-3 gap-5 mb-6">
         <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-400">
           <p className="text-gray-500 text-sm">กำลังยืม</p>
           <p className="text-2xl font-semibold text-gray-800">{countByStatus.borrowing || 0}</p>

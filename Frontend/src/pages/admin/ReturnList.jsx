@@ -26,11 +26,11 @@ import {
 
 
 // Import components
+import ConfirmDialog from "../../components/ConfirmDialog";
+import Notification from "../../components/Notification";
 import ScannerDialog from "../../components/ScannerDialog";
 import ReturnFormDialog from "./dialog/ReturnFormDialog";
 import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
-import ConfirmDialog from "../../components/ConfirmDialog";
-import Notification from "../../components/Notification";
 
 
 // Import services
@@ -391,7 +391,7 @@ const ReturnList = () => {
         <div className="relative flex w-full">
           <input
             type="text"
-            className="peer w-full rounded-lg border border-gray-300 border-t-gray-300 bg-transparent px-3 py-2 pl-10 font-sans text-sm font-normal text-blue-gray-700 outline outline-0 transition-all focus:border-blue-500 focus:outline-0 disabled:border-0"
+            className="peer w-full rounded-lg border border-gray-300 border-t-gray-300 bg-transparent px-3 py-2 pl-10 font-sans text-sm font-normal text-blue-gray-700 outline-0 transition-all focus:border-blue-500 focus:outline-0 disabled:border-0"
             placeholder="ค้นหา..."
             value={searchTerm}
             onChange={handleSearch}

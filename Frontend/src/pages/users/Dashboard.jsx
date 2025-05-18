@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
-  Inventory as InventoryIcon,
-  CheckCircle as DoneIcon,
-  Pending as PendingIcon,
   EventAvailable as EventAvailableIcon,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Inventory as InventoryIcon,
+  Pending as PendingIcon
 } from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
 const DashboardUser = () => {
   const [stats] = useState({
@@ -36,53 +36,116 @@ const DashboardUser = () => {
     { id: 4, action: 'ขออนุมัติ', item: 'ไมโครโฟนไร้สาย', date: '20/04/2025', status: 'อนุมัติ' },
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.5
+      }
+    }
+  };
+
   return (
-    <div className="p-6 flex-grow  text-black">
-      <h1 className="text-3xl font-bold mb-8">แดชบอร์ดผู้ใช้งาน</h1>
+    <motion.div 
+      className="p-6 flex-grow text-black"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.h1 
+        className="text-3xl font-bold mb-8"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        แดชบอร์ดผู้ใช้งาน
+      </motion.h1>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <motion.div 
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Total Borrowed */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        <motion.div 
+          className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow"
+          variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
+        >
           <p className="text-gray-500 text-sm">ยืมทั้งหมด</p>
           <p className="text-3xl font-bold my-2">{stats.totalBorrowed}</p>
           <div className="flex items-center">
             <HistoryIcon className="text-blue-500" />
           </div>
-        </div>
+        </motion.div>
 
         {/* Current Borrowed */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        <motion.div 
+          className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow"
+          variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
+        >
           <p className="text-gray-500 text-sm">กำลังยืม</p>
           <p className="text-3xl font-bold my-2 text-blue-500">{stats.currentBorrowed}</p>
           <div className="flex items-center">
             <InventoryIcon className="text-blue-500" />
           </div>
-        </div>
+        </motion.div>
 
         {/* Pending Requests */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        <motion.div 
+          className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow"
+          variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
+        >
           <p className="text-gray-500 text-sm">รออนุมัติ</p>
           <p className="text-3xl font-bold my-2 text-yellow-500">{stats.pendingRequests}</p>
           <div className="flex items-center">
             <PendingIcon className="text-yellow-500" />
           </div>
-        </div>
+        </motion.div>
 
         {/* Overdue Items */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        <motion.div 
+          className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow"
+          variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
+        >
           <p className="text-gray-500 text-sm">เกินกำหนด</p>
           <p className="text-3xl font-bold my-2 text-red-500">{stats.overdueItems}</p>
           <div className="flex items-center">
             <EventAvailableIcon className="text-red-500" />
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Request Status Chart */}
-        <div className="bg-white p-6 rounded-lg shadow md:col-span-1 h-[360px]">
+        <motion.div 
+          className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow"
+          variants={itemVariants}
+          whileHover={{ scale: 1.01 }}
+        >
           <h2 className="text-xl font-semibold mb-4">สถานะคำขอ</h2>
           <ResponsiveContainer width="100%" height="80%">
             <PieChart>
@@ -104,14 +167,25 @@ const DashboardUser = () => {
               <Legend />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </motion.div>
 
         {/* Current Borrowed Items */}
-        <div className="bg-white p-6 rounded-lg shadow md:col-span-1 h-[360px]">
+        <motion.div 
+          className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow"
+          variants={itemVariants}
+          whileHover={{ scale: 1.01 }}
+        >
           <h2 className="text-xl font-semibold mb-4">อุปกรณ์ที่กำลังยืม</h2>
           <div className="space-y-4 mt-4 max-h-[280px] overflow-y-auto">
-            {currentBorrowedItems.map((item) => (
-              <div key={item.id} className="p-4 border border-gray-200 rounded-lg">
+            {currentBorrowedItems.map((item, index) => (
+              <motion.div 
+                key={item.id} 
+                className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+              >
                 <p className="font-medium">{item.item}</p>
                 <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                   <div>
@@ -128,17 +202,28 @@ const DashboardUser = () => {
                 }`}>
                   {item.status}
                 </span>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Recent Activities */}
-        <div className="bg-white p-6 rounded-lg shadow md:col-span-1 h-[360px]">
+        <motion.div 
+          className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow"
+          variants={itemVariants}
+          whileHover={{ scale: 1.01 }}
+        >
           <h2 className="text-xl font-semibold mb-4">กิจกรรมล่าสุด</h2>
           <div className="space-y-3 mt-4 max-h-[280px] overflow-y-auto">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start pb-3 border-b border-gray-200">
+            {recentActivities.map((activity, index) => (
+              <motion.div 
+                key={activity.id} 
+                className="flex items-start pb-3 border-b border-gray-200"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+              >
                 <div className={`flex-shrink-0 mt-1 w-3 h-3 rounded-full ${
                   activity.status === 'สำเร็จ' || activity.status === 'อนุมัติ' ? 'bg-green-500' : 'bg-yellow-500'
                 }`}></div>
@@ -152,28 +237,46 @@ const DashboardUser = () => {
                     {activity.status}
                   </span>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Quick Actions */}
-      <div className="mt-6 bg-white p-6 rounded-lg shadow">
+      <motion.div 
+        className="mt-6 bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow"
+        variants={itemVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover={{ scale: 1.01 }}
+      >
         <h2 className="text-xl font-semibold mb-4">ดำเนินการด่วน</h2>
         <div className="flex flex-wrap gap-4">
-          <button className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+          <motion.button 
+            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             ยื่นคำขอยืมอุปกรณ์
-          </button>
-          <button className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600">
+          </motion.button>
+          <motion.button 
+            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             แจ้งคืนอุปกรณ์
-          </button>
-          <button className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
+          </motion.button>
+          <motion.button 
+            className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             ดูอุปกรณ์ที่มี
-          </button>
+          </motion.button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

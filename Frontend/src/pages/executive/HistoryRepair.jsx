@@ -285,7 +285,7 @@ export default function RepairApprovalList() {
   }, {});
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl">
+    <div className="container mx-auto py-6 max-w-8xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอแจ้งซ่อม</h1>
@@ -293,7 +293,7 @@ export default function RepairApprovalList() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-5 mb-6">
         <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-400">
           <p className="text-gray-500 text-sm">กำลังซ่อม</p>
           <p className="text-2xl font-semibold text-gray-800">{countByStatus.inprogress || 0}</p>

@@ -30,7 +30,7 @@ function Header({ userRole, changeRole }) {
     <header className="bg-gradient-to-r from-slate-950 to-slate-800 text-white py-4 px-10 mb-1">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
         {/* Logo + System Name */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-center gap-2">
           <div className="flex items-center justify-center p-1 w-30 h-20">
             <img 
               src="/logo_it.png" 
