@@ -27,7 +27,7 @@ function Header({ userRole, changeRole }) {
   }, []);
 
   return (
-    <header className="bg-gradient-to-r from-slate-950 to-slate-800 text-white py-4 px-10 mb-1">
+    <header className="bg-gradient-to-r from-indigo-950 to-blue-700 text-white py-4 px-10 mb-1">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
         {/* Logo + System Name */}
         <div className="flex flex-col sm:flex-row items-center gap-2">

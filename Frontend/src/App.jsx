@@ -30,44 +30,54 @@ import Done from './pages/users/All_done';
 import Approve from './pages/users/Approve';
 import Borrow from './pages/users/Borrow';
 import Cancel_re from './pages/users/Cancel_re';
-import DashboardUser from './pages/users/Dashboard';
 import Edit_pro from './pages/users/edit_profile';
 import Fine from './pages/users/Fine';
+import NewsPage from './pages/users/NewsPage';
 import Homes from './pages/users/Product';
 import Return from './pages/users/Return';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState('admin');
+  const [userRole, setUserRole] = useState('user');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
+  const defaultRoutes = {
+    admin: '/DashboardAd',
+    user: '/DashboardUs',
+    executive: '/DashboardEx'
+  };
+
   const changeRole = (role) => {
     setUserRole(role);
+    // Navigate to the default route for the selected role
+    if (defaultRoutes[role]) {
+      navigate(defaultRoutes[role]);
+    }
   };
 
   const toggleSidebarCollapse = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  // Navigate to the first menu item on application startup
+  useEffect(() => {
+    // Always navigate to the default route for the current role on app startup
+    navigate(defaultRoutes[userRole] || '/DashboardUs');
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // Handle route changes or root navigation
   useEffect(() => {
     if (location.pathname === '/') {
-      switch (userRole) {
-        case 'admin':
-          navigate('/DashboardAd');
-          break;
-        case 'user':
-          navigate('/DashboardUs');
-          break;
-        case 'executive':
-          navigate('/DashboardEx');
-          break;
-        default:
-          navigate('/DashboardUs');
+      // Navigate to the default route of the initial role if at root path
+      if (defaultRoutes[userRole]) {
+        navigate(defaultRoutes[userRole]);
+      } else {
+        navigate('/DashboardUs'); // Fallback if role not in defaultRoutes
       }
     }
-  }, [userRole, navigate, location.pathname]);
+  }, [userRole, navigate, location.pathname, defaultRoutes]);
 
   // ปิด sidebar overlay อัตโนมัติเมื่อจอกว้างขึ้น (desktop)
   useEffect(() => {
@@ -109,7 +119,7 @@ function AppInner() {
   };
 
   return (
-    <div className="min-h-screen flex flex-row bg-gradient-to-r from-indigo-950 to-blue-700 text-black">
+    <div className="min-h-screen flex flex-row bg-gradient-to-r from-indigo-950 md:from-7% sm:from-1% to-blue-700 text-black">
       {/* Hamburger button (mobile only) */}
       {!mobileOpen && (
         <button
@@ -124,6 +134,22 @@ function AppInner() {
       {/* Sidebar overlay (mobile) */}
       {mobileOpen && userRole === 'user' && (
         <SidebarUser
+          isCollapsed={false}
+          mobileOpen={mobileOpen}
+          setMobileOpen={setMobileOpen}
+          toggleCollapse={() => {}}
+        />
+      )}
+      {mobileOpen && userRole === 'admin' && (
+        <SidebarAdmin
+          isCollapsed={false}
+          mobileOpen={mobileOpen}
+          setMobileOpen={setMobileOpen}
+          toggleCollapse={() => {}}
+        />
+      )}
+      {mobileOpen && userRole === 'executive' && (
+        <SidebarExecutive
           isCollapsed={false}
           mobileOpen={mobileOpen}
           setMobileOpen={setMobileOpen}
@@ -149,10 +175,10 @@ function AppInner() {
       </div>
 
       {/* Main content */}
-      <main className={`flex-1 flex flex-col transition-all duration-300 w-full ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
+      <main className={`flex-1 flex flex-col transition-all duration-300 w-full bg-gradient-to-r from-indigo-950 md:from-2% sm:from-1% to-blue-700 ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
         <Header userRole={userRole} changeRole={changeRole} />
         {/* Content */}
-        <div className="bg-white p-4 m-4 rounded-xl flex-1 min-h-0 shadow-lg">
+        <div className="bg-white p-4 m-4 rounded-xl flex-1 min-h-0">
           <Routes>
             {/* Admin Routes */}
             {userRole === 'admin' && (
@@ -184,7 +210,7 @@ function AppInner() {
             {/* User Routes */}
             {userRole === 'user' && (
               <>
-                <Route path="/DashboardUs" element={<DashboardUser />} />
+                <Route path="/DashboardUs" element={<NewsPage />} />
                 <Route path="/equipment" element={<Homes />} />
                 <Route path="/approve" element={<Approve />} />
                 <Route path="/return" element={<Return />} />
