@@ -1,18 +1,26 @@
 import {
+  Assignment as AssignmentIcon,
   AssignmentReturn as AssignmentReturnIcon,
+  BarChart as BarChartIcon,
+  Build as BuildIcon,
+  BusinessCenter as BusinessCenterIcon,
+  Category as CategoryIcon,
   CheckCircle as DoneIcon,
   History as HistoryIcon,
   Inventory as InventoryIcon,
   ListAlt as ListAltIcon,
-  NotificationsActive as NotificationsActiveIcon,
+  Notifications as NotificationsIcon,
   Pending as PendingIcon,
   PieChartOutline as PieChartOutlineIcon,
-  Schedule as ScheduleIcon
+  Schedule as ScheduleIcon,
+  TrendingUp as TrendingUpIcon,
+  Warning as WarningIcon
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { motion } from 'framer-motion';
 import React, { useState } from 'react';
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Link } from 'react-router-dom';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 // Derived data based on analysis of BorrowApprovalList.jsx, Historyborrow.jsx, 
 // RepairApprovalList.jsx, and HistoryRepair.jsx mockData
@@ -25,19 +33,95 @@ const inProgressRepairCount = 1; // From HistoryRepair.jsx (1 item with status "
 const itemsInRepairTotal = inProgressRepairCount + approvedRepairCount; // 1 + 1 = 2
 
 const initialDashboardStats = {
-  totalEquipment: 180, 
-  borrowedEquipment: borrowingCount,
-  myPendingRequests: pendingBorrowCount + pendingRepairCount, 
-  itemsInRepair: itemsInRepairTotal,
-  upcomingReturns: 5,   
-  overdueItems: 1,      
-  reservedEquipment: 5, 
+  totalEquipment: 270,
+  availableEquipment: 150,
+  borrowedEquipment: 75,
+  pendingRequests: pendingBorrowCount + pendingRepairCount,
+  lateReturns: 8
 };
-initialDashboardStats.availableEquipment = 
-  initialDashboardStats.totalEquipment - 
-  initialDashboardStats.borrowedEquipment - 
-  initialDashboardStats.itemsInRepair - 
-  initialDashboardStats.reservedEquipment; 
+
+// Reporting data derived from executive files
+// Equipment categories data (most borrowed by category)
+const equipmentCategoryData = [
+  { name: 'อุปกรณ์คอมพิวเตอร์', count: 28, color: '#8884d8' },
+  { name: 'อุปกรณ์สำนักงาน', count: 23, color: '#82ca9d' },
+  { name: 'อุปกรณ์การประชุม', count: 15, color: '#ffc658' },
+  { name: 'อุปกรณ์มัลติมีเดีย', count: 12, color: '#ff8042' },
+  { name: 'อุปกรณ์พกพา', count: 10, color: '#0088fe' }
+];
+
+// Department borrowing statistics
+const departmentBorrowData = [
+  { name: 'แผนกไอที', count: 25, color: '#8884d8' },
+  { name: 'แผนกการตลาด', count: 18, color: '#82ca9d' },
+  { name: 'แผนกบัญชี', count: 15, color: '#ffc658' },
+  { name: 'แผนกบริหาร', count: 12, color: '#ff8042' },
+  { name: 'แผนกทรัพยากรบุคคล', count: 10, color: '#0088fe' }
+];
+
+// Monthly trends data (borrowing and repairs)
+const monthlyTrendsData = [
+  { month: 'ม.ค.', borrowCount: 30, repairCount: 5 },
+  { month: 'ก.พ.', borrowCount: 25, repairCount: 8 },
+  { month: 'มี.ค.', borrowCount: 35, repairCount: 7 },
+  { month: 'เม.ย.', borrowCount: 28, repairCount: 10 },
+  { month: 'พ.ค.', borrowCount: 32, repairCount: 6 }
+];
+
+// Equipment repair frequency
+const equipmentRepairData = [
+  { name: 'เครื่องคอมพิวเตอร์', count: 8, color: '#8884d8' },
+  { name: 'เครื่องพิมพ์', count: 6, color: '#82ca9d' },
+  { name: 'เครื่องปรับอากาศ', count: 5, color: '#ffc658' },
+  { name: 'โปรเจคเตอร์', count: 4, color: '#ff8042' },
+  { name: 'ไมโครโฟน', count: 2, color: '#0088fe' }
+];
+
+// Sample data from BorrowApprovalList.jsx
+const pendingBorrowRequests = [
+  { 
+    id: "BOR-2025-0001", 
+    equipmentName: "โน๊ตบุ๊ค Dell XPS 15", 
+    requesterName: "ชัยวัฒน์ มีสุข", 
+    department: "แผนกไอที",
+    borrowDate: "2025-05-05", 
+    dueDate: "2025-05-12",
+    status: "รออนุมัติ" 
+  },
+  { 
+    id: "BOR-2025-0002", 
+    equipmentName: "เครื่องพิมพ์ HP LaserJet", 
+    requesterName: "สุดารัตน์ แสงทอง", 
+    department: "แผนกบัญชี",
+    borrowDate: "2025-05-06", 
+    dueDate: "2025-05-09",
+    status: "รออนุมัติ" 
+  }
+];
+
+// Sample data from RepairApprovalList.jsx
+const pendingRepairRequests = [
+  { 
+    id: "REP-2025-0001", 
+    equipmentName: "เครื่องคอมพิวเตอร์ Dell", 
+    requesterName: "ชัยวัฒน์ มีสุข", 
+    department: "แผนกไอที",
+    requestDate: "2025-05-01", 
+    estimatedCost: "2,500",
+    status: "รออนุมัติ",
+    priority: "ปานกลาง"
+  },
+  { 
+    id: "REP-2025-0002", 
+    equipmentName: "เครื่องพิมพ์ HP LaserJet", 
+    requesterName: "สุดารัตน์ แสงทอง", 
+    department: "แผนกบัญชี",
+    requestDate: "2025-05-03", 
+    estimatedCost: "1,200",
+    status: "รออนุมัติ",
+    priority: "ต่ำ"
+  }
+];
 
 const newMyRequestsData = [
   { id: "BOR-2025-0001", item: "โน๊ตบุ๊ค Dell XPS 15", user: "ชัยวัฒน์ มีสุข", status: "รออนุมัติ", requestDate: "2025-05-05", borrowDate: "2025-05-05", returnDate: "2025-05-12" },
@@ -48,10 +132,9 @@ const DashboardExeutive = () => {
   const [stats] = useState(initialDashboardStats);
 
   const equipmentStatusData = [
-    { name: 'พร้อมใช้งาน', value: stats.availableEquipment, color: '#4CAF50' }, // Green
-    { name: 'ถูกยืม', value: stats.borrowedEquipment, color: '#2196F3' },     // Blue
-    { name: 'ซ่อมบำรุง', value: stats.itemsInRepair, color: '#FF9800' },   // Orange
-    { name: 'จองล่วงหน้า', value: stats.reservedEquipment, color: '#9C27B0'} // Purple for reserved
+    { name: 'พร้อมใช้งาน', value: stats.availableEquipment, color: '#4CAF50' },
+    { name: 'ถูกยืม', value: stats.borrowedEquipment, color: '#2196F3' },
+    { name: 'ซ่อมบำรุง', value: itemsInRepairTotal, color: '#FF9800' }
   ];
 
   const myRequestsColumns = [
@@ -69,6 +152,34 @@ const DashboardExeutive = () => {
     { field: 'requestDate', headerName: 'วันที่ขอ', width: 110 },
     { field: 'borrowDate', headerName: 'วันที่ยืม', width: 110 },
     { field: 'returnDate', headerName: 'วันที่คืน', width: 110 },
+  ];
+
+  // Custom columns for approval tables
+  const borrowApprovalColumns = [
+    { field: 'id', headerName: 'รหัสคำขอ', width: 130 },
+    { field: 'equipmentName', headerName: 'อุปกรณ์', width: 200 },
+    { field: 'requesterName', headerName: 'ผู้ขอ', width: 150 },
+    { field: 'status', headerName: 'สถานะ', width: 110, renderCell: (params) => (
+      <span className="px-2.5 py-1 text-xs font-semibold rounded-full text-yellow-700 bg-yellow-100">
+        {params.value}
+      </span>
+    )},
+    { field: 'borrowDate', headerName: 'วันที่ยืม', width: 100 },
+    { field: 'dueDate', headerName: 'วันที่คืน', width: 100 }
+  ];
+  
+  const repairApprovalColumns = [
+    { field: 'id', headerName: 'รหัสคำขอ', width: 130 },
+    { field: 'equipmentName', headerName: 'อุปกรณ์', width: 200 },
+    { field: 'requesterName', headerName: 'ผู้ขอ', width: 150 },
+    { field: 'status', headerName: 'สถานะ', width: 110, renderCell: (params) => (
+      <span className="px-2.5 py-1 text-xs font-semibold rounded-full text-yellow-700 bg-yellow-100">
+        {params.value}
+      </span>
+    )},
+    { field: 'requestDate', headerName: 'วันที่แจ้ง', width: 100 },
+    { field: 'estimatedCost', headerName: 'ค่าใช้จ่าย (บาท)', width: 130 },
+    { field: 'priority', headerName: 'ความสำคัญ', width: 110 }
   ];
 
   const upcomingReturnsData = [
@@ -106,10 +217,10 @@ const DashboardExeutive = () => {
   const getActivityIcon = (type) => {
     switch (type) {
       case 'อนุมัติคำขอ': return <DoneIcon className="text-green-500" />;
-      case 'แจ้งเตือน': return <NotificationsActiveIcon className="text-yellow-500" />;
+      case 'แจ้งเตือน': return <NotificationsIcon className="text-yellow-500" />;
       case 'คำขอใหม่': return <PendingIcon className="text-blue-500" />;
       case 'ครุภัณฑ์ใหม่': return <InventoryIcon className="text-purple-500" />;
-      case 'เกินกำหนด': return <ScheduleIcon className="text-red-500" />;
+      case 'เกินกำหนด': return <WarningIcon className="text-red-500" />;
       default: return <ListAltIcon className="text-gray-500" />;
     }
   };
@@ -118,9 +229,8 @@ const DashboardExeutive = () => {
       { title: 'ครุภัณฑ์ทั้งหมด', value: stats.totalEquipment, icon: <InventoryIcon className="text-blue-500" />, color: "blue" },
       { title: 'พร้อมใช้งาน', value: stats.availableEquipment, icon: <DoneIcon className="text-green-500" />, color: "green" },
       { title: 'ถูกยืม', value: stats.borrowedEquipment, icon: <AssignmentReturnIcon className="text-sky-500" />, color: "sky" },
-      { title: 'คำขอรอดำเนินการ', value: stats.myPendingRequests, icon: <PendingIcon className="text-purple-500" />, color: "purple" },
-      { title: 'จะครบกำหนดคืน', value: stats.upcomingReturns, icon: <ScheduleIcon className="text-orange-500" />, color: "orange" },
-      { title: 'เกินกำหนดคืน', value: stats.overdueItems, icon: <NotificationsActiveIcon className="text-red-500" />, color: "red" }
+      { title: 'คำขอรออนุมัติ', value: stats.pendingRequests, icon: <NotificationsIcon className="text-yellow-500" />, color: "yellow" },
+      { title: 'คืนเกินกำหนด', value: stats.lateReturns, icon: <WarningIcon className="text-red-500" />, color: "red" }
   ];
 
   return (
@@ -140,7 +250,7 @@ const DashboardExeutive = () => {
 
         {/* Stats Cards */}
         <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5 mb-8"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-8"
             variants={containerVariants}
         >
           {statCardsData.map(stat => (
@@ -161,6 +271,124 @@ const DashboardExeutive = () => {
               </div>
             </motion.div>
           ))}
+        </motion.div>
+
+        {/* New Approval Sections */}
+        <motion.div 
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
+          variants={containerVariants}
+        >
+          {/* Borrow Approval List */}
+          <motion.div 
+            className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 h-auto"
+            variants={itemVariants}
+            whileHover={{ scale: 1.01 }}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-700 flex items-center">
+                <AssignmentIcon className="mr-2 text-blue-500" />
+                คำขอยืมรออนุมัติ ({pendingBorrowRequests.length})
+              </h2>
+              <Link 
+                to="/BorrowApprovalList"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+              >
+                ดูทั้งหมด
+              </Link>
+            </div>
+            <div className="h-[300px] w-full">
+              <DataGrid
+                rows={pendingBorrowRequests}
+                columns={borrowApprovalColumns}
+                pageSize={4}
+                rowsPerPageOptions={[4]}
+                disableSelectionOnClick
+                autoHeight={false}
+                className="border-none rounded-lg"
+                sx={{
+                  fontSize: '0.875rem',
+                  border: 'none',
+                  '& .MuiDataGrid-columnHeaders': {
+                    backgroundColor: '#f9fafb',
+                    color: '#374151',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    fontSize: '0.75rem',
+                    borderBottom: 'none' 
+                  },
+                  '& .MuiDataGrid-cell': {
+                    borderBottom: 'none', 
+                    padding: '8px 16px',
+                  },
+                  '& .MuiDataGrid-row:hover': {
+                    backgroundColor: '#f3f4f6',
+                  },
+                  '& .MuiDataGrid-footerContainer': {
+                      borderTop: 'none' 
+                  },
+                  '& .MuiDataGrid-virtualScroller': {
+                     borderTop: '1px solid #e5e7eb' 
+                  }
+                }}
+              />
+            </div>
+          </motion.div>
+
+          {/* Repair Approval List */}
+          <motion.div 
+            className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 h-auto"
+            variants={itemVariants}
+            whileHover={{ scale: 1.01 }}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-700 flex items-center">
+                <BuildIcon className="mr-2 text-orange-500" />
+                คำขอซ่อมรออนุมัติ ({pendingRepairRequests.length})
+              </h2>
+              <Link 
+                to="/Repair"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
+              >
+                ดูทั้งหมด
+              </Link>
+            </div>
+            <div className="h-[300px] w-full">
+              <DataGrid
+                rows={pendingRepairRequests}
+                columns={repairApprovalColumns}
+                pageSize={4}
+                rowsPerPageOptions={[4]}
+                disableSelectionOnClick
+                autoHeight={false}
+                className="border-none rounded-lg"
+                sx={{
+                  fontSize: '0.875rem',
+                  border: 'none',
+                  '& .MuiDataGrid-columnHeaders': {
+                    backgroundColor: '#f9fafb',
+                    color: '#374151',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    fontSize: '0.75rem',
+                    borderBottom: 'none' 
+                  },
+                  '& .MuiDataGrid-cell': {
+                    borderBottom: 'none', 
+                    padding: '8px 16px',
+                  },
+                  '& .MuiDataGrid-row:hover': {
+                    backgroundColor: '#f3f4f6',
+                  },
+                  '& .MuiDataGrid-footerContainer': {
+                      borderTop: 'none' 
+                  },
+                  '& .MuiDataGrid-virtualScroller': {
+                     borderTop: '1px solid #e5e7eb' 
+                  }
+                }}
+              />
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* Main Content Area - Two Column Layout */}
@@ -207,50 +435,127 @@ const DashboardExeutive = () => {
               </ResponsiveContainer>
             </motion.div>
 
-            {/* My Requests Table */}
+            {/* Reports and Analytics Section */}
             <motion.div 
                 className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
                 variants={itemVariants} 
                 whileHover={{ scale: 1.01 }}
             >
               <h2 className="text-xl font-semibold mb-5 text-gray-700 pb-3 flex items-center">
-                <ListAltIcon className="mr-2 text-blue-500" />
-                คำขอยืมของฉัน ({newMyRequestsData.length})
+                <BarChartIcon className="mr-2 text-indigo-600" />
+                รายงานและวิเคราะห์การใช้งาน
               </h2>
-              <div className="h-[350px] w-full">
-                <DataGrid
-                  rows={newMyRequestsData}
-                  columns={myRequestsColumns}
-                  pageSize={5}
-                  rowsPerPageOptions={[5]}
-                  disableSelectionOnClick
-                  className="border-none rounded-lg"
-                  sx={{
-                    fontSize: '0.875rem',
-                    border: 'none',
-                    '& .MuiDataGrid-columnHeaders': {
-                      backgroundColor: '#f9fafb',
-                      color: '#374151',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      fontSize: '0.75rem',
-                      borderBottom: 'none' 
-                    },
-                    '& .MuiDataGrid-cell': {
-                      borderBottom: 'none', 
-                      padding: '8px 16px',
-                    },
-                    '& .MuiDataGrid-row:hover': {
-                      backgroundColor: '#f3f4f6',
-                    },
-                    '& .MuiDataGrid-footerContainer': {
-                        borderTop: 'none' 
-                    },
-                    '& .MuiDataGrid-virtualScroller': {
-                       borderTop: '1px solid #e5e7eb' 
-                    }
-                  }}
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Monthly Trends Chart */}
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700 flex items-center">
+                    <TrendingUpIcon className="mr-1 text-blue-500 h-4 w-4" />
+                    แนวโน้มการยืมและซ่อมรายเดือน
+                  </h3>
+                  <div className="h-[240px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={monthlyTrendsData}
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="borrowCount" name="จำนวนการยืม" stroke="#3B82F6" strokeWidth={2} activeDot={{ r: 8 }} />
+                        <Line type="monotone" dataKey="repairCount" name="จำนวนการซ่อม" stroke="#F97316" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Department Borrowing Chart */}
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700 flex items-center">
+                    <BusinessCenterIcon className="mr-1 text-purple-500 h-4 w-4" />
+                    สถิติการยืมตามแผนก
+                  </h3>
+                  <div className="h-[240px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={departmentBorrowData}
+                        layout="vertical"
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis dataKey="name" type="category" width={100} />
+                        <Tooltip />
+                        <Bar dataKey="count" name="จำนวนการยืม" fill="#8884d8" radius={[0, 4, 4, 0]}>
+                          {departmentBorrowData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Second row of charts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                {/* Equipment Categories Chart */}
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700 flex items-center">
+                    <CategoryIcon className="mr-1 text-green-500 h-4 w-4" />
+                    หมวดหมู่อุปกรณ์ที่ถูกยืมมากที่สุด
+                  </h3>
+                  <div className="h-[240px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={equipmentCategoryData}
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="count" name="จำนวนการยืม" radius={[4, 4, 0, 0]}>
+                          {equipmentCategoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Equipment Repair Frequency */}
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700 flex items-center">
+                    <BuildIcon className="mr-1 text-orange-500 h-4 w-4" />
+                    อุปกรณ์ที่มีการซ่อมบำรุงบ่อยที่สุด
+                  </h3>
+                  <div className="h-[240px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={equipmentRepairData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="count"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {equipmentRepairData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </motion.div>
