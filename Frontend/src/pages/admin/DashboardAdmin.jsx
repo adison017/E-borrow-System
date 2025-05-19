@@ -83,14 +83,6 @@ const DashboardAdmin = () => {
     },
   ];
 
-  const pendingRequestsRows = [
-    { id: 'REQ001', user: 'สมชาย ใจดี', item: 'โน้ตบุ๊ค Dell XPS', requestDate: '20/04/2025', borrowDate: '22/04/2025', returnDate: '25/04/2025' },
-    { id: 'REQ002', user: 'วิมล ศรีสุข', item: 'โปรเจกเตอร์ Epson', requestDate: '20/04/2025', borrowDate: '21/04/2025', returnDate: '23/04/2025' },
-    { id: 'REQ003', user: 'รุ่งนภา แสงทอง', item: 'กล้อง Canon EOS', requestDate: '19/04/2025', borrowDate: '23/04/2025', returnDate: '27/04/2025' },
-    { id: 'REQ004', user: 'ภาณุ วงศ์ใหญ่', item: 'iPad Pro', requestDate: '19/04/2025', borrowDate: '22/04/2025', returnDate: '24/04/2025' },
-    { id: 'REQ005', user: 'กรรณิการ์ มีสุข', item: 'ไมโครโฟนไร้สาย', requestDate: '18/04/2025', borrowDate: '21/04/2025', returnDate: '22/04/2025' },
-  ];
-
   const recentActivitiesData = [
     { id: 1, user: 'พัชรา วิชัย', action: 'คืนอุปกรณ์', item: 'โน้ตบุ๊ค ASUS', timestamp: '21/04/2025 14:30', type: 'return' },
     { id: 2, user: 'อนันต์ ศรีสมบูรณ์', action: 'ยืมอุปกรณ์', item: 'กล้องวิดีโอ Sony', timestamp: '21/04/2025 13:45', type: 'borrow' },
@@ -144,7 +136,7 @@ const DashboardAdmin = () => {
 
         {/* Stats Cards */}
         <motion.div 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8"
+          className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-5 mb-8 justify-center"
           variants={containerVariants}
         >
           {statCards.map(stat => (
@@ -240,52 +232,7 @@ const DashboardAdmin = () => {
           </motion.div>
         </motion.div>
 
-        {/* Pending Requests */}
-        <motion.div 
-          className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 mb-8"
-          variants={itemVariants}
-          whileHover={{ scale: 1.01 }}
-        >
-          <h2 className="text-xl font-semibold mb-5 text-gray-700 pb-3 flex items-center">
-            <NotificationsIcon className="mr-2 text-yellow-500" />
-            คำขอรออนุมัติ ({pendingRequestsRows.length})
-          </h2>
-          <div className="h-[400px] w-full">
-            <DataGrid
-              rows={pendingRequestsRows}
-              columns={pendingRequestsColumns}
-              pageSize={5}
-              rowsPerPageOptions={[5]}
-              disableSelectionOnClick
-              className="border-none rounded-lg"
-              sx={{
-                fontSize: '0.875rem',
-                border: 'none',
-                '& .MuiDataGrid-columnHeaders': {
-                  backgroundColor: '#f9fafb',
-                  color: '#374151',
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase',
-                  fontSize: '0.75rem',
-                  borderBottom: 'none'
-                },
-                '& .MuiDataGrid-cell': {
-                  borderBottom: 'none'
-                },
-                 '& .MuiDataGrid-row:hover': {
-                  backgroundColor: '#f3f4f6',
-                },
-                '& .MuiDataGrid-footerContainer': {
-                  borderTop: 'none'
-                },
-                '& .MuiDataGrid-virtualScroller': {
-                  borderTop: '1px solid #e5e7eb'
-                }
-              }}
-            />
-          </div>
-        </motion.div>
-
+        
         {/* Bottom Row */}
         <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" variants={containerVariants}>
           {/* Top Borrowed Items */}
