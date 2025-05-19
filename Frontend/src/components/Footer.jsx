@@ -4,7 +4,7 @@ import { RiMailLine } from "react-icons/ri";
 
 function Footer() {
   return (
-    <footer className="bg-gradient-to-r from-blue-950 to-blue-700 text-white pt-1 pb-20 shadow-inner rounded-t-2xl mt-8">
+    <footer className="bg-gradient-to-r from-indigo-950 to-blue-700 text-white pt-1 pb-20  rounded-t-2xl mt-8">
       <div className="container mx-auto max-w-6xl px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* University Logo and Basic Info */}
