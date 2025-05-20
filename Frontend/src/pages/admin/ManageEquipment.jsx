@@ -1,56 +1,54 @@
-import { useState, useEffect } from "react"; // เพิ่ม useEffect
 import {
+  FunnelIcon,
   MagnifyingGlassIcon,
   TrashIcon,
-  EyeIcon,
   WrenchIcon
 } from "@heroicons/react/24/outline";
 import {
-  PencilIcon,
   CheckCircleIcon,
+  ClockIcon,
   ExclamationCircleIcon,
-  XCircleIcon,
-  ClockIcon
+  PencilIcon,
+  XCircleIcon
 } from "@heroicons/react/24/solid";
 import {
-  Card,
-  CardHeader,
-  Input,
-  Typography,
   Button,
+  Card,
   CardBody,
   CardFooter,
-  Avatar,
+  CardHeader,
   IconButton,
-  Tooltip,
-  ThemeProvider,
   Menu,
   MenuHandler,
+  MenuItem,
   MenuList,
-  MenuItem
+  ThemeProvider,
+  Tooltip,
+  Typography
 } from "@material-tailwind/react";
+import { useState } from "react"; // เพิ่ม useEffect
+import Notification from "../../components/Notification";
+import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
 import DeleteEquipmentDialog from "./dialog/DeleteEquipmentDialog";
 import EditEquipmentDialog from "./dialog/EditEquipmentDialog";
-import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
-import Notification from "../../components/Notification";
 import RepairRequestDialog from "./dialog/RepairRequestDialog";
 // import EquipmentInspectionDialog from "./dialog/EquipmentInspectionDialog";
-import { FunnelIcon } from "@heroicons/react/24/outline";
 import InspectRepairedEquipmentDialog from './dialog/InspectRepairedEquipmentDialog';
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
     defaultProps: {
-      color: "black",
+      color: "#374151", // Dark Gray for text
       textGradient: false,
     },
   }
 };
 
 const TABLE_HEAD = [
+  "รูปภาพ",
   "รหัสครุภัณฑ์",
   "ชื่อครุภัณฑ์",
-  "รูปภาพ",
+  "หมวดหมู่",
   "รายละเอียด",
   "จำนวน",
   "สถานะ",
@@ -62,6 +60,7 @@ const initialEquipment = [
   {
     id: "EQ-001",
     name: "กล้อง Sony",
+    category: "อุปกรณ์มัลติมีเดีย",
     description: "กล้อง 1000 px",
     quantity: "10 ชิ้น",
     status: "พร้อมใช้งาน",
@@ -71,6 +70,7 @@ const initialEquipment = [
   {
     id: "EQ-002",
     name: "ไมโครโฟน",
+    category: "อุปกรณ์เสียง",
     description: "ไมโครโฟนเสียงคมชัด",
     quantity: "5 ชิ้น",
     status: "ระหว่างซ่อม",
@@ -80,6 +80,7 @@ const initialEquipment = [
   {
     id: "EQ-003",
     name: "จอมอนิเตอร์",
+    category: "อุปกรณ์คอมพิวเตอร์",
     description: "จอ LED 32 นิ้ว",
     quantity: "2 ชิ้น",
     status: "ชำรุด",
@@ -89,6 +90,7 @@ const initialEquipment = [
   {
     id: "EQ-004",
     name: "เครื่องพิมพ์ HP",
+    category: "อุปกรณ์สำนักงาน",
     description: "เครื่องพิมพ์อิงค์เจ็ท",
     quantity: "3 ชิ้น",
     status: "ถูกยืม",
@@ -137,34 +139,13 @@ function ManageEquipment() {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState({
-    id: "",
-    name: "",
-    description: "",
-    quantity: "",
-    status: "พร้อมใช้งาน",
-    pic: ""
-  });
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("success");
   const [repairDialogOpen, setRepairDialogOpen] = useState(false);
   const [selectedEquipmentForRepair, setSelectedEquipmentForRepair] = useState(null);
-  const [showInspectionDialog, setShowInspectionDialog] = useState(false);
   const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
   const [showInspectDialog, setShowInspectDialog] = useState(false);
-
-  // เพิ่ม state สำหรับฟอร์มเพิ่มครุภัณฑ์ใหม่
-  const [addFormData, setAddFormData] = useState({
-    id: "",
-    name: "",
-    description: "",
-    quantity: "",
-    status: "พร้อมใช้งาน",
-    pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png" // รูปเริ่มต้น
-  });
-
-  // เพิ่มสถานะสำหรับการค้นหา
   const [searchTerm, setSearchTerm] = useState("");
 
   // ฟังก์ชั่นแสดง Alert
@@ -187,51 +168,17 @@ function ManageEquipment() {
   const confirmDelete = () => {
     setEquipmentList(equipmentList.filter(item => item.id !== selectedEquipment.id));
     setDeleteDialogOpen(false);
-    setSelectedEquipment(null);
     showAlertMessage(`ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "success");
+    setSelectedEquipment(null);
   };
 
   const handleEditClick = (equipment) => {
     setSelectedEquipment(equipment);
-    setEditFormData({
-      id: equipment.id,
-      name: equipment.name,
-      description: equipment.description,
-      quantity: equipment.quantity,
-      status: equipment.status,
-      pic: equipment.pic
-    });
     setEditDialogOpen(true);
   };
 
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const saveEdit = () => {
-    setEquipmentList(equipmentList.map(item =>
-      item.id === editFormData.id ? editFormData : item
-    ));
-    setEditDialogOpen(false);
-    showAlertMessage(`แก้ไขครุภัณฑ์ ${editFormData.name} เรียบร้อยแล้ว`, "success");
-  };
-
   // ฟังก์ชั่นสำหรับเปิด dialog เพิ่มครุภัณฑ์
-  const handleAddClick = () => {
-    // สร้าง ID ใหม่
-    const newId = `EQ-${String(equipmentList.length + 1).padStart(3, '0')}`;
-    setAddFormData({
-      id: newId,
-      name: "",
-      description: "",
-      quantity: "",
-      status: "พร้อมใช้งาน",
-      pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png" // รูปเริ่มต้น
-    });
+  const openAddEquipmentDialog = () => {
     setAddDialogOpen(true);
   };
 
@@ -248,7 +195,7 @@ function ManageEquipment() {
   const saveNewEquipment = () => {
     // สร้างวันที่ปัจจุบัน
     const now = new Date();
-    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
     // เพิ่มครุภัณฑ์ใหม่เข้าไปในรายการ
     const newEquipment = {
@@ -291,9 +238,9 @@ function ManageEquipment() {
     const StatusIcon = config.icon;
 
     return (
-      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${config.backgroundColor} ${config.borderColor} border`}>
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${config.backgroundColor} ${config.borderColor} border shadow-sm`}>
         <StatusIcon className={`h-4 w-4 text-${config.color}-500`} />
-        <span className={`text-${config.color}-700 font-medium text-sm`}>
+        <span className={`text-${config.color}-700 font-medium text-xs`}>
           {status}
         </span>
       </div>
@@ -350,9 +297,15 @@ function ManageEquipment() {
     setStatusFilter(status);
   };
 
+  // นับจำนวนครุภัณฑ์ตามสถานะ
+  const countByStatus = equipmentList.reduce((acc, item) => {
+    acc[item.status] = (acc[item.status] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <ThemeProvider value={theme}>
-      <Card className="h-full w-full text-black">
+      <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
        {/* Alert Notification */}
        <Notification
           show={showAlert}
@@ -362,231 +315,194 @@ function ManageEquipment() {
         />
 
 
-        <CardHeader floated={false} shadow={false} className="rounded-none">
-          <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-6">
+          <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-              <Typography variant="h5" className="text-black">
+              <Typography variant="h5" className="text-gray-900 font-semibold tracking-tight">
                 รายการครุภัณฑ์
               </Typography>
-              <Typography color="gray" className="mt-1 font-normal text-black opacity-70">
-                จัดการข้อมูลครุภัณฑ์ทั้งหมด
+              <Typography color="gray" className="mt-1 font-normal text-sm text-gray-600">
+                จัดการข้อมูลครุภัณฑ์ทั้งหมดในระบบ
               </Typography>
             </div>
-            <Button
-              className="bg-blue-500 hover:bg-blue-600 text-white"
-              size="sm"
-              onClick={handleAddClick}
-            >
-              + เพิ่มครุภัณฑ์
-            </Button>
           </div>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-           <div className="w-full md:w-72 relative">
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-y-4 md:gap-x-4">
+           <div className="w-full md:flex-grow relative">
+            <label htmlFor="search" className="sr-only"> {/* Screen reader only label */}
               ค้นหาครุภัณฑ์
             </label>
-            <div className="relative ">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              </div>
               <input
                 id="search"
                 type="text"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="ค้นหาครุภัณฑ์..."
+                className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-2xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
+                placeholder="ค้นหารหัส, ชื่อ, หรือรายละเอียด..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-              </div>
             </div>
            </div>
-           <div className="flex flex-wrap gap-2 w-full md:w-auto justify-start md:justify-end">
-            <button className="px-4 py-2 text-sm border border-black text-black rounded-md hover:bg-gray-100 transition-colors">
+           <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
+            <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm7.586 2.586L14.5 7H12V4.5h.086ZM11 10a.75.75 0 0 1 .75.75v1.5h1.5a.75.75 0 0 1 0 1.5h-1.5v1.5a.75.75 0 0 1-1.5 0v-1.5h-1.5a.75.75 0 0 1 0-1.5h1.5v-1.5A.75.75 0 0 1 11 10Z" clipRule="evenodd" />
+              </svg>
               ส่งออก Excel
-            </button>
+            </Button>
             <Menu>
               <MenuHandler>
-                <button className="px-4 py-2 text-sm border border-black text-black rounded-md hover:bg-gray-100 transition-colors flex items-center gap-2">
+                <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
                   <FunnelIcon className="h-4 w-4" />
                   ตัวกรอง
                   {statusFilter !== "ทั้งหมด" && (
-                    <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
-                      {statusFilter}
+                    <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-1.5">
+                      {statusFilter} ({countByStatus[statusFilter] || 0})
                     </span>
                   )}
-                </button>
+                </Button>
               </MenuHandler>
-              <MenuList className="min-w-[200px] bg-white text-black">
+              <MenuList className="min-w-[240px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
                 <MenuItem
-                  className={`flex items-center gap-2 ${statusFilter === "ทั้งหมด" ? "bg-blue-50" : ""}`}
+                  className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-gray-100 transition-colors duration-200 ${statusFilter === "ทั้งหมด" ? "bg-blue-50 text-blue-700 font-semibold" : "font-normal"}`}
                   onClick={() => handleStatusFilter("ทั้งหมด")}
                 >
                   <span>ทั้งหมด</span>
+                  <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{equipmentList.length}</span>
                 </MenuItem>
-                <MenuItem
-                  className={`flex items-center gap-2 ${statusFilter === "พร้อมใช้งาน" ? "bg-blue-50" : ""}`}
-                  onClick={() => handleStatusFilter("พร้อมใช้งาน")}
-                >
-                  <span>พร้อมใช้งาน</span>
-                </MenuItem>
-                <MenuItem
-                  className={`flex items-center gap-2 ${statusFilter === "ชำรุด" ? "bg-blue-50" : ""}`}
-                  onClick={() => handleStatusFilter("ชำรุด")}
-                >
-                  <span>ชำรุด</span>
-                </MenuItem>
-                <MenuItem
-                  className={`flex items-center gap-2 ${statusFilter === "รออนุมัติซ่อม" ? "bg-blue-50" : ""}`}
-                  onClick={() => handleStatusFilter("รออนุมัติซ่อม")}
-                >
-                  <span>รออนุมัติซ่อม</span>
-                </MenuItem>
-                <MenuItem
-                  className={`flex items-center gap-2 ${statusFilter === "ระหว่างซ่อม" ? "bg-blue-50" : ""}`}
-                  onClick={() => handleStatusFilter("ระหว่างซ่อม")}
-                >
-                  <span>ระหว่างซ่อม</span>
-                </MenuItem>
-                <MenuItem
-                  className={`flex items-center gap-2 ${statusFilter === "ถูกยืม" ? "bg-blue-50" : ""}`}
-                  onClick={() => handleStatusFilter("ถูกยืม")}
-                >
-                  <span>ถูกยืม</span>
-                </MenuItem>
+                {Object.keys(statusConfig).map(statusKey => (
+                  <MenuItem
+                    key={statusKey}
+                    className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-gray-100 transition-colors duration-200 ${statusFilter === statusKey ? "bg-blue-50 text-blue-700 font-semibold" : "font-normal"}`}
+                    onClick={() => handleStatusFilter(statusKey)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full bg-${statusConfig[statusKey].color}-500`}></span>
+                      <span>{statusKey}</span>
+                    </div>
+                    <span className={`text-xs bg-${statusConfig[statusKey].color}-100 text-${statusConfig[statusKey].color}-700 px-1.5 py-0.5 rounded-full`}>{countByStatus[statusKey] || 0}</span>
+                  </MenuItem>
+                ))}
               </MenuList>
             </Menu>
           </div>
         </div>
         </CardHeader>
-        <CardBody className="overflow-x-auto px-0">
-          <table className="mt-4 w-full min-w-max table-auto text-left">
-            <thead>
-              <tr>
-                {TABLE_HEAD.map((head) => (
-                  <th
-                    key={head}
-                    className="border-y border-blue-gray-100 bg-blue-gray-50/50 p-4"
-                  >
-                    <Typography
-                      variant="small"
-                      className="font-normal leading-none text-black opacity-70"
+        <CardBody className="overflow-x-auto px-0"> {/* Reverted CardBody className for table section */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200"> {/* Reverted table className */}
+              <thead className="bg-gradient-to-r from-indigo-950 to-blue-700"> {/* Reverted thead className */}
+                <tr>
+                  {TABLE_HEAD.map((head) => (
+                    <th
+                      key={head}
+                      className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider" // Reverted th className
                     >
                       {head}
-                    </Typography>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEquipment.length > 0 ? (
-                filteredEquipment.map(({ id, name, description, quantity, status, created_at, pic }, index) => {
-                  const isLast = index === filteredEquipment.length - 1;
-                  const classes = isLast ? "p-4" : "p-4 border-b border-blue-gray-50";
-
-                  return (
-                    <tr key={id} className="hover:bg-gray-200">
-                      <td className={classes}>
-                        <Typography variant="small" className="font-bold text-black">
-                          {id}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-semibold text-black">
-                          {name}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        <div className="flex items-center justify-center">
-                          <Avatar
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200"> {/* Reverted tbody className */}
+                {filteredEquipment.length > 0 ? (
+                  filteredEquipment.map((item, index) => {
+                    const { pic, id, name, category, description, quantity, status, created_at } = item;
+                    return (
+                    <tr key={id} className="hover:bg-gray-50"> {/* Reverted tr className */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <img
+                            className="h-12 w-12 object-contain bg-gray-100 rounded" // Original img className
                             src={pic}
                             alt={name}
-                            size="md"
-                            className="h-12 w-12 border border-blue-gray-50 shadow-sm object-contain p-1 bg-white"
                           />
                         </div>
                       </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-normal text-black">
-                          {description}
-                        </Typography>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-700">{category}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-700 max-w-xs truncate" title={description}>{description}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">{quantity}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {/* Reverted status display to original inline span */}
+                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
+                          {status}
+                        </span>
                       </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-medium text-black">
-                          {quantity}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        <StatusDisplay status={status} />
-                      </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-normal text-black">
-                          {created_at}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        <div className="flex gap-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-700">{created_at?.split(" ")[0]}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center"> {/* Adjusted to text-center as per original for actions */}
+                        <div className="flex flex-wrap items-center justify-end gap-2"> {/* Ensured flex-wrap and justify-end from original */}
                           {status === 'ชำรุด' && (
-                            <Tooltip content="แจ้งซ่อม">
-                              <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100" onClick={() => handleRepairRequest({ id, name, description, quantity, status, pic })}>
-                                <WrenchIcon className="h-4 w-4" />
+                            <Tooltip content="แจ้งซ่อม" placement="top">
+                              <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleRepairRequest(item)}>
+                                <WrenchIcon className="h-5 w-5" />
                               </IconButton>
                             </Tooltip>
                           )}
                           {status === 'รออนุมัติซ่อม' && (
-                            <Tooltip content="อนุมัติซ่อม">
-                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100" onClick={() => handleApproveRepair(id)}>
-                                <CheckCircleIcon className="h-4 w-4" />
+                            <Tooltip content="อนุมัติซ่อม" placement="top">
+                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleApproveRepair(id)}>
+                                <CheckCircleIcon className="h-5 w-5" />
                               </IconButton>
                             </Tooltip>
                           )}
                           {status === 'ระหว่างซ่อม' && (
-                            <Tooltip content="ตรวจรับครุภัณฑ์">
-                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100" onClick={() => handleInspectEquipment({ id, name, description, quantity, status, created_at, pic })}>
-                                <CheckCircleIcon className="h-4 w-4" />
+                            <Tooltip content="ตรวจรับครุภัณฑ์" placement="top">
+                              <IconButton variant="text" color="teal" className="bg-teal-50 hover:bg-teal-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleInspectEquipment(item)}>
+                                <CheckCircleIcon className="h-5 w-5" />
                               </IconButton>
                             </Tooltip>
                           )}
-                          <Tooltip content="แก้ไข">
-                            <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100" onClick={() => handleEditClick({ id, name, description, quantity, status, pic })}>
-                              <PencilIcon className="h-4 w-4" />
+                          <Tooltip content="แก้ไข" placement="top">
+                            <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleEditClick(item)}>
+                              <PencilIcon className="h-5 w-5" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip content="ลบ">
-                            <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100" onClick={() => handleDeleteClick({ id, name })}>
-                              <TrashIcon className="h-4 w-4" />
+                          <Tooltip content="ลบ" placement="top">
+                            <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteClick(item)}>
+                              <TrashIcon className="h-5 w-5" />
                             </IconButton>
                           </Tooltip>
                         </div>
                       </td>
                     </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={8} className="p-4 text-center">
-                    <Typography className="font-normal text-black">
-                      ไม่พบข้อมูลครุภัณฑ์
-                    </Typography>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  )})
+                ) : (
+                  <tr>
+                    <td colSpan={TABLE_HEAD.length} className="px-6 py-16 text-center">
+                      <div className="inline-flex items-center justify-center p-5 bg-gray-100 rounded-full mb-5">
+                        <MagnifyingGlassIcon className="w-12 h-12 text-gray-400" />
+                      </div>
+                      <Typography variant="h6" className="text-gray-700 font-medium mb-1">
+                        ไม่พบข้อมูลครุภัณฑ์
+                      </Typography>
+                      <Typography color="gray" className="text-sm text-gray-500">
+                        ลองปรับคำค้นหาหรือตัวกรองสถานะของคุณ
+                      </Typography>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardBody>
-        <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-blue-gray-50 p-4">
-          <Typography variant="small" className="font-normal text-black mb-3 sm:mb-0">
-            แสดง 1 ถึง {filteredEquipment.length} จากทั้งหมด {equipmentList.length} รายการ
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
+          <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
+            แสดง {filteredEquipment.length > 0 ? '1' : '0'} ถึง {filteredEquipment.length} จากทั้งหมด {equipmentList.length} รายการ
           </Typography>
           <div className="flex gap-2">
-            <Button variant="outlined" size="sm" disabled className="text-black border-black">
+            <Button variant="outlined" size="sm" disabled={true /* Implement pagination logic */} className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm" disabled className="text-black border-black">
+            <Button variant="outlined" size="sm" disabled={true /* Implement pagination logic */} className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
               ถัดไป
             </Button>
           </div>
         </CardFooter>
 
-        {/* Delete Confirmation Modal - DaisyUI */}
+        {/* Delete Confirmation Modal */}
         <DeleteEquipmentDialog
           open={deleteDialogOpen}
           onClose={() => setDeleteDialogOpen(false)}
@@ -594,7 +510,7 @@ function ManageEquipment() {
           onConfirm={confirmDelete}
         />
 
-        {/* Edit Dialog Modal - DaisyUI */}
+        {/* Edit Dialog Modal */}
         <EditEquipmentDialog
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
@@ -607,13 +523,14 @@ function ManageEquipment() {
           }}
         />
 
-        {/* Add Equipment Dialog Modal - DaisyUI */}
+        {/* Add Equipment Dialog */}
         <AddEquipmentDialog
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
           initialFormData={{
             id: `EQ-${String(equipmentList.length + 1).padStart(3, '0')}`,
             name: "",
+            category: "",
             description: "",
             quantity: "",
             status: "พร้อมใช้งาน",
@@ -621,7 +538,7 @@ function ManageEquipment() {
           }}
           onSave={(newEquipment) => {
             const now = new Date();
-            const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
             setEquipmentList([...equipmentList, {
               ...newEquipment,
@@ -642,15 +559,7 @@ function ManageEquipment() {
           onSubmit={handleRepairSubmit}
         />
 
-        {/* Equipment Inspection Dialog
-        <EquipmentInspectionDialog
-          open={showInspectionDialog}
-          onClose={() => setShowInspectionDialog(false)}
-          onSubmit={handleInspectSubmit}
-          equipment={selectedEquipment}
-        /> */}
-
-        {/* Inspect Equipment Dialog */}
+        {/* Equipment Inspection Dialog */}
         <InspectRepairedEquipmentDialog
           open={showInspectDialog}
           onClose={() => setShowInspectDialog(false)}
@@ -658,6 +567,18 @@ function ManageEquipment() {
           onSubmit={handleInspectSubmit}
         />
       </Card>
+      {/* Floating Add Equipment Button */}
+      <Tooltip content="เพิ่มครุภัณฑ์" placement="left">
+        <button
+          onClick={openAddEquipmentDialog}
+          className="fixed bottom-8 right-8 z-50 bg-indigo-950 hover:bg-indigo-900 text-white rounded-full shadow-lg w-13 h-13 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+          aria-label="เพิ่มครุภัณฑ์"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.75v14.5m7.25-7.25H4.75" />
+          </svg>
+        </button>
+      </Tooltip>
     </ThemeProvider>
   );
 }

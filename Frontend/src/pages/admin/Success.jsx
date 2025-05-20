@@ -1,29 +1,27 @@
-import { useState } from "react";
 import {
-  MagnifyingGlassIcon,
   EyeIcon,
-  CheckCircleIcon,
+  MagnifyingGlassIcon
 } from "@heroicons/react/24/outline";
 import {
   CheckCircleIcon as CheckCircleSolidIcon,
 } from "@heroicons/react/24/solid";
+import { useState } from "react";
 
 // Components
 import Notification from "../../components/Notification";
 import ReturnDetailsDialog from "./dialog/ReturndetailsDialog";
 
 import {
-  Card,
-  CardHeader,
-  Typography,
+  Avatar,
   Button,
+  Card,
   CardBody,
   CardFooter,
-  Avatar,
+  CardHeader,
   IconButton,
-  Tooltip,
   ThemeProvider,
-  Badge
+  Tooltip,
+  Typography
 } from "@material-tailwind/react";
 
 const TABLE_HEAD = [
@@ -112,6 +110,16 @@ const theme = {
   }
 };
 
+const statusConfig = {
+  completed: {
+    label: "เสร็จสิ้น",
+    color: "green",
+    icon: CheckCircleSolidIcon,
+    backgroundColor: "bg-green-50",
+    borderColor: "border-green-100"
+  }
+};
+
 function Success() {
   const [borrows, setBorrows] = useState(initialBorrows);
   const [searchTerm, setSearchTerm] = useState("");
@@ -189,163 +197,146 @@ function Success() {
 
   return (
     <ThemeProvider value={theme}>
-      <Card className="h-full w-full text-black">
-        {/* Alert Notification */}
+      <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
         <Notification
           show={notification.show}
           message={notification.message}
           type={notification.type}
           onClose={() => setNotification(prev => ({ ...prev, show: false }))}
         />
-
-        <CardHeader floated={false} shadow={false} className="rounded-none">
-          <div className="mb-8 flex items-center justify-between gap-8">
+        <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-6">
+          <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-              <Typography variant="h5" color="blue-gray">
+              <Typography variant="h5" className="text-gray-900 font-semibold tracking-tight">
                 รายการการเสร็จสิ้น
               </Typography>
-              <Typography color="gray" className="mt-1 font-normal">
+              <Typography color="gray" className="mt-1 font-normal text-sm text-gray-600">
                 ดูรายการการยืม-คืนที่เสร็จสิ้นแล้ว
               </Typography>
             </div>
           </div>
-          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <div className="w-full md:w-72 relative">
-              <input
-                type="text"
-                placeholder="ค้นหา..."
-                value={searchTerm}
-                onChange={handleSearch}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <div className="flex flex-col md:flex-row items-center justify-between gap-y-4 md:gap-x-4">
+            <div className="w-full md:flex-grow relative">
+              <label htmlFor="search" className="sr-only">ค้นหาครุภัณฑ์</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="search"
+                  type="text"
+                  className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-2xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
+                  placeholder="ค้นหาผู้ยืม, ครุภัณฑ์, แผนก..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
-
-        <CardBody className="overflow-scroll px-0">
-          <table className="mt-4 w-full min-w-max table-auto text-left">
-            <thead>
-              <tr>
-                {TABLE_HEAD.map((head) => (
-                  <th
-                    key={head}
-                    className="border-y border-blue-gray-100 bg-blue-gray-50/50 p-4"
-                  >
-                    <Typography
-                      variant="small"
-                      color="blue-gray"
-                      className="font-normal leading-none opacity-70"
+        <CardBody className="overflow-x-auto px-0">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
+                <tr>
+                  {TABLE_HEAD.map((head) => (
+                    <th
+                      key={head}
+                      className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider"
                     >
                       {head}
-                    </Typography>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredBorrows.map(
-                (borrow, index) => {
-                  const isLast = index === filteredBorrows.length - 1;
-                  const classes = isLast
-                    ? "p-4"
-                    : "p-4 border-b border-blue-gray-50";
-
-                  return (
-                    <tr key={borrow.borrow_id}>
-                      <td className={classes}>
-                        <Typography
-                          variant="small"
-                          color="blue-gray"
-                          className="font-normal"
-                        >
-                          {borrow.borrow_code}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredBorrows.length > 0 ? (
+                  filteredBorrows.map((borrow, index) => (
+                    <tr key={borrow.borrow_id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{borrow.borrow_code}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <Avatar src={borrow.borrower.avatar} alt={borrow.borrower.name} size="sm" />
+                          <Avatar src={borrow.borrower.avatar} alt={borrow.borrower.name} size="md" className="rounded-full" />
                           <div>
-                            <Typography variant="small" color="blue-gray" className="font-normal">
+                            <Typography variant="small" className="font-semibold text-gray-900">
                               {borrow.borrower.name}
                             </Typography>
-                            <Typography variant="small" color="gray" className="font-normal">
+                            <Typography variant="small" className="font-normal text-gray-600 text-xs">
                               {borrow.borrower.department}
                             </Typography>
                           </div>
                         </div>
                       </td>
-                      <td className={classes}>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <Avatar src={borrow.equipment.image} alt={borrow.equipment.name} size="sm" />
+                          <Avatar src={borrow.equipment.image} alt={borrow.equipment.name} size="md" className="rounded-full" />
                           <div>
-                            <Typography variant="small" color="blue-gray" className="font-normal">
+                            <Typography variant="small" className="font-semibold text-gray-900">
                               {borrow.equipment.name}
                             </Typography>
-                            <Typography variant="small" color="gray" className="font-normal">
+                            <Typography variant="small" className="font-normal text-gray-600 text-xs">
                               {borrow.equipment.code}
                             </Typography>
                           </div>
                         </div>
                       </td>
-                      <td className={classes}>
-                        <Typography
-                          variant="small"
-                          color="blue-gray"
-                          className="font-normal"
-                        >
-                          {borrow.borrow_date}
-                        </Typography>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{borrow.borrow_date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{borrow.return_date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[borrow.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[borrow.status]?.borderColor || "border-gray-200"} text-${statusConfig[borrow.status]?.color || "gray"}-800`}>
+                          {statusConfig[borrow.status]?.label || "-"}
+                        </span>
                       </td>
-                      <td className={classes}>
-                        <Typography
-                          variant="small"
-                          color="blue-gray"
-                          className="font-normal"
-                        >
-                          {borrow.return_date}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        {getStatusBadge(borrow.status)}
-                      </td>
-                      <td className={classes}>
-                        <Tooltip content="ดูรายละเอียด">
-                        <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100" onClick={() => handleViewDetails(borrow)}>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <Tooltip content="ดูรายละเอียด" placement="top">
+                          <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(borrow)}>
                             <EyeIcon className="h-4 w-4" />
                           </IconButton>
                         </Tooltip>
                       </td>
                     </tr>
-                  );
-                }
-              )}
-            </tbody>
-          </table>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={TABLE_HEAD.length} className="px-6 py-16 text-center">
+                      <div className="inline-flex items-center justify-center p-5 bg-gray-100 rounded-full mb-5">
+                        <MagnifyingGlassIcon className="w-12 h-12 text-gray-400" />
+                      </div>
+                      <Typography variant="h6" className="text-gray-700 font-medium mb-1">
+                        ไม่พบรายการที่ตรงกับการค้นหา
+                      </Typography>
+                      <Typography color="gray" className="text-sm text-gray-500">
+                        ลองปรับคำค้นหาหรือตัวกรองสถานะของคุณ
+                      </Typography>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardBody>
-        <CardFooter className="flex items-center justify-between border-t border-blue-gray-50 p-4">
-          <Typography variant="small" color="blue-gray" className="font-normal">
-            หน้า 1 จาก 1
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
+          <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
+            แสดง {filteredBorrows.length > 0 ? '1' : '0'} ถึง {filteredBorrows.length} จากทั้งหมด {borrows.length} รายการ
           </Typography>
           <div className="flex gap-2">
-            <Button variant="outlined" size="sm">
+            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm">
+            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
               ถัดไป
             </Button>
           </div>
         </CardFooter>
+        {/* Return Details Dialog */}
+        {selectedBorrow && (
+          <ReturnDetailsDialog
+            returnItem={selectedBorrow}
+            isOpen={isDetailsOpen}
+            onClose={() => setIsDetailsOpen(false)}
+          />
+        )}
       </Card>
-
-      {/* Return Details Dialog */}
-      {selectedBorrow && (
-        <ReturnDetailsDialog
-          returnItem={selectedBorrow}
-          isOpen={isDetailsOpen}
-          onClose={() => setIsDetailsOpen(false)}
-        />
-      )}
     </ThemeProvider>
   );
 }
