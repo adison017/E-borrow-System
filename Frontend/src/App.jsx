@@ -192,6 +192,7 @@ function AppInner() {
                 <Route path="/category" element={<ManageCategory />} />
                 <Route path="/success" element={<Success />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />
+                <Route path="/reports" element={<DashboardAdmin />} />
               </>
             )}
 

@@ -1,19 +1,15 @@
 import {
   EyeIcon,
+  FunnelIcon,
   MagnifyingGlassIcon,
   QrCodeIcon,
-  TrashIcon,
-  DocumentTextIcon,
-  CheckIcon
+  TrashIcon
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 
 import {
   CheckCircleIcon as CheckCircleSolidIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  ArrowPathIcon,
-  XCircleIcon
+  ClockIcon
 } from "@heroicons/react/24/solid";
 
 import {
@@ -23,15 +19,19 @@ import {
   CardFooter,
   CardHeader,
   IconButton,
+  Menu,
+  MenuHandler,
+  MenuItem,
+  MenuList,
   ThemeProvider,
   Tooltip,
   Typography
 } from "@material-tailwind/react";
 
 // Import components
-import ScannerDialog from "../../components/ScannerDialog";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import Notification from "../../components/Notification";
+import ScannerDialog from "../../components/ScannerDialog";
 import EquipmentDeliveryDialog from "./dialog/EquipmentDeliveryDialog";
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
@@ -139,13 +139,30 @@ const initialCompletedDeliveries = [
   }
 ];
 
+const statusConfig = {
+  "pending_delivery": {
+    label: "รอส่งมอบ",
+    color: "yellow",
+    icon: ClockIcon,
+    backgroundColor: "bg-yellow-50",
+    borderColor: "border-yellow-100"
+  },
+  "delivered": {
+    label: "ส่งมอบแล้ว",
+    color: "green",
+    icon: CheckCircleSolidIcon,
+    backgroundColor: "bg-green-50",
+    borderColor: "border-green-100"
+  }
+};
+
 const ReceiveItem = () => {
   const [pendingDeliveries, setPendingDeliveries] = useState(initialPendingDeliveries);
   const [completedDeliveries, setCompletedDeliveries] = useState(initialCompletedDeliveries);
   const [allDeliveries, setAllDeliveries] = useState([...initialPendingDeliveries, ...initialCompletedDeliveries]);
   const [filteredDeliveries, setFilteredDeliveries] = useState([...initialPendingDeliveries, ...initialCompletedDeliveries]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("pending"); // "pending" หรือ "completed"
+  const [statusFilter, setStatusFilter] = useState("pending_delivery");
 
   // Dialog states
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -169,23 +186,23 @@ const ReceiveItem = () => {
     setAllDeliveries(combined);
 
     // กรองตาม tab ที่เลือก
-    if (activeTab === "pending") {
+    if (statusFilter === "pending_delivery") {
       setFilteredDeliveries(pendingDeliveries);
     } else {
       setFilteredDeliveries(completedDeliveries);
     }
-  }, [pendingDeliveries, completedDeliveries, activeTab]);
+  }, [pendingDeliveries, completedDeliveries, statusFilter]);
 
   useEffect(() => {
     // กรองตามคำค้นหา
     if (searchTerm.trim() === "") {
-      if (activeTab === "pending") {
+      if (statusFilter === "pending_delivery") {
         setFilteredDeliveries(pendingDeliveries);
       } else {
         setFilteredDeliveries(completedDeliveries);
       }
     } else {
-      const toFilter = activeTab === "pending" ? pendingDeliveries : completedDeliveries;
+      const toFilter = statusFilter === "pending_delivery" ? pendingDeliveries : completedDeliveries;
       const filtered = toFilter.filter(item =>
         item.borrow_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -194,7 +211,7 @@ const ReceiveItem = () => {
       );
       setFilteredDeliveries(filtered);
     }
-  }, [searchTerm, activeTab, pendingDeliveries, completedDeliveries]);
+  }, [searchTerm, statusFilter, pendingDeliveries, completedDeliveries]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -298,82 +315,76 @@ const ReceiveItem = () => {
     }, 5000);
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "delivered":
-        return (
-          <div className="inline-flex items-center gap-1 rounded-lg bg-green-100 px-2 py-1 text-green-700 text-xs font-semibold">
-            <CheckCircleSolidIcon className="w-4 h-4" /> ส่งมอบแล้ว
-          </div>
-        );
-      case "pending_delivery":
-        return (
-          <div className="inline-flex items-center gap-1 rounded-lg bg-yellow-100 px-2 py-1 text-yellow-800 text-xs font-semibold">
-            <ClockIcon className="w-4 h-4" /> รอส่งมอบ
-          </div>
-        );
-      default:
-        return (
-          <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-gray-700 text-xs font-semibold">
-            ไม่ทราบสถานะ
-          </div>
-        );
-    }
+  const handleStatusFilter = (status) => setStatusFilter(status);
+  const countByStatus = {
+    pending_delivery: pendingDeliveries.length,
+    delivered: completedDeliveries.length
   };
 
   return (
     <ThemeProvider value={theme}>
-      <Card className="h-full w-full">
-        <CardHeader floated={false} shadow={false} className="rounded-none">
-          <div className="flex flex-col gap-4">
-            {/* ส่วนหัวเรื่อง */}
+      <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
+        <Notification
+          show={notification.show}
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(prev => ({ ...prev, show: false }))}
+        />
+        <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-6">
+          <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-              <Typography variant="h5" color="blue-gray">
+              <Typography variant="h5" className="text-gray-900 font-semibold tracking-tight">
                 รายการส่งมอบครุภัณฑ์
               </Typography>
-              <Typography color="gray" className="mt-1 font-normal">
+              <Typography color="gray" className="mt-1 font-normal text-sm text-gray-600">
                 จัดการและติดตามการส่งมอบครุภัณฑ์ให้กับผู้ใช้งาน
               </Typography>
             </div>
-
-            {/* แท็บเลือกประเภทรายการ */}
-            <div className="flex border-b border-blue-gray-200">
-              <button
-                className={`px-4 py-2 font-medium text-sm transition-all duration-200 ${
-                  activeTab === "pending"
-                    ? "text-blue-500 border-b-2 border-blue-500"
-                    : "text-gray-500 hover:text-blue-500"
-                }`}
-                onClick={() => setActiveTab("pending")}
-              >
-                รอส่งมอบ ({pendingDeliveries.length})
-              </button>
-              <button
-                className={`px-4 py-2 font-medium text-sm transition-all duration-200 ${
-                  activeTab === "completed"
-                    ? "text-blue-500 border-b-2 border-blue-500"
-                    : "text-gray-500 hover:text-blue-500"
-                }`}
-                onClick={() => setActiveTab("completed")}
-              >
-                ส่งมอบแล้ว ({completedDeliveries.length})
-              </button>
-            </div>
-
-            {/* ช่องค้นหาและปุ่มสแกน */}
-            <div className="flex flex-col md:flex-row md:items-center gap-2">
-              <div className="w-full md:w-72">
-                <div className="relative flex w-full">
-                  <input
-                    type="text"
-                    className="peer w-full rounded-lg border border-gray-300 border-t-gray-300 bg-transparent px-3 py-2 pl-10 font-sans text-sm font-normal text-blue-gray-700 outline outline-0 transition-all focus:border-blue-500 focus:outline-0 disabled:border-0"
-                    placeholder="ค้นหา..."
-                    value={searchTerm}
-                    onChange={handleSearch}
-                  />
-                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          </div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-y-4 md:gap-x-4">
+            <div className="w-full md:flex-grow relative">
+              <label htmlFor="search" className="sr-only">ค้นหาครุภัณฑ์</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
                 </div>
+                <input
+                  id="search"
+                  type="text"
+                  className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-2xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
+                  placeholder="ค้นหาผู้ยืม, ครุภัณฑ์, แผนก..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
               </div>
+            </div>
+            <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
+              <Menu>
+                <MenuHandler>
+                  <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
+                    <FunnelIcon className="h-4 w-4" />
+                    ตัวกรอง
+                    <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-1.5">
+                      {statusConfig[statusFilter].label} ({countByStatus[statusFilter] || 0})
+                    </span>
+                  </Button>
+                </MenuHandler>
+                <MenuList className="min-w-[200px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
+                  {Object.keys(statusConfig).map(statusKey => (
+                    <MenuItem
+                      key={statusKey}
+                      className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-gray-100 transition-colors duration-200 ${statusFilter === statusKey ? "bg-blue-50 text-blue-700 font-semibold" : "font-normal"}`}
+                      onClick={() => handleStatusFilter(statusKey)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2.5 w-2.5 rounded-full bg-${statusConfig[statusKey].color}-500`}></span>
+                        <span>{statusConfig[statusKey].label}</span>
+                      </div>
+                      <span className={`text-xs bg-${statusConfig[statusKey].color}-100 text-${statusConfig[statusKey].color}-700 px-1.5 py-0.5 rounded-full`}>{countByStatus[statusKey] || 0}</span>
+                    </MenuItem>
+                  ))}
+                </MenuList>
+              </Menu>
               <Button
                 className="flex items-center gap-2"
                 color="blue"
@@ -385,161 +396,117 @@ const ReceiveItem = () => {
             </div>
           </div>
         </CardHeader>
-
         <CardBody className="overflow-x-auto px-0">
-          <table className="w-full min-w-max table-auto text-left">
-            <thead>
-              <tr>
-                {TABLE_HEAD.map((head) => (
-                  <th
-                    key={head}
-                    className="border-y border-blue-gray-100 bg-blue-gray-50/50 p-4"
-                  >
-                    <Typography
-                      variant="small"
-                      color="blue-gray"
-                      className="font-normal leading-none opacity-70"
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
+                <tr>
+                  {TABLE_HEAD.map((head) => (
+                    <th
+                      key={head}
+                      className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider"
                     >
                       {head}
-                    </Typography>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredDeliveries.length > 0 ? (
-                filteredDeliveries.map((item, index) => {
-                  const isLast = index === filteredDeliveries.length - 1;
-                  const classes = isLast ? "p-4" : "p-4 border-b border-blue-gray-50";
-
-                  return (
-                    <tr key={item.borrow_id} className="hover:bg-gray-200">
-                      <td className={classes}>
-                        <Typography variant="small" className="font-bold text-black">
-                          {item.borrow_code}
-                        </Typography>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredDeliveries.length > 0 ? (
+                  filteredDeliveries.map((item, index) => (
+                    <tr key={item.borrow_id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{item.borrow_code}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Typography variant="small" className="font-semibold text-gray-900">{item.borrower.name}</Typography>
+                        <Typography variant="small" className="font-normal text-gray-600 text-xs">{item.borrower.department}</Typography>
                       </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-semibold text-black">
-                          {item.borrower.name}
-                        </Typography>
-                        <Typography variant="small" className="font-normal text-black opacity-70">
-                          {item.borrower.department}
-                        </Typography>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Typography variant="small" className="font-semibold text-gray-900">{item.equipment.name}</Typography>
+                        <Typography variant="small" className="font-normal text-gray-600 text-xs">{item.equipment.code}</Typography>
                       </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-semibold text-black">
-                          {item.equipment.name}
-                        </Typography>
-                        <Typography variant="small" className="font-normal text-black opacity-70">
-                          {item.equipment.code}
-                        </Typography>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{item.borrow_date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{item.due_date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{item.purpose}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
+                          {statusConfig[item.status]?.label || "-"}
+                        </span>
                       </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-normal text-black">
-                          {item.borrow_date}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-normal text-black">
-                          {item.due_date}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        <Typography variant="small" className="font-normal text-black">
-                          {item.purpose}
-                        </Typography>
-                      </td>
-                      <td className={classes}>
-                        {getStatusBadge(item.status)}
-                      </td>
-                      <td className={classes}>
-                        <div className="flex gap-1">
-                          <Tooltip content="ดูรายละเอียด">
-                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100" onClick={() => handleViewDetails(item)}>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Tooltip content="ดูรายละเอียด" placement="top">
+                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
                               <EyeIcon className="h-4 w-4" />
                             </IconButton>
                           </Tooltip>
-
                           {item.status === "pending_delivery" && (
-                            <Tooltip content="ยกเลิกการยืม">
-                              <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100" onClick={() => handleCancelBorrow(item.borrow_id)}>
+                            <Tooltip content="ยกเลิกการยืม" placement="top">
+                              <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleCancelBorrow(item.borrow_id)}>
                                 <TrashIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
                           )}
-
-                          {/* {item.status === "delivered" && (
-                            <Tooltip content="พิมพ์ใบส่งมอบ">
-                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100">
-                                <DocumentTextIcon className="h-4 w-4" />
-                              </IconButton>
-                            </Tooltip>
-                          )} */}
                         </div>
                       </td>
                     </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={8} className="p-4 text-center">
-                    <Typography className="font-normal text-black">
-                      ไม่พบรายการที่ตรงกับการค้นหา
-                    </Typography>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={TABLE_HEAD.length} className="px-6 py-16 text-center">
+                      <div className="inline-flex items-center justify-center p-5 bg-gray-100 rounded-full mb-5">
+                        <MagnifyingGlassIcon className="w-12 h-12 text-gray-400" />
+                      </div>
+                      <Typography variant="h6" className="text-gray-700 font-medium mb-1">
+                        ไม่พบรายการที่ตรงกับการค้นหา
+                      </Typography>
+                      <Typography color="gray" className="text-sm text-gray-500">
+                        ลองปรับคำค้นหาหรือตัวกรองสถานะของคุณ
+                      </Typography>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardBody>
-        <CardFooter className="flex items-center justify-between border-t border-blue-gray-50 p-4">
-          <Typography variant="small" color="blue-gray" className="font-normal">
-            แสดง {filteredDeliveries.length} จาก {activeTab === "pending" ? pendingDeliveries.length : completedDeliveries.length} รายการ
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
+          <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
+            แสดง {filteredDeliveries.length > 0 ? '1' : '0'} ถึง {filteredDeliveries.length} จากทั้งหมด {statusFilter === "pending_delivery" ? pendingDeliveries.length : completedDeliveries.length} รายการ
           </Typography>
           <div className="flex gap-2">
-            <Button variant="outlined" size="sm">
+            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm">
+            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
               ถัดไป
             </Button>
           </div>
         </CardFooter>
+        {/* Scanner Dialog */}
+        <ScannerDialog
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScanComplete={handleScanComplete}
+          onManualInput={handleManualSearch}
+        />
+
+        {/* Delivery Dialog */}
+        <EquipmentDeliveryDialog
+          borrow={selectedBorrow}
+          isOpen={isDeliveryDialogOpen}
+          onClose={() => setIsDeliveryDialogOpen(false)}
+          onConfirm={handleDeliveryConfirm}
+        />
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          isOpen={isConfirmDialogOpen}
+          onClose={() => setIsConfirmDialogOpen(false)}
+          onConfirm={confirmCancel}
+          title="ยืนยันการยกเลิก"
+          message="คุณต้องการยกเลิกการยืมรายการนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+        />
       </Card>
-
-      {/* Scanner Dialog */}
-      <ScannerDialog
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScanComplete={handleScanComplete}
-        onManualInput={handleManualSearch}
-      />
-
-      {/* Delivery Dialog */}
-      <EquipmentDeliveryDialog
-        borrow={selectedBorrow}
-        isOpen={isDeliveryDialogOpen}
-        onClose={() => setIsDeliveryDialogOpen(false)}
-        onConfirm={handleDeliveryConfirm}
-      />
-
-      {/* Confirm Dialog */}
-      <ConfirmDialog
-        isOpen={isConfirmDialogOpen}
-        onClose={() => setIsConfirmDialogOpen(false)}
-        onConfirm={confirmCancel}
-        title="ยืนยันการยกเลิก"
-        message="คุณต้องการยกเลิกการยืมรายการนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
-      />
-
-      {/* Notification */}
-      <Notification
-        show={notification.show}
-        message={notification.message}
-        type={notification.type}
-        onClose={() => setNotification(prev => ({ ...prev, show: false }))}
-      />
     </ThemeProvider>
   );
 };
