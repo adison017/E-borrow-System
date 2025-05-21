@@ -4,15 +4,18 @@ import { MdClose } from "react-icons/md";
 export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const [formData, setFormData] = useState({
     user_id: "",
-    user_code: "",
+    student_id: "",
     username: "",
     pic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
     email: "",
     phone: "",
-    address: "",
-    county: "",
-    locality: "",
-    postal_no: "",
+    position: "",
+    department: "",
+    currentAddress: "",
+    province: "",
+    district: "",
+    subdistrict: "",
+    postalCode: "",
     password: ""
   });
   const fileInputRef = useRef(null);
@@ -22,18 +25,20 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     if (userData) {
       setFormData({
         user_id: userData.user_id || "",
-        user_code: userData.user_code || "",
+        student_id: userData.student_id || "",
         username: userData.username || "",
         pic: userData.pic || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
         email: userData.email || "",
         phone: userData.phone || "",
-        address: userData.address || "",
-        county: userData.county || "",
-        locality: userData.locality || "",
-        postal_no: userData.postal_no || "",
+        position: userData.position || "",
+        department: userData.department || "",
+        currentAddress: userData.currentAddress || "",
+        province: userData.province || "",
+        district: userData.district || "",
+        subdistrict: userData.subdistrict || "",
+        postalCode: userData.postalCode || "",
         password: ""
       });
-
       if (userData.pic) {
         setPreviewImage(userData.pic);
       } else {
@@ -44,24 +49,15 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData(prev => ({
-        ...prev,
-        pic: file
-      }));
-
+      setFormData(prev => ({ ...prev, pic: file }));
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-      };
+      reader.onloadend = () => setPreviewImage(reader.result);
       reader.readAsDataURL(file);
     }
   };
@@ -72,265 +68,238 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     onClose();
   };
 
+  const isFormValid = formData.username && formData.email && formData.phone;
+
   return (
     open && (
-      <div data-theme="light" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 overflow-y-auto py-6">
-        <div 
-          className="relative w-full max-w-3xl mx-auto animate-fadeIn bg-white rounded-xl shadow-2xl overflow-hidden transform transition-all duration-300"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Close button - absolute positioned */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="relative w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
+          {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors p-1.5 rounded-full hover:bg-gray-200 z-10"
+            className="absolute right-4 top-4 text-gray-400 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 z-10 transition"
+            aria-label="ปิด"
           >
-            <MdClose className="w-5 h-5" />
+            <MdClose className="w-6 h-6" />
           </button>
 
-          {/* Header with gradient background */}
-          <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800">แก้ไขผู้ใช้งาน</h2>
-            <p className="text-xs text-gray-500 mt-0.5">ปรับปรุงข้อมูลผู้ใช้งาน</p>
+          {/* Header */}
+          <div className="flex flex-col items-center justify-center pt-8 pb-4 px-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="w-24 h-24 rounded-full bg-white shadow-lg flex items-center justify-center mb-2 relative group overflow-hidden">
+              <img
+                src={previewImage || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
+                alt="Profile"
+                className="w-full h-full object-cover rounded-full border-2 border-blue-200"
+                onError={e => {
+                  e.target.onerror = null;
+                  e.target.src = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+                }}
+              />
+              <label htmlFor="profile-upload-edit" className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full">
+                <span className="text-xs text-white bg-blue-600 px-2 py-1 rounded shadow">เปลี่ยนรูป</span>
+              </label>
+              <input
+                id="profile-upload-edit"
+                type="file"
+                className="hidden"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+              />
+            </div>
+            {formData.pic && typeof formData.pic !== 'string' && (
+              <span className="text-xs text-gray-500 text-center max-w-full truncate px-2">{formData.pic.name}</span>
+            )}
+            <h2 className="text-xl font-bold text-blue-700 mt-2">แก้ไขผู้ใช้งาน</h2>
+            <p className="text-xs text-gray-500 mt-1 mb-2">กรอกข้อมูลผู้ใช้งานให้ครบถ้วน</p>
           </div>
 
-          <div className="p-6">
-            <form onSubmit={handleSubmit}>
-              <div className="flex flex-col md:flex-row gap-6">
-                {/* Profile Image Column */}
-                <div className="w-full md:w-1/3 flex flex-col items-center space-y-4">
-                  <div className="w-32 h-32 relative group">
-                    <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-100 to-indigo-50 p-1 shadow-lg">
-                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-white">
-                        <img
-                          src={previewImage || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                          onError={e => {
-                            e.target.onerror = null;
-                            e.target.src = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
-                          }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <label 
-                      htmlFor="profile-upload-edit" 
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="px-6 py-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left: User Info */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนิสิต <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    name="student_id"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    value={formData.student_id}
+                    onChange={handleChange}
+                    placeholder="เช่น 64010123"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้งาน <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    name="username"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    value={formData.username}
+                    onChange={handleChange}
+                    placeholder="ระบุชื่อผู้ใช้งาน"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล <span className="text-red-500">*</span></label>
+                  <input
+                    type="email"
+                    name="email"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="example@domain.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="0812345678"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง <span className="text-red-500">*</span></label>
+                  <select
+                    name="position"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    value={formData.position}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="" disabled>เลือกตำแหน่ง</option>
+                    <option value="นิสิต">นิสิต</option>
+                    <option value="บุคลากร">บุคลากร</option>
+                    <option value="อาจารย์">อาจารย์</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">สาขา <span className="text-red-500">*</span></label>
+                  <select
+                    name="department"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    value={formData.department}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="" disabled>เลือกสาขา</option>
+                    <option value="วิทยาการคอมพิวเตอร์">วิทยาการคอมพิวเตอร์</option>
+                    <option value="เทคโนโลยีสารสนเทศ">เทคโนโลยีสารสนเทศ</option>
+                    <option value="ภูมิสารสนเทศศาสตร์">ภูมิสารสนเทศศาสตร์</option>
+                  </select>
+                </div>
+              </div>
+              {/* Right: Address & Security */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ปัจจุบัน</label>
+                  <textarea
+                    name="currentAddress"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    rows="2"
+                    value={formData.currentAddress}
+                    onChange={handleChange}
+                    placeholder="ที่อยู่ปัจจุบัน"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                    <select
+                      name="province"
+                      value={formData.province}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
                     >
-                      <div className="text-white text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span className="text-xs font-medium block mt-1">เปลี่ยนรูป</span>
-                      </div>
-                    </label>
-                    
+                      <option value="" disabled>เลือกจังหวัด</option>
+                      {["มหาสารคาม", "ชัยภูมิ", "ขอนแก่น"].map(opt =>
+                        <option key={opt} value={opt}>{opt}</option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">อำเภอ</label>
+                    <select
+                      name="district"
+                      value={formData.district}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    >
+                      <option value="" disabled>เลือกอำเภอ</option>
+                      {["กันทรวิชัย", "เมือง"].map(opt =>
+                        <option key={opt} value={opt}>{opt}</option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ตำบล</label>
+                    <select
+                      name="subdistrict"
+                      value={formData.subdistrict}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    >
+                      <option value="" disabled>เลือกตำบล</option>
+                      {["ขามเรียง", "ท่าขอนยาง", "คันธารราษฎร์"].map(opt =>
+                        <option key={opt} value={opt}>{opt}</option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
                     <input
-                      id="profile-upload-edit"
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      ref={fileInputRef}
-                      onChange={handleImageChange}
+                      type="text"
+                      name="postalCode"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                      value={formData.postalCode}
+                      onChange={handleChange}
+                      placeholder="10110"
                     />
                   </div>
-                  
-                  {formData.pic && typeof formData.pic !== 'string' && (
-                    <span className="text-xs text-gray-500 text-center">{formData.pic.name}</span>
-                  )}
-                  
-                  <p className="text-xs text-gray-400 text-center bg-gray-50 px-3 py-1.5 rounded-full shadow-sm">
-                    อัปโหลดรูปโปรไฟล์ใหม่ (ถ้ามี)
-                  </p>
-                  
-                  <div className="bg-blue-50 rounded-lg p-3 mt-4 border border-blue-100 hidden md:block">
-                    <p className="text-xs text-blue-700 font-medium mb-1">รหัสผู้ใช้:</p>
-                    <p className="text-sm text-gray-700 font-medium">{formData.user_code || "-"}</p>
-                  </div>
                 </div>
-
-                {/* Form Fields */}
-                <div className="w-full md:w-2/3 space-y-5">
-                  {/* Basic Information Section */}
-                  <div className="p-4 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition-all duration-300">
-                    <h3 className="text-sm font-medium text-blue-600 mb-3 pb-2 border-b border-gray-200 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      ข้อมูลพื้นฐาน
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-                      <div className="form-control">
-                        <label className="label py-0.5">
-                          <span className="label-text text-gray-600 text-xs font-medium">รหัสผู้ใช้งาน</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="user_code"
-                          className="input input-bordered input-xs w-full h-9 rounded-md bg-gray-100 text-gray-700 cursor-not-allowed"
-                          value={formData.user_code}
-                          onChange={handleChange}
-                          disabled
-                        />
-                      </div>
-                      <div className="form-control">
-                        <label className="label py-0.5">
-                          <span className="label-text text-gray-600 text-xs font-medium">ชื่อผู้ใช้งาน <span className="text-red-500">*</span></span>
-                        </label>
-                        <input
-                          type="text"
-                          name="username"
-                          className="input input-bordered input-xs w-full h-9 rounded-md focus:border-blue-400 focus:ring-2 focus:ring-blue-300/40 transition-all duration-200"
-                          value={formData.username}
-                          onChange={handleChange}
-                          placeholder="ระบุชื่อผู้ใช้งาน"
-                          required
-                        />
-                      </div>
-                      <div className="form-control">
-                        <label className="label py-0.5">
-                          <span className="label-text text-gray-600 text-xs font-medium">อีเมล <span className="text-red-500">*</span></span>
-                        </label>
-                        <input
-                          type="email"
-                          name="email"
-                          className="input input-bordered input-xs w-full h-9 rounded-md focus:border-blue-400 focus:ring-2 focus:ring-blue-300/40 transition-all duration-200"
-                          value={formData.email}
-                          onChange={handleChange}
-                          placeholder="example@domain.com"
-                          required
-                        />
-                      </div>
-                      <div className="form-control">
-                        <label className="label py-0.5">
-                          <span className="label-text text-gray-600 text-xs font-medium">เบอร์โทรศัพท์ <span className="text-red-500">*</span></span>
-                        </label>
-                        <input
-                          type="tel"
-                          name="phone"
-                          className="input input-bordered input-xs w-full h-9 rounded-md focus:border-blue-400 focus:ring-2 focus:ring-blue-300/40 transition-all duration-200"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          placeholder="0812345678"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Address Section */}
-                  <div className="p-4 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition-all duration-300">
-                    <h3 className="text-sm font-medium text-blue-600 mb-3 pb-2 border-b border-gray-200 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      ข้อมูลที่อยู่
-                    </h3>
-                    <div className="grid grid-cols-1 gap-y-3">
-                      <div className="form-control">
-                        <label className="label py-0.5">
-                          <span className="label-text text-gray-600 text-xs font-medium">ที่อยู่</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="address"
-                          className="input input-bordered input-xs w-full h-9 rounded-md focus:border-blue-400 focus:ring-2 focus:ring-blue-300/40 transition-all duration-200"
-                          value={formData.address}
-                          onChange={handleChange}
-                          placeholder="บ้านเลขที่, ถนน, ซอย"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
-                        <div className="form-control">
-                          <label className="label py-0.5">
-                            <span className="label-text text-gray-600 text-xs font-medium">เขต/อำเภอ</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="county"
-                            className="input input-bordered input-xs w-full h-9 rounded-md focus:border-blue-400 focus:ring-2 focus:ring-blue-300/40 transition-all duration-200"
-                            value={formData.county}
-                            onChange={handleChange}
-                            placeholder="เขต/อำเภอ"
-                          />
-                        </div>
-                        <div className="form-control">
-                          <label className="label py-0.5">
-                            <span className="label-text text-gray-600 text-xs font-medium">จังหวัด</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="locality"
-                            className="input input-bordered input-xs w-full h-9 rounded-md focus:border-blue-400 focus:ring-2 focus:ring-blue-300/40 transition-all duration-200"
-                            value={formData.locality}
-                            onChange={handleChange}
-                            placeholder="จังหวัด"
-                          />
-                        </div>
-                        <div className="form-control">
-                          <label className="label py-0.5">
-                            <span className="label-text text-gray-600 text-xs font-medium">รหัสไปรษณีย์</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="postal_no"
-                            className="input input-bordered input-xs w-full h-9 rounded-md focus:border-blue-400 focus:ring-2 focus:ring-blue-300/40 transition-all duration-200"
-                            value={formData.postal_no}
-                            onChange={handleChange}
-                            placeholder="10110"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Security Section */}
-                  <div className="p-4 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition-all duration-300">
-                    <h3 className="text-sm font-medium text-blue-600 mb-3 pb-2 border-b border-gray-200 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      ข้อมูลความปลอดภัย
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-                      <div className="form-control">
-                        <label className="label py-0.5">
-                          <span className="label-text text-gray-600 text-xs font-medium">รหัสผ่าน (เว้นว่างหากไม่ต้องการเปลี่ยน)</span>
-                        </label>
-                        <input
-                          type="password"
-                          name="password"
-                          className="input input-bordered input-xs w-full h-9 rounded-md focus:border-blue-400 focus:ring-2 focus:ring-blue-300/40 transition-all duration-200"
-                          value={formData.password}
-                          onChange={handleChange}
-                          placeholder="กรอกรหัสผ่านใหม่หากต้องการเปลี่ยน"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน <span className="text-red-500">*</span></label>
+                  <input
+                    type="password"
+                    name="password"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="รหัสผ่าน"
+                  />
+                  <span className="text-xs text-gray-400">(เว้นว่างหากไม่ต้องการเปลี่ยนรหัสผ่าน)</span>
                 </div>
               </div>
-
-              {/* Footer */}
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm rounded-md px-5 text-gray-700 hover:bg-gray-100"
-                  onClick={onClose}
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-sm text-white rounded-md px-6 shadow-md hover:shadow-lg transition-all duration-200"
-                >
-                  บันทึกการเปลี่ยนแปลง
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+            {/* Footer */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                onClick={onClose}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                className={`px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition ${!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!isFormValid}
+              >
+                บันทึกการเปลี่ยนแปลง
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     )

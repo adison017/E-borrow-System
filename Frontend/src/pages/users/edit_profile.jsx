@@ -10,6 +10,8 @@ const PersonalInfoEdit = () => {
     password: 'oat12345',
     email: 'oat@gmail.com',
     phone: '0986286323',
+    position: 'นิสิต',
+    department: 'วิทยาการคอมพิวเตอร์',
     currentAddress: '141 ทีทีแมนชั่น',
     province: 'มหาสารคาม',
     district: 'กันทรวิชัย',
@@ -173,6 +175,43 @@ const PersonalInfoEdit = () => {
                         required
                       />
                     </div>
+                    
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text text-gray-700 font-medium">ตำแหน่ง</span>
+                      </label>
+                      <select
+                        name="position"
+                        className="select select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
+                        value={formData.position}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="" disabled>เลือกตำแหน่ง</option>
+                        <option value="นิสิต">นิสิต</option>
+                        <option value="บุคลากร">บุคลากร</option>
+                        <option value="อาจารย์">อาจารย์</option>
+                      </select>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text text-gray-700 font-medium">สาขา</span>
+                      </label>
+                      <select
+                        name="department"
+                        className="select select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
+                        value={formData.department}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="" disabled>เลือกสาขา</option>
+                        <option value="วิทยาการคอมพิวเตอร์">วิทยาการคอมพิวเตอร์</option>
+                        <option value="เทคโนโลยีสารสนเทศ">เทคโนโลยีสารสนเทศ</option>
+                        <option value="ภูมิสารสนเทศศาสตร์">ภูมิสารสนเทศศาสตร์</option>
+                      </select>
+                    </div>
+                    
                     <div className="form-control">
                       <label className="label">
                         <span className="label-text text-gray-700 font-medium">ชื่อผู้ใช้งาน</span>
