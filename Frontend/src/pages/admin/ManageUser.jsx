@@ -35,57 +35,48 @@ const theme = {
 };
 
 const TABLE_HEAD = [
-  "รหัสสมาชิก",
+  "รหัสนิสิต",
   "รูปภาพ",
   "ชื่อผู้ใช้",
   "อีเมล",
   "เบอร์โทรศัพท์",
-  "ที่อยู่",
-  "วันที่สร้าง",
+  "ตำแหน่ง",
+  "สาขา",
   "จัดการ"
 ];
 
 const initialUsers = [
   {
     user_id: 1,
-    user_code: "US-001",
+    student_id: "64010123",
     username: "John Doe",
     pic: "https://randomuser.me/api/portraits/men/1.jpg",
     email: "john@example.com",
     phone: "0812345678",
-    address: "123 ถนนสุขุมวิท",
-    county: "เขตบางนา",
-    locality: "กรุงเทพมหานคร",
-    postal_no: "10110",
-    created_at: "2023-10-01 10:00:00",
+    position: "นิสิต",
+    department: "วิทยาการคอมพิวเตอร์",
     updated_at: "2023-10-05 15:30:00"
   },
   {
     user_id: 2,
-    user_code: "US-002",
+    student_id: "64010124",
     username: "Jane Smith",
     pic: "https://randomuser.me/api/portraits/men/1.jpg",
     email: "jane@example.com",
     phone: "0898765432",
-    address: "456 ถนนรัชดาภิเษก",
-    county: "เขตห้วยขวาง",
-    locality: "กรุงเทพมหานคร",
-    postal_no: "10310",
-    created_at: "2023-09-25 14:30:00",
+    position: "บุคลากร",
+    department: "เทคโนโลยีสารสนเทศ",
     updated_at: "2023-09-28 09:15:00"
   },
   {
     user_id: 3,
-    user_code: "US-003",
+    student_id: "64010125",
     username: "Alex Brown",
     pic: "https://randomuser.me/api/portraits/men/1.jpg",
     email: "alex@example.com",
     phone: "0976543210",
-    address: "789 ถนนพระราม 4",
-    county: "เขตปทุมวัน",
-    locality: "กรุงเทพมหานคร",
-    postal_no: "10330",
-    created_at: "2023-09-15 09:20:00",
+    position: "นิสิต",
+    department: "วิทยาการคอมพิวเตอร์",
     updated_at: "2023-09-20 11:45:00"
   }
 ];
@@ -98,15 +89,13 @@ function ManageUser() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({
     user_id: "",
-    user_code: "",
+    student_id: "",
     username: "",
     pic:"",
     email: "",
     phone: "",
-    address: "",
-    county: "",
-    locality: "",
-    postal_no: "",
+    position: "",
+    department: "",
     password: ""
   });
   const [showAlert, setShowAlert] = useState(false);
@@ -114,15 +103,13 @@ function ManageUser() {
   const [alertType, setAlertType] = useState("success");
 
   const [addFormData, setAddFormData] = useState({
-    user_code: "",
+    student_id: "",
     username: "",
     pic:"",
     email: "",
     phone: "",
-    address: "",
-    county: "",
-    locality: "",
-    postal_no: "",
+    position: "",
+    department: "",
     password: ""
   });
 
@@ -155,15 +142,13 @@ function ManageUser() {
     setSelectedUser(user);
     setEditFormData({
       user_id: user.user_id,
-      user_code: user.user_code,
+      student_id: user.student_id,
       username: user.username,
       pic:user.pic,
       email: user.email,
       phone: user.phone,
-      address: user.address,
-      county: user.county,
-      locality: user.locality,
-      postal_no: user.postal_no,
+      position: user.position,
+      department: user.department,
       password: "" // ไม่แสดง password จริง แต่เก็บไว้สำหรับการอัปเดต
     });
     setEditDialogOpen(true);
@@ -189,17 +174,14 @@ function ManageUser() {
   };
 
   const handleAddClick = () => {
-    const newCode = `US-${String(userList.length + 1).padStart(3, '0')}`;
     setAddFormData({
-      user_code: newCode,
+      student_id: "",
       username: "",
       pic:"",
       email: "",
       phone: "",
-      address: "",
-      county: "",
-      locality: "",
-      postal_no: "",
+      position: "",
+      department: "",
       password: ""
     });
     setAddDialogOpen(true);
@@ -220,7 +202,6 @@ function ManageUser() {
     const newUser = {
       ...addFormData,
       user_id: userList.length > 0 ? Math.max(...userList.map(u => u.user_id)) + 1 : 1,
-      created_at: formattedDate,
       updated_at: formattedDate
     };
 
@@ -231,10 +212,12 @@ function ManageUser() {
 
   const filteredUsers = userList.filter(
     user =>
-      user.user_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.toLowerCase().includes(searchTerm.toLowerCase())
+      user.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.department?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -269,7 +252,7 @@ function ManageUser() {
                   id="search"
                   type="text"
                   className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-2xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
-                  placeholder="ค้นหารหัส, ชื่อ, อีเมล หรือเบอร์โทร..."
+                  placeholder="ค้นหารหัสนิสิต, ชื่อ, อีเมล, ตำแหน่ง หรือสาขา..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -290,10 +273,19 @@ function ManageUser() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  {TABLE_HEAD.map((head) => (
+                {TABLE_HEAD.map((head, index) => (
                     <th
                       key={head}
-                      className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider"
+                      className={`px-6 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                        index === 0 ? "w-15 text-left" : 
+                        index === 1 ? "w-20 text-center" :
+                        index === 2 ? "w-40 text-left" : 
+                        index === 3 ? "w-20 text-left" : 
+                        index === 4 ? "w-20 text-left" : 
+                        index === 5 ? "w-20 text-center" : 
+                        index === 6 ? "w-24 text-left" : 
+                        index === 7 ? "w-20 text-center" : ""
+                      }`}
                     >
                       {head}
                     </th>
@@ -302,25 +294,25 @@ function ManageUser() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.length > 0 ? (
-                  filteredUsers.map(({ user_id, user_code, username, pic, email, phone, address, created_at }, index) => {
+                  filteredUsers.map(({ user_id, student_id, username, pic, email, phone, position, department }, index) => {
                     return (
                       <tr key={user_id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{user_code}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{student_id}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-center">
                             <Avatar
                               src={pic || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
                               alt={username}
                               size="md"
-                              className="shadow-sm object-contain bg-white rounded-full"
+                              className="object-contain rounded-full w-12 h-12"
                             />
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{username}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{email}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{phone}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{address}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-700">{created_at}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">{position}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{department}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex gap-1 justify-end">
                             <Tooltip content="ดูรายละเอียด">
@@ -330,7 +322,7 @@ function ManageUser() {
                             </Tooltip>
                             <Tooltip content="แก้ไข">
                               <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100"
-                                onClick={() => handleEditClick({ user_id, user_code, pic, username, email, phone, address })}>
+                                onClick={() => handleEditClick({ user_id, student_id, pic, username, email, phone, position, department })}>
                                 <PencilIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
@@ -404,15 +396,13 @@ function ManageUser() {
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
           initialFormData={selectedUser || {
-            user_code: `US-${String(userList.length + 1).padStart(3, '0')}`,
+            student_id: "",
             username: "",
             pic: "",
             email: "",
             phone: "",
-            address: "",
-            county: "",
-            locality: "",
-            postal_no: "",
+            position: "",
+            department: "",
             password: ""
           }}
           onSave={(newUser) => {
@@ -421,7 +411,6 @@ function ManageUser() {
             const userWithId = {
               ...newUser,
               user_id: userList.length > 0 ? Math.max(...userList.map(u => u.user_id)) + 1 : 1,
-              created_at: formattedDate,
               updated_at: formattedDate
             };
             setUserList([...userList, userWithId]);
