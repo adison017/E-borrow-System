@@ -13,8 +13,8 @@ const menuItems = [
   { to: '/category', icon: <TbCategory size={22} />, label: 'จัดการประเภทครุภัณฑ์', key: 'category' },
   { to: '/members', icon: <MdManageAccounts size={22} />, label: 'จัดการสมาชิก', key: 'members' },
   { to: '/borrow-list', icon: <MdViewList size={22} />, label: 'รายการขอยืมครุภัณฑ์', key: 'borrowList' },
-  { to: '/return-list', icon: <RiArrowGoBackLine size={22} />, label: 'รายการคืนครุภัณฑ์', key: 'returnList' },
   { to: '/ReceiveItem', icon: <BiPackage size={22} />, label: 'ส่งมอบครุภัณฑ์', key: 'receiveItem' },
+  { to: '/return-list', icon: <RiArrowGoBackLine size={22} />, label: 'รายการคืนครุภัณฑ์', key: 'returnList' },
   { to: '/success', icon: <FaHandshake size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
   { to: '/edit_profile', icon: <FaUserEdit size={22} />, label: 'แก้ไขข้อมูลส่วนตัว', key: 'profile' },
 ];

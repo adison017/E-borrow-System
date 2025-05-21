@@ -3,7 +3,7 @@ import {
   MagnifyingGlassIcon
 } from "@heroicons/react/24/outline";
 import {
-  CheckCircleIcon as CheckCircleSolidIcon,
+  CheckCircleIcon as CheckCircleSolidIcon
 } from "@heroicons/react/24/solid";
 import { useState } from "react";
 
@@ -43,11 +43,10 @@ const initialBorrows = [
       department: "แผนกไอที",
       avatar: "https://randomuser.me/api/portraits/men/1.jpg"
     },
-    equipment: {
-      name: "Laptop Dell XPS 13",
-      code: "EQ-1001",
-      image: "/lo.png"
-    },
+    equipment: [
+      { name: "Laptop Dell XPS 13", code: "EQ-1001", image: "/lo.png", quantity: 1 },
+      { name: "Wireless Mouse", code: "EQ-1002", image: "/lo.png", quantity: 1 }
+    ],
     borrow_date: "2024-03-01",
     due_date: "2024-03-15",
     return_date: "2024-03-15",
@@ -64,11 +63,9 @@ const initialBorrows = [
       department: "แผนกการเงิน",
       avatar: "https://randomuser.me/api/portraits/women/2.jpg"
     },
-    equipment: {
-      name: "Projector Epson",
-      code: "EQ-2001",
-      image: "/lo.png"
-    },
+    equipment: [
+      { name: "Projector Epson", code: "EQ-2001", image: "/lo.png", quantity: 1 }
+    ],
     borrow_date: "2024-03-05",
     due_date: "2024-03-20",
     return_date: "2024-03-20",
@@ -85,11 +82,11 @@ const initialBorrows = [
       department: "แผนกการตลาด",
       avatar: "https://randomuser.me/api/portraits/men/3.jpg"
     },
-    equipment: {
-      name: "Camera Canon EOS",
-      code: "EQ-3001",
-      image: "/lo.png"
-    },
+    equipment: [
+      { name: "Camera Canon EOS", code: "EQ-3001", image: "/lo.png", quantity: 1 },
+      { name: "Tripod", code: "EQ-3002", image: "/lo.png", quantity: 1 },
+      { name: "LED Light", code: "EQ-3003", image: "/lo.png", quantity: 2 }
+    ],
     borrow_date: "2024-03-10",
     due_date: "2024-03-25",
     return_date: "2024-03-25",
@@ -187,11 +184,15 @@ function Success() {
   // Compute filtered borrows
   const filteredBorrows = borrows
     .filter(borrow => {
+      const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch =
-        borrow.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        borrow.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        borrow.borrower.department.toLowerCase().includes(searchTerm.toLowerCase());
-
+        borrow.borrow_code.toLowerCase().includes(searchTermLower) ||
+        borrow.borrower.name.toLowerCase().includes(searchTermLower) ||
+        borrow.borrower.department.toLowerCase().includes(searchTermLower) ||
+        (Array.isArray(borrow.equipment) && borrow.equipment.some(
+          eq => (eq.name && eq.name.toLowerCase().includes(searchTermLower)) ||
+                (eq.code && eq.code.toLowerCase().includes(searchTermLower))
+        ));
       return matchesSearch;
     });
 
@@ -239,10 +240,18 @@ function Success() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  {TABLE_HEAD.map((head) => (
+                  {TABLE_HEAD.map((head, index) => (
                     <th
                       key={head}
-                      className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider"
+                      className={`px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                        index === 0 ? "w-28 text-left" : // รหัสการยืม
+                        index === 1 ? "w-48 text-left" : // ผู้ยืม
+                        index === 2 ? "w-64 text-left" : // ครุภัณฑ์
+                        index === 3 ? "w-32 text-left" : // วันที่ยืม
+                        index === 4 ? "w-32 text-left" : // วันที่คืน
+                        index === 5 ? "w-32 text-center" : // สถานะ
+                        index === 6 ? "w-32 text-center" : ""
+                      }`}
                     >
                       {head}
                     </th>
@@ -253,41 +262,51 @@ function Success() {
                 {filteredBorrows.length > 0 ? (
                   filteredBorrows.map((borrow, index) => (
                     <tr key={borrow.borrow_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{borrow.borrow_code}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{borrow.borrow_code}</td>
+                      <td className="w-48 px-4 py-4 whitespace-nowrap text-left">
                         <div className="flex items-center gap-3">
-                          <Avatar src={borrow.borrower.avatar} alt={borrow.borrower.name} size="md" className="rounded-full" />
-                          <div>
-                            <Typography variant="small" className="font-semibold text-gray-900">
+                          <Avatar src={borrow.borrower.avatar} alt={borrow.borrower.name} size="sm" className="bg-white shadow-sm rounded-full flex-shrink-0" />
+                          <div className="overflow-hidden">
+                            <Typography variant="small" className="font-semibold text-gray-900 truncate">
                               {borrow.borrower.name}
                             </Typography>
-                            <Typography variant="small" className="font-normal text-gray-600 text-xs">
+                            <Typography variant="small" className="font-normal text-gray-600 text-xs truncate">
                               {borrow.borrower.department}
                             </Typography>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <Avatar src={borrow.equipment.image} alt={borrow.equipment.name} size="md" className="rounded-full" />
-                          <div>
-                            <Typography variant="small" className="font-semibold text-gray-900">
-                              {borrow.equipment.name}
-                            </Typography>
-                            <Typography variant="small" className="font-normal text-gray-600 text-xs">
-                              {borrow.equipment.code}
-                            </Typography>
-                          </div>
+                      <td className="w-64 px-4 py-4 whitespace-normal text-left">
+                        <div className="space-y-1 overflow-hidden">
+                          {Array.isArray(borrow.equipment) && borrow.equipment.length > 0 ? (
+                            <>
+                              <div className="flex items-center">
+                                <Typography variant="small" className="font-semibold text-gray-900 break-words">
+                                  {borrow.equipment[0]?.name || '-'}
+                                </Typography>
+                                {borrow.equipment.length > 1 &&
+                                  <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0">
+                                    +{borrow.equipment.length - 1} รายการ
+                                  </span>
+                                }
+                              </div>
+                              <Typography variant="small" className="font-normal text-gray-600 text-xs">
+                                รวม {borrow.equipment.reduce((total, eq) => total + (eq.quantity || 1), 0)} ชิ้น
+                              </Typography>
+                            </>
+                          ) : (
+                            <Typography variant="small" className="font-normal text-gray-400">-</Typography>
+                          )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{borrow.borrow_date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{borrow.return_date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{borrow.borrow_date}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{borrow.return_date}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
                         <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[borrow.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[borrow.status]?.borderColor || "border-gray-200"} text-${statusConfig[borrow.status]?.color || "gray"}-800`}>
                           {statusConfig[borrow.status]?.label || "-"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
                         <Tooltip content="ดูรายละเอียด" placement="top">
                           <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(borrow)}>
                             <EyeIcon className="h-4 w-4" />

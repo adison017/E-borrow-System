@@ -1,6 +1,5 @@
 import {
   EyeIcon,
-  FunnelIcon,
   MagnifyingGlassIcon,
   QrCodeIcon,
   TrashIcon
@@ -20,7 +19,6 @@ import {
   CardHeader,
   IconButton,
   Menu,
-  MenuHandler,
   MenuItem,
   MenuList,
   ThemeProvider,
@@ -64,11 +62,20 @@ const initialPendingDeliveries = [
       department: "แผนก IT",
       avatar: "https://randomuser.me/api/portraits/men/1.jpg"
     },
-    equipment: {
-      name: "โน๊ตบุ๊ค Dell XPS 15",
-      code: "EQ-1001",
-      image: "/lo.png"
-    },
+    equipment: [
+      {
+        name: "โน๊ตบุ๊ค Dell XPS 15",
+        code: "EQ-1001",
+        image: "/lo.png",
+        quantity: 3
+      },
+      {
+        name: "จอมอนิเตอร์ Dell 24\"",
+        code: "EQ-3012",
+        image: "/lo.png",
+        quantity: 5
+      }
+    ],
     borrow_date: "2023-10-01",
     due_date: "2023-10-15",
     purpose: "ใช้ในการนำเสนองาน",
@@ -83,11 +90,14 @@ const initialPendingDeliveries = [
       department: "แผนกการเงิน",
       avatar: "https://randomuser.me/api/portraits/women/2.jpg"
     },
-    equipment: {
-      name: "เครื่องพิมพ์ HP LaserJet",
-      code: "EQ-2001",
-      image: "/lo.png"
-    },
+    equipment: [
+      {
+        name: "เครื่องพิมพ์ HP LaserJet",
+        code: "EQ-2001",
+        image: "/lo.png",
+        quantity: 2
+      }
+    ],
     borrow_date: "2023-10-05",
     due_date: "2023-10-20",
     purpose: "พิมพ์รายงานประจำเดือน",
@@ -102,11 +112,20 @@ const initialPendingDeliveries = [
       department: "แผนกการตลาด",
       avatar: "https://randomuser.me/api/portraits/men/3.jpg"
     },
-    equipment: {
-      name: "กล้อง Canon EOS",
-      code: "EQ-3001",
-      image: "/lo.png"
-    },
+    equipment: [
+      {
+        name: "กล้อง Canon EOS",
+        code: "EQ-3001",
+        image: "/lo.png",
+        quantity: 2
+      },
+      {
+        name: "ขาตั้งกล้อง",
+        code: "EQ-3008",
+        image: "/lo.png",
+        quantity: 3
+      }
+    ],
     borrow_date: "2023-10-10",
     due_date: "2023-10-25",
     purpose: "ถ่ายภาพงานอีเวนท์",
@@ -124,11 +143,20 @@ const initialCompletedDeliveries = [
       department: "แผนกทรัพยากรบุคคล",
       avatar: "https://randomuser.me/api/portraits/women/4.jpg"
     },
-    equipment: {
-      name: "โปรเจคเตอร์ Epson",
-      code: "EQ-4001",
-      image: "/lo.png"
-    },
+    equipment: [
+      {
+        name: "โปรเจคเตอร์ Epson",
+        code: "EQ-4001",
+        image: "/lo.png",
+        quantity: 2
+      },
+      {
+        name: "ลำโพง Bluetooth",
+        code: "EQ-5002",
+        image: "/lo.png",
+        quantity: 4
+      }
+    ],
     borrow_date: "2023-10-15",
     due_date: "2023-10-30",
     purpose: "ใช้ในการอบรมพนักงานใหม่",
@@ -360,15 +388,6 @@ const ReceiveItem = () => {
             </div>
             <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
               <Menu>
-                <MenuHandler>
-                  <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
-                    <FunnelIcon className="h-4 w-4" />
-                    ตัวกรอง
-                    <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-1.5">
-                      {statusConfig[statusFilter].label} ({countByStatus[statusFilter] || 0})
-                    </span>
-                  </Button>
-                </MenuHandler>
                 <MenuList className="min-w-[200px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
                   {Object.keys(statusConfig).map(statusKey => (
                     <MenuItem
@@ -401,38 +420,70 @@ const ReceiveItem = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  {TABLE_HEAD.map((head) => (
-                    <th
-                      key={head}
-                      className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider"
-                    >
-                      {head}
-                    </th>
-                  ))}
+                  <th className="w-28 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">รหัสการยืม</th>
+                  <th className="w-48 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ผู้ยืม</th>
+                  <th className="w-64 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ครุภัณฑ์</th>
+                  <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วันที่ยืม</th>
+                  <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">กำหนดส่งคืน</th>
+                  <th className="w-56 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วัตถุประสงค์</th>
+                  <th className="w-32 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
+                  <th className="w-32 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredDeliveries.length > 0 ? (
                   filteredDeliveries.map((item, index) => (
                     <tr key={item.borrow_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{item.borrow_code}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Typography variant="small" className="font-semibold text-gray-900">{item.borrower.name}</Typography>
-                        <Typography variant="small" className="font-normal text-gray-600 text-xs">{item.borrower.department}</Typography>
+                      <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{item.borrow_code}</td>
+                      <td className="w-48 px-4 py-4 whitespace-nowrap text-left">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={item.borrower.avatar}
+                            alt={item.borrower.name}
+                            className="w-10 h-10 rounded-full object-cover bg-white border border-gray-200 shadow-sm"
+                          />
+                          <div>
+                            <Typography variant="small" className="font-semibold text-gray-900">{item.borrower.name}</Typography>
+                            <Typography variant="small" className="font-normal text-gray-600 text-xs">{item.borrower.department}</Typography>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Typography variant="small" className="font-semibold text-gray-900">{item.equipment.name}</Typography>
-                        <Typography variant="small" className="font-normal text-gray-600 text-xs">{item.equipment.code}</Typography>
+                      <td className="w-64 px-4 py-4 whitespace-normal text-left">
+                        <div className="space-y-2">
+                          {item.equipment.length > 0 ? (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <Typography variant="small" className="font-semibold text-gray-900 break-words">
+                                  {item.equipment[0]?.name || '-'}
+                                  {item.equipment.length > 1 &&
+                                    <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                      +{item.equipment.length - 1} รายการ
+                                    </span>
+                                  }
+                                </Typography>
+                              </div>
+                              <Typography variant="small" className="font-normal text-gray-600 text-xs">
+                                รวม {item.equipment.reduce((total, eq) => total + (eq.quantity || 1), 0)} ชิ้น
+                              </Typography>
+                            </>
+                          ) : (
+                            <Typography variant="small" className="font-normal text-gray-400">-</Typography>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{item.borrow_date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{item.due_date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">{item.purpose}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date}</td>
+                      <td className="w-56 px-4 py-4 whitespace-nowrap truncate text-gray-900 text-left">
+                        <Typography variant="small" className="text-xs text-gray-700 whitespace-pre-line break-words">
+                          {item.purpose}
+                        </Typography>
+                      </td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
                         <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
                           {statusConfig[item.status]?.label || "-"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           <Tooltip content="ดูรายละเอียด" placement="top">
                             <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
