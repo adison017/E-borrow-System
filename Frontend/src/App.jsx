@@ -37,7 +37,7 @@ import Homes from './pages/users/Product';
 import Return from './pages/users/Return';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState('user');
+  const [userRole, setUserRole] = useState('admin');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();

@@ -194,6 +194,8 @@ const statusConfig = {
   }
 };
 
+const displayableStatusKeys = ["pending", "overdue"]; // For filter dropdown
+
 const ReturnList = () => {
   const [returns, setReturns] = useState(initialReturns);
   const [borrowedItems, setBorrowedItems] = useState(initialBorrowedItems);
@@ -390,14 +392,31 @@ const ReturnList = () => {
 
   const filteredReturns = returns
     .filter(item => {
-      const matchesSearch =
-        item.return_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.borrow_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.equipment.code.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "ทั้งหมด" || item.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      // Primary filter: only "pending" or "overdue" statuses
+      if (item.status !== "pending" && item.status !== "overdue") {
+        return false;
+      }
+
+      // Filter by search term (if searchTerm is present)
+      if (searchTerm.trim() !== "") {
+        const searchTermLower = searchTerm.toLowerCase();
+        const matchesSearch =
+          item.return_code.toLowerCase().includes(searchTermLower) ||
+          item.borrow_code.toLowerCase().includes(searchTermLower) ||
+          item.borrower.name.toLowerCase().includes(searchTermLower) ||
+          (item.equipment?.name && item.equipment.name.toLowerCase().includes(searchTermLower)) ||
+          (item.equipment?.code && item.equipment.code.toLowerCase().includes(searchTermLower));
+        if (!matchesSearch) {
+          return false;
+        }
+      }
+      
+      // Filter by status dropdown (if not "ทั้งหมด")
+      if (statusFilter !== "ทั้งหมด" && item.status !== statusFilter) {
+        return false;
+      }
+
+      return true;
     });
 
   return (
@@ -456,21 +475,27 @@ const ReturnList = () => {
                     onClick={() => handleStatusFilter("ทั้งหมด")}
                   >
                     <span>ทั้งหมด</span>
-                    <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{returns.length}</span>
+                    <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
+                      {returns.filter(r => displayableStatusKeys.includes(r.status)).length}
+                    </span>
                   </MenuItem>
-                  {Object.keys(statusConfig).map(statusKey => (
-                    <MenuItem
-                      key={statusKey}
-                      className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-gray-100 transition-colors duration-200 ${statusFilter === statusKey ? "bg-blue-50 text-blue-700 font-semibold" : "font-normal"}`}
-                      onClick={() => handleStatusFilter(statusKey)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`h-2.5 w-2.5 rounded-full bg-${statusConfig[statusKey].color}-500`}></span>
-                        <span>{statusConfig[statusKey].label}</span>
-                      </div>
-                      <span className={`text-xs bg-${statusConfig[statusKey].color}-100 text-${statusConfig[statusKey].color}-700 px-1.5 py-0.5 rounded-full`}>{countByStatus[statusKey] || 0}</span>
-                    </MenuItem>
-                  ))}
+                  {displayableStatusKeys.map(statusKey => {
+                    const config = statusConfig[statusKey];
+                    if (!config) return null; // Should not happen
+                    return (
+                      <MenuItem
+                        key={statusKey}
+                        className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-gray-100 transition-colors duration-200 ${statusFilter === statusKey ? "bg-blue-50 text-blue-700 font-semibold" : "font-normal"}`}
+                        onClick={() => handleStatusFilter(statusKey)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2.5 w-2.5 rounded-full bg-${config.color}-500`}></span>
+                          <span>{config.label}</span>
+                        </div>
+                        <span className={`text-xs bg-${config.color}-100 text-${config.color}-700 px-1.5 py-0.5 rounded-full`}>{countByStatus[statusKey] || 0}</span>
+                      </MenuItem>
+                    );
+                  })}
                 </MenuList>
               </Menu>
               <Button
@@ -489,14 +514,21 @@ const ReturnList = () => {
             <table className="min-w-full divide-y divide-gray-200 table-auto">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  {TABLE_HEAD.map((head, idx) => (
+                  {TABLE_HEAD.map((head, index) => (
                     <th
                       key={head}
-                      className={
-                        "px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider " +
-                        (idx === 2 || idx === 3 ? "max-w-xs min-w-0 truncate" : "whitespace-nowrap")
-                      }
-                      style={idx === 2 || idx === 3 ? {width: '180px'} : {}}
+                      className={`px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                        index === 0 ? "w-24 text-left" : // รหัสการคืน
+                        index === 1 ? "w-24 text-left" : // รหัสการยืม
+                        index === 2 ? "w-48 text-left" : // ผู้ยืม
+                        index === 3 ? "w-64 text-left" : // ครุภัณฑ์
+                        index === 4 ? "w-28 text-left" : // วันที่ยืม
+                        index === 5 ? "w-28 text-left" : // กำหนดคืน
+                        index === 6 ? "w-28 text-left" : // วันที่คืนจริง
+                        index === 7 ? "w-32 text-center" : // สถานะ
+                        index === 8 ? "w-22 text-left" : // ค่าปรับ
+                        index === 9 ? "w-32 text-center" : ""
+                      }`}
                     >
                       {head}
                     </th>
@@ -507,26 +539,50 @@ const ReturnList = () => {
                 {filteredReturns.length > 0 ? (
                   filteredReturns.map((item, index) => (
                     <tr key={item.return_id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-bold text-gray-900 whitespace-nowrap">{item.return_code}</td>
-                      <td className="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">{item.borrow_code}</td>
-                      <td className="px-4 py-3 min-w-0 max-w-xs truncate">
-                        <Typography variant="small" className="font-semibold text-gray-900 truncate">{item.borrower.name}</Typography>
-                        <Typography variant="small" className="font-normal text-gray-600 text-xs truncate">{item.borrower.department}</Typography>
+                      <td className="w-24 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{item.return_code}</td>
+                      <td className="w-24 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{item.borrow_code}</td>
+                      <td className="w-48 px-6 py-4 whitespace-nowrap text-left">
+                        <div className="flex items-center gap-3">
+                          <img src={item.borrower.avatar} alt={item.borrower.name} className="w-10 h-10 rounded-full object-cover bg-white border border-gray-200 shadow-sm flex-shrink-0" />
+                          <div className="overflow-hidden">
+                            <Typography variant="small" className="font-semibold text-gray-900 truncate">{item.borrower.name}</Typography>
+                            <Typography variant="small" className="font-normal text-gray-600 text-xs truncate">{item.borrower.department}</Typography>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 min-w-0 max-w-xs truncate">
-                        <Typography variant="small" className="font-semibold text-gray-900 truncate">{item.equipment.name}</Typography>
-                        <Typography variant="small" className="font-normal text-gray-600 text-xs truncate">{item.equipment.code}</Typography>
+                      <td className="w-64 px-4 py-4 whitespace-normal break-words text-left">
+                        <div className="space-y-1 overflow-hidden">
+                          {Array.isArray(item.equipment) ? (
+                            <>
+                              <div className="flex items-center">
+                                <Typography variant="small" className="font-semibold text-black-900 break-words">
+                                  {item.equipment[0]?.name || '-'}
+                                </Typography>
+                                {item.equipment.length > 1 &&
+                                  <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0">
+                                    +{item.equipment.length - 1} รายการ
+                                  </span>
+                                }
+                              </div>
+                              <Typography variant="small" className="font-normal text-gray-600 text-xs">
+                                รวม {item.equipment.reduce((total, eq) => total + (eq.quantity || 1), 0)} ชิ้น
+                              </Typography>
+                            </>
+                          ) : (
+                            <Typography variant="small" className="font-normal text-gray-900">{item.equipment?.name || '-'}</Typography>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.borrow_date}</td>
-                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.due_date}</td>
-                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.return_date || "-"}</td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date}</td>
+                      <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date}</td>
+                      <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.return_date || "-"}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
                         <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
                           {statusConfig[item.status]?.label || "-"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-900 whitespace-nowrap">{item.fine_amount > 0 ? `${item.fine_amount} บาท` : "-"}</td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <td className="w-22 px-4 py-4 whitespace-nowrap text-center text-gray-900">{item.fine_amount > 0 ? `${item.fine_amount} บาท` : "-"}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           <Tooltip content="ดูรายละเอียด" placement="top">
                             <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>

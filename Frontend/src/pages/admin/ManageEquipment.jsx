@@ -49,7 +49,6 @@ const TABLE_HEAD = [
   "รหัสครุภัณฑ์",
   "ชื่อครุภัณฑ์",
   "หมวดหมู่",
-  "รายละเอียด",
   "จำนวน",
   "สถานะ",
   "วันที่เพิ่ม",
@@ -395,10 +394,19 @@ function ManageEquipment() {
             <table className="min-w-full divide-y divide-gray-200"> {/* Reverted table className */}
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700"> {/* Reverted thead className */}
                 <tr>
-                  {TABLE_HEAD.map((head) => (
+                  {TABLE_HEAD.map((head, index) => (
                     <th
                       key={head}
-                      className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider" // Reverted th className
+                      className={`px-3 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                        index === 0 ? "w-16 text-center" : // รูปภาพ
+                        index === 1 ? "w-24 text-left" : // รหัสครุภัณฑ์
+                        index === 2 ? "w-40 text-left" : // ชื่อครุภัณฑ์
+                        index === 3 ? "w-28 text-left" : // หมวดหมู่
+                        index === 4 ? "w-20 text-right" : // จำนวน
+                        index === 5 ? "w-20 text-center" : // สถานะ
+                        index === 6 ? "w-24 text-left" : // วันที่เพิ่ม
+                        index === 7 ? "w-20 text-center" : ""
+                      }`}
                     >
                       {head}
                     </th>
@@ -408,32 +416,30 @@ function ManageEquipment() {
               <tbody className="bg-white divide-y divide-gray-200"> {/* Reverted tbody className */}
                 {filteredEquipment.length > 0 ? (
                   filteredEquipment.map((item, index) => {
-                    const { pic, id, name, category, description, quantity, status, created_at } = item;
+                    const { pic, id, name, category, quantity, status, created_at } = item;
                     return (
                     <tr key={id} className="hover:bg-gray-50"> {/* Reverted tr className */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
+                    <td className="w-16 px-3 py-3 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center">
                           <img
-                            className="h-12 w-12 object-contain bg-gray-100 rounded" // Original img className
+                            className="h-10 w-10 object-contain bg-gray-100 rounded"
                             src={pic}
                             alt={name}
                           />
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-700">{category}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-700 max-w-xs truncate" title={description}>{description}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">{quantity}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        {/* Reverted status display to original inline span */}
+                      <td className="w-24 px-3 py-3 whitespace-nowrap text-sm font-bold text-gray-900 text-left truncate">{id}</td>
+                      <td className="w-40 px-3 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-left truncate">{name}</td>
+                      <td className="w-28 px-3 py-3 whitespace-nowrap text-xs text-gray-700 text-left truncate">{category}</td>
+                      <td className="w-20 px-3 py-3 whitespace-nowrap text-sm text-gray-900 text-right">{quantity}</td>
+                      <td className="w-20 px-3 py-3 whitespace-nowrap text-center">
                         <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
                           {status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-700">{created_at?.split(" ")[0]}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center"> {/* Adjusted to text-center as per original for actions */}
-                        <div className="flex flex-wrap items-center justify-end gap-2"> {/* Ensured flex-wrap and justify-end from original */}
+                      <td className="w-20 px-3 py-3 whitespace-nowrap text-xs text-gray-700 text-left">{created_at?.split(" ")[0]}</td>
+                      <td className="w-30 px-3 py-3 whitespace-nowrap text-center">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
                           {status === 'ชำรุด' && (
                             <Tooltip content="แจ้งซ่อม" placement="top">
                               <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleRepairRequest(item)}>
@@ -571,7 +577,7 @@ function ManageEquipment() {
       <Tooltip content="เพิ่มครุภัณฑ์" placement="left">
         <button
           onClick={openAddEquipmentDialog}
-          className="fixed bottom-8 right-8 z-50 bg-indigo-950 hover:bg-indigo-900 text-white rounded-full shadow-lg w-13 h-13 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+          className="fixed bottom-8 right-8 z-[60] bg-indigo-950 hover:bg-indigo-900 text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
           aria-label="เพิ่มครุภัณฑ์"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
