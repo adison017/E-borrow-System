@@ -36,8 +36,6 @@ const theme = {
 const TABLE_HEAD = [
   "รหัสหมวดหมู่",
   "ชื่อหมวดหมู่",
-  "คำอธิบาย",
-  "วันที่สร้าง",
   "จัดการ"
 ];
 
@@ -228,7 +226,7 @@ function ManageCategory() {
         </CardHeader>
         <CardBody className="overflow-x-auto px-0">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-lg">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
                   {TABLE_HEAD.map((head, index) => (
@@ -237,9 +235,7 @@ function ManageCategory() {
                       className={`px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
                         index === 0 ? "w-32 text-left" : // รหัสหมวดหมู่
                         index === 1 ? "w-48 text-left" : // ชื่อหมวดหมู่
-                        index === 2 ? "w-64 text-left" : // คำอธิบาย
-                        index === 3 ? "w-40 text-left" : // วันที่สร้าง
-                        index === 4 ? "w-32 text-center" : ""
+                        index === 2 ? "w-32 text-center" : ""
                       }`}
                     >
                       {head}
@@ -251,11 +247,9 @@ function ManageCategory() {
                 {filteredCategories.length > 0 ? (
                   filteredCategories.map(({ category_id, category_code, name, description, created_at }, index) => (
                     <tr key={category_id} className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-left">{category_code}</td>
-                      <td className="w-48 px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-left">{name}</td>
-                      <td className="w-64 px-4 py-4 whitespace-nowrap text-xs text-gray-700 max-w-xs truncate text-left" title={description}>{description || '-'}</td>
-                      <td className="w-40 px-4 py-4 whitespace-nowrap text-xs text-gray-700 text-left">{created_at}</td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
+                      <td className="w-32 px-3 py-3 whitespace-nowrap text-md font-bold  text-left">{category_code}</td>
+                      <td className="w-48 px-3 py-3 whitespace-nowrap text-md text-gray-700 text-left">{name}</td>
+                      <td className="w-32 px-3 py-3 whitespace-nowrap text-center">
                         <div className="flex gap-2 justify-center">
                           <Tooltip content="ดูรายละเอียด">
                             <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200">
