@@ -399,10 +399,10 @@ function ManageEquipment() {
                       key={head}
                       className={`px-3 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
                         index === 0 ? "w-16 text-center" : // รูปภาพ
-                        index === 1 ? "w-24 text-left" : // รหัสครุภัณฑ์
-                        index === 2 ? "w-40 text-left" : // ชื่อครุภัณฑ์
-                        index === 3 ? "w-28 text-left" : // หมวดหมู่
-                        index === 4 ? "w-20 text-right" : // จำนวน
+                        index === 1 ? "w-20 text-left" : // รหัสครุภัณฑ์
+                        index === 2 ? "w-20 text-left" : // ชื่อครุภัณฑ์
+                        index === 3 ? "w-20 text-left" : // หมวดหมู่
+                        index === 4 ? "w-10 text-right" : // จำนวน
                         index === 5 ? "w-20 text-center" : // สถานะ
                         index === 6 ? "w-24 text-left" : // วันที่เพิ่ม
                         index === 7 ? "w-20 text-center" : ""
@@ -428,16 +428,16 @@ function ManageEquipment() {
                           />
                         </div>
                       </td>
-                      <td className="w-24 px-3 py-3 whitespace-nowrap text-sm font-bold text-gray-900 text-left truncate">{id}</td>
-                      <td className="w-40 px-3 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-left truncate">{name}</td>
-                      <td className="w-28 px-3 py-3 whitespace-nowrap text-xs text-gray-700 text-left truncate">{category}</td>
-                      <td className="w-20 px-3 py-3 whitespace-nowrap text-sm text-gray-900 text-right">{quantity}</td>
-                      <td className="w-20 px-3 py-3 whitespace-nowrap text-center">
-                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
+                      <td className="w-20 px-3 py-3 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{id}</td>
+                      <td className="w-20 px-3 py-3 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
+                      <td className="w-20 px-3 py-3 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
+                      <td className="w-10 px-3 py-3 whitespace-nowrap text-md text-gray-900 text-right">{quantity}</td>
+                      <td className="w-20 px-3 py-3 whitespace-nowrap text-center text-gray-700">
+                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-sm ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
                           {status}
                         </span>
                       </td>
-                      <td className="w-20 px-3 py-3 whitespace-nowrap text-xs text-gray-700 text-left">{created_at?.split(" ")[0]}</td>
+                      <td className="w-20 px-3 py-3 whitespace-nowrap text-md text-gray-700 text-left">{created_at?.split(" ")[0]}</td>
                       <td className="w-30 px-3 py-3 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           {status === 'ชำรุด' && (

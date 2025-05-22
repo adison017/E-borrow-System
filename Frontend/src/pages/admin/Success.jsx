@@ -1,9 +1,9 @@
 import {
-  EyeIcon,
-  MagnifyingGlassIcon
+    EyeIcon,
+    MagnifyingGlassIcon
 } from "@heroicons/react/24/outline";
 import {
-  CheckCircleIcon as CheckCircleSolidIcon
+    CheckCircleIcon as CheckCircleSolidIcon
 } from "@heroicons/react/24/solid";
 import { useState } from "react";
 
@@ -12,16 +12,16 @@ import Notification from "../../components/Notification";
 import ReturnDetailsDialog from "./dialog/ReturndetailsDialog";
 
 import {
-  Avatar,
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  IconButton,
-  ThemeProvider,
-  Tooltip,
-  Typography
+    Avatar,
+    Button,
+    Card,
+    CardBody,
+    CardFooter,
+    CardHeader,
+    IconButton,
+    ThemeProvider,
+    Tooltip,
+    Typography
 } from "@material-tailwind/react";
 
 const TABLE_HEAD = [

@@ -426,7 +426,7 @@ const ReceiveItem = () => {
                   <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วันที่ยืม</th>
                   <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">กำหนดส่งคืน</th>
                   <th className="w-56 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วัตถุประสงค์</th>
-                  <th className="w-32 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
+                  <th className="w-20 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
                   <th className="w-32 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">จัดการ</th>
                 </tr>
               </thead>
@@ -478,7 +478,7 @@ const ReceiveItem = () => {
                           {item.purpose}
                         </Typography>
                       </td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
+                      <td className="w-20 px-4 py-4 whitespace-nowrap text-center">
                         <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
                           {statusConfig[item.status]?.label || "-"}
                         </span>

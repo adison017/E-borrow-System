@@ -37,7 +37,7 @@ const theme = {
 const TABLE_HEAD = [
   "รหัสนิสิต",
   "รูปภาพ",
-  "ชื่อผู้ใช้",
+  "ชื่อ-นามสกุล",
   "อีเมล",
   "เบอร์โทรศัพท์",
   "ตำแหน่ง",
@@ -49,7 +49,8 @@ const initialUsers = [
   {
     user_id: 1,
     student_id: "64010123",
-    username: "John Doe",
+    username: "johndoe",
+    fullname: "John Doe",
     pic: "https://randomuser.me/api/portraits/men/1.jpg",
     email: "john@example.com",
     phone: "0812345678",
@@ -60,7 +61,8 @@ const initialUsers = [
   {
     user_id: 2,
     student_id: "64010124",
-    username: "Jane Smith",
+    username: "janesmith",
+    fullname: "Jane Smith",
     pic: "https://randomuser.me/api/portraits/men/1.jpg",
     email: "jane@example.com",
     phone: "0898765432",
@@ -71,7 +73,8 @@ const initialUsers = [
   {
     user_id: 3,
     student_id: "64010125",
-    username: "Alex Brown",
+    username: "alexbrown",
+    fullname: "Alex Brown",
     pic: "https://randomuser.me/api/portraits/men/1.jpg",
     email: "alex@example.com",
     phone: "0976543210",
@@ -91,6 +94,7 @@ function ManageUser() {
     user_id: "",
     student_id: "",
     username: "",
+    fullname: "",
     pic:"",
     email: "",
     phone: "",
@@ -105,6 +109,7 @@ function ManageUser() {
   const [addFormData, setAddFormData] = useState({
     student_id: "",
     username: "",
+    fullname: "",
     pic:"",
     email: "",
     phone: "",
@@ -134,7 +139,7 @@ function ManageUser() {
     setUserList(userList.filter(item => item.user_id !== selectedUser.user_id));
     setDeleteDialogOpen(false);
     setSelectedUser(null);
-    showAlertMessage(`ลบผู้ใช้ ${selectedUser.username} เรียบร้อยแล้ว`, "success");
+    showAlertMessage(`ลบผู้ใช้ ${selectedUser.fullname} เรียบร้อยแล้ว`, "success");
   };
 
   const handleEditClick = (user) => {
@@ -144,6 +149,7 @@ function ManageUser() {
       user_id: user.user_id,
       student_id: user.student_id,
       username: user.username,
+      fullname: user.fullname,
       pic:user.pic,
       email: user.email,
       phone: user.phone,
@@ -170,13 +176,14 @@ function ManageUser() {
       } : item
     ));
     setEditDialogOpen(false);
-    showAlertMessage(`แก้ไขผู้ใช้ ${editFormData.username} เรียบร้อยแล้ว`, "success");
+    showAlertMessage(`แก้ไขผู้ใช้ ${editFormData.fullname} เรียบร้อยแล้ว`, "success");
   };
 
   const handleAddClick = () => {
     setAddFormData({
       student_id: "",
       username: "",
+      fullname: "",
       pic:"",
       email: "",
       phone: "",
@@ -207,13 +214,14 @@ function ManageUser() {
 
     setUserList([...userList, newUser]);
     setAddDialogOpen(false);
-    showAlertMessage(`เพิ่มผู้ใช้ ${addFormData.username} เรียบร้อยแล้ว`, "success");
+    showAlertMessage(`เพิ่มผู้ใช้ ${addFormData.fullname} เรียบร้อยแล้ว`, "success");
   };
 
   const filteredUsers = userList.filter(
     user =>
       user.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -294,25 +302,25 @@ function ManageUser() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.length > 0 ? (
-                  filteredUsers.map(({ user_id, student_id, username, pic, email, phone, position, department }, index) => {
+                  filteredUsers.map(({ user_id, student_id, username, fullname, pic, email, phone, position, department }, index) => {
                     return (
                       <tr key={user_id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{student_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md font-bold text-gray-900">{student_id}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-center">
                             <Avatar
                               src={pic || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
-                              alt={username}
+                              alt={fullname}
                               size="md"
                               className="object-contain rounded-full w-12 h-12"
                             />
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{username}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{phone}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">{position}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{department}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md font-semibold text-gray-900">{fullname}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{phone}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900 text-center">{position}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{department}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex gap-1 justify-end">
                             <Tooltip content="ดูรายละเอียด">
@@ -322,13 +330,13 @@ function ManageUser() {
                             </Tooltip>
                             <Tooltip content="แก้ไข">
                               <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100"
-                                onClick={() => handleEditClick({ user_id, student_id, pic, username, email, phone, position, department })}>
+                                onClick={() => handleEditClick({ user_id, student_id, username, fullname, pic, email, phone, position, department })}>
                                 <PencilIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
                             <Tooltip content="ลบ">
                               <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100"
-                                onClick={() => handleDeleteClick({ user_id, username })}>
+                                onClick={() => handleDeleteClick({ user_id, fullname })}>
                                 <TrashIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
@@ -379,7 +387,10 @@ function ManageUser() {
         {/* Edit Dialog Modal */}
         <EditUserDialog
           open={editDialogOpen}
-          onClose={() => setEditDialogOpen(false)}
+          onClose={() => {
+            setEditDialogOpen(false);
+            setSelectedUser(null);
+          }}
           userData={selectedUser}
           onSave={(updatedData) => {
             setUserList(userList.map(item =>
@@ -388,16 +399,20 @@ function ManageUser() {
                 updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
               } : item
             ));
-            showAlertMessage(`แก้ไขผู้ใช้ ${updatedData.username} เรียบร้อยแล้ว`, "success");
+            showAlertMessage(`แก้ไขผู้ใช้ ${updatedData.fullname} เรียบร้อยแล้ว`, "success");
           }}
         />
         {/* Add User Dialog Modal */}
         <AddUserDialog
           open={addDialogOpen}
-          onClose={() => setAddDialogOpen(false)}
+          onClose={() => {
+            setAddDialogOpen(false);
+            setSelectedUser(null);
+          }}
           initialFormData={selectedUser || {
             student_id: "",
             username: "",
+            fullname: "",
             pic: "",
             email: "",
             phone: "",
@@ -414,7 +429,7 @@ function ManageUser() {
               updated_at: formattedDate
             };
             setUserList([...userList, userWithId]);
-            showAlertMessage(`เพิ่มผู้ใช้ ${newUser.username} เรียบร้อยแล้ว`, "success");
+            showAlertMessage(`เพิ่มผู้ใช้ ${newUser.fullname} เรียบร้อยแล้ว`, "success");
           }}
         />
       </Card>
