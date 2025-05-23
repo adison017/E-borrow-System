@@ -71,14 +71,14 @@ const initialReturns = [
     borrow_code: "BR-001",
     borrower: {
       name: "John Doe",
-      department: "แผนก IT",
+      position: "นิสิต",
+      department: "วิทยาการคอมพิวเตอร์",
       avatar: "https://randomuser.me/api/portraits/men/1.jpg"
     },
-    equipment: {
-      name: "โน๊ตบุ๊ค Dell XPS 15",
-      code: "EQ-1001",
-      image: "/lo.png"
-    },
+    equipment: [
+      { name: "โน๊ตบุ๊ค Dell XPS 15", code: "EQ-1001", image: "/lo.png", quantity: 1 },
+      { name: "Wireless Mouse", code: "EQ-1002", image: "/lo.png", quantity: 2 }
+    ],
     borrow_date: "2023-10-01",
     due_date: "2023-10-15",
     return_date: "2023-10-14",
@@ -93,14 +93,13 @@ const initialReturns = [
     borrow_code: "BR-002",
     borrower: {
       name: "Jane Smith",
-      department: "แผนกการเงิน",
+      position: "บุคลากร",
+      department: "เทคโนโลยีสารสนเทศ",
       avatar: "https://randomuser.me/api/portraits/women/2.jpg"
     },
-    equipment: {
-      name: "เครื่องพิมพ์ HP LaserJet",
-      code: "EQ-2001",
-      image: "/lo.png"
-    },
+    equipment: [
+      { name: "เครื่องพิมพ์ HP LaserJet", code: "EQ-2001", image: "/lo.png", quantity: 1 }
+    ],
     borrow_date: "2023-10-05",
     due_date: "2023-10-20",
     return_date: "2023-10-25",
@@ -115,14 +114,15 @@ const initialReturns = [
     borrow_code: "BR-003",
     borrower: {
       name: "Robert Johnson",
-      department: "แผนกการตลาด",
+      position: "นิสิต",
+      department: "วิทยาการคอมพิวเตอร์",
       avatar: "https://randomuser.me/api/portraits/men/3.jpg"
     },
-    equipment: {
-      name: "กล้อง Canon EOS",
-      code: "EQ-3001",
-      image: "/lo.png"
-    },
+    equipment: [
+      { name: "กล้อง Canon EOS", code: "EQ-3001", image: "/lo.png", quantity: 1 },
+      { name: "ขาตั้งกล้อง", code: "EQ-3008", image: "/lo.png", quantity: 1 },
+      { name: "LED Light", code: "EQ-3003", image: "/lo.png", quantity: 2 }
+    ],
     borrow_date: "2023-10-10",
     due_date: "2023-10-25",
     return_date: null,
@@ -527,7 +527,7 @@ const ReturnList = () => {
                         index === 6 ? "w-28 text-left" : // วันที่คืนจริง
                         index === 7 ? "w-32 text-center" : // สถานะ
                         index === 8 ? "w-22 text-left" : // ค่าปรับ
-                        index === 9 ? "w-32 text-center" : ""
+                        index === 9 ? "w-40 text-center" : ""
                       }`}
                     >
                       {head}
@@ -546,7 +546,12 @@ const ReturnList = () => {
                           <img src={item.borrower.avatar} alt={item.borrower.name} className="w-10 h-10 rounded-full object-cover bg-white border border-gray-200 shadow-sm flex-shrink-0" />
                           <div className="overflow-hidden">
                             <Typography variant="small" className="font-semibold text-gray-900 truncate">{item.borrower.name}</Typography>
-                            <Typography variant="small" className="font-normal text-gray-600 text-xs truncate">{item.borrower.department}</Typography>
+                            <Typography variant="small" className="font-normal text-gray-600 text-xs">
+                              {item.borrower.position}
+                            </Typography>
+                            <Typography variant="small" className="font-normal text-gray-400 text-xs">
+                              {item.borrower.department}
+                            </Typography>
                           </div>
                         </div>
                       </td>
@@ -582,7 +587,7 @@ const ReturnList = () => {
                         </span>
                       </td>
                       <td className="w-22 px-4 py-4 whitespace-nowrap text-center text-gray-900">{item.fine_amount > 0 ? `${item.fine_amount} บาท` : "-"}</td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
+                      <td className="w-40 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           <Tooltip content="ดูรายละเอียด" placement="top">
                             <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>

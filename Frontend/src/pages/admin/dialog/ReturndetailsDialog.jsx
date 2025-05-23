@@ -43,10 +43,10 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 backdrop-blur bg-black/50 bg-opacity-30 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-8xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-300">
+          <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-3">
               <div className="bg-blue-100 p-2.5 rounded-lg shadow-sm">
                 <DocumentCheckIcon className="h-6 w-6 text-blue-600" />
@@ -86,26 +86,59 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose }) => {
                   </div>
                   
                   <div className="text-center">
+                    <p className="text-gray-500 "><span className="font-mono">{returnItem.borrower.student_id}</span></p>
                     <p className="font-bold text-lg text-gray-800">{returnItem.borrower.name}</p>
-                    <p className="text-gray-500">{returnItem.borrower.department}</p>
+                    <p className="text-gray-500 ">{returnItem.borrower.position}</p>
+                    <p className="text-gray-500 mt-1">{returnItem.borrower.department}</p>
                   </div>
                 </div>
                 
                 <div className="mt-6 space-y-3">
-                  <div className="flex justify-between items-center bg-white px-4 py-2 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-gray-200">
                     <span className="text-sm font-medium text-gray-600">รหัสการยืม</span>
                     <span className="font-mono text-blue-700">{returnItem.borrow_code}</span>
                   </div>
-                  <div className="flex justify-between items-center bg-white px-4 py-2 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-gray-200">
                     <span className="text-sm font-medium text-gray-600">รหัสการคืน</span>
                     <span className="font-mono text-blue-700">{returnItem.return_code}</span>
                   </div>
-                  <div className="flex justify-between items-center bg-white px-4 py-2 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-gray-200">
                     <span className="text-sm font-medium text-gray-600">สถานะ</span>
                     {getStatusBadge(returnItem.status)}
                   </div>
                 </div>
               </div>
+
+              {/* Fine and Notes Box - Moved to left column */}
+              {(returnItem.fine_amount > 0 || returnItem.notes) && (
+                <div className={`rounded-xl p-5 space-y-3 ${returnItem.fine_amount > 0 ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200' : 'bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200'}`}>
+                  <div className="flex items-center gap-2">
+                    {returnItem.fine_amount > 0 ? (
+                      <ExclamationTriangleIcon className="h-6 w-6 text-amber-500" />
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      </svg>
+                    )}
+                    <h3 className={`font-semibold ${returnItem.fine_amount > 0 ? 'text-amber-800' : 'text-gray-800'}`}>
+                      {returnItem.fine_amount > 0 ? 'รายละเอียดค่าปรับ' : 'หมายเหตุ'}
+                    </h3>
+                  </div>
+                  
+                  {returnItem.fine_amount > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2 bg-white rounded-full border border-amber-100">
+                      <span className="font-medium text-amber-800">จำนวนค่าปรับ</span>
+                      <span className="text-amber-800 font-semibold">{returnItem.fine_amount} บาท</span>
+                    </div>
+                  )}
+                  
+                  {returnItem.notes && (
+                    <div className="p-3 bg-white rounded-full border border-gray-200">
+                      <p className="text-gray-700 whitespace-pre-line">{returnItem.notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Left/Main Info (2/3) */}
@@ -231,37 +264,6 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose }) => {
                   </div>
                 </div>
               </div>
-
-              {/* Fine and Notes Box */}
-              {(returnItem.fine_amount > 0 || returnItem.notes) && (
-                <div className={`rounded-lg p-4 space-y-2 ${returnItem.fine_amount > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-gray-200'}`}>
-                  <div className="flex items-center gap-2">
-                    {returnItem.fine_amount > 0 ? (
-                      <ExclamationTriangleIcon className="h-5 w-5 text-amber-500" />
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                      </svg>
-                    )}
-                    <h3 className={`font-semibold ${returnItem.fine_amount > 0 ? 'text-amber-800' : 'text-gray-700'}`}>
-                      {returnItem.fine_amount > 0 ? 'รายละเอียดค่าปรับ' : 'หมายเหตุ'}
-                    </h3>
-                  </div>
-                  
-                  {returnItem.fine_amount > 0 && (
-                    <div className="flex items-center justify-between px-4 py-2 bg-white rounded-lg border border-amber-100">
-                      <span className="font-medium text-amber-800">จำนวนค่าปรับ</span>
-                      <span className="text-amber-800 font-semibold">{returnItem.fine_amount} บาท</span>
-                    </div>
-                  )}
-                  
-                  {returnItem.notes && (
-                    <div className="p-3 bg-white rounded-lg border border-gray-200">
-                      <p className="text-gray-700 whitespace-pre-line">{returnItem.notes}</p>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

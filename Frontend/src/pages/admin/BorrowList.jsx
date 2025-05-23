@@ -83,7 +83,9 @@ const initialBorrows = [
     borrow_code: "BR-002",
     borrower: {
       name: "Jane Smith",
-      department: "แผนกการเงิน",
+      student_id: "64010124",
+      position: "บุคลากร",
+      department: "เทคโนโลยีสารสนเทศ",
       avatar: "https://randomuser.me/api/portraits/women/2.jpg"
     },
     equipment: [
@@ -119,7 +121,9 @@ const initialBorrows = [
     borrow_code: "BR-003",
     borrower: {
       name: "Robert Johnson",
-      department: "แผนกการตลาด",
+      student_id: "64010125",
+      position: "นิสิต",
+      department: "วิทยาการคอมพิวเตอร์",
       avatar: "https://randomuser.me/api/portraits/men/3.jpg"
     },
     equipment: [
@@ -149,7 +153,9 @@ const initialBorrows = [
     borrow_code: "BR-004",
     borrower: {
       name: "Somchai Jaidee",
-      department: "แผนกไอที",
+      student_id: "64010126",
+      position: "บุคลากร",
+      department: "ไอที",
       avatar: "https://randomuser.me/api/portraits/men/5.jpg"
     },
     equipment: [
@@ -389,7 +395,12 @@ const BorrowList = () => {
                           <Avatar src={item.borrower.avatar} alt={item.borrower.name} size="sm" className="bg-white shadow-sm rounded-full flex-shrink-0" />
                           <div className="overflow-hidden">
                             <Typography variant="small" className="font-semibold text-gray-900 truncate">{item.borrower.name}</Typography>
-                            <Typography variant="small" className="font-normal text-gray-600 text-xs truncate">{item.borrower.department}</Typography>
+                            <Typography variant="small" className="font-normal text-gray-600 text-xs">
+                              {item.borrower.position}
+                            </Typography>
+                            <Typography variant="small" className="font-normal text-gray-400 text-xs">
+                              {item.borrower.department}
+                            </Typography>
                           </div>
                         </div>
                       </td>

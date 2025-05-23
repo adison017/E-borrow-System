@@ -1,5 +1,4 @@
 import {
-  EyeIcon,
   MagnifyingGlassIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
@@ -24,6 +23,7 @@ import Notification from "../../components/Notification";
 import AddUserDialog from "./dialog/AddUserDialog";
 import DeleteUserDialog from "./dialog/DeleteUserDialog";
 import EditUserDialog from "./dialog/EditUserDialog";
+import ViewUserDialog from "./dialog/ViewUserDialog";
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -119,6 +119,8 @@ function ManageUser() {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewUser, setViewUser] = useState(null);
 
   // ฟังก์ชั่นแสดง Alert
   const showAlertMessage = (message, type = "success") => {
@@ -302,9 +304,15 @@ function ManageUser() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.length > 0 ? (
-                  filteredUsers.map(({ user_id, student_id, username, fullname, pic, email, phone, position, department }, index) => {
+                  filteredUsers.map((user, index) => {
+                    const { user_id, student_id, username, fullname, pic, email, phone, position, department } = user;
                     return (
-                      <tr key={user_id} className="hover:bg-gray-50">
+                      <tr key={user_id} className="hover:bg-gray-50 cursor-pointer" onClick={e => {
+                        // Prevent open dialog if click on edit/delete buttons
+                        if (e.target.closest('button')) return;
+                        setViewUser(user);
+                        setViewDialogOpen(true);
+                      }}>
                         <td className="px-6 py-4 whitespace-nowrap text-md font-bold text-gray-900">{student_id}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-center">
@@ -322,21 +330,16 @@ function ManageUser() {
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900 text-center">{position}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{department}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <div className="flex gap-1 justify-end">
-                            <Tooltip content="ดูรายละเอียด">
-                              <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100">
-                                <EyeIcon className="h-4 w-4" />
-                              </IconButton>
-                            </Tooltip>
+                          <div className="flex gap-1 justify-center">
                             <Tooltip content="แก้ไข">
                               <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100"
-                                onClick={() => handleEditClick({ user_id, student_id, username, fullname, pic, email, phone, position, department })}>
+                                onClick={e => { e.stopPropagation(); handleEditClick({ user_id, student_id, username, fullname, pic, email, phone, position, department }); }}>
                                 <PencilIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
                             <Tooltip content="ลบ">
                               <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100"
-                                onClick={() => handleDeleteClick({ user_id, fullname })}>
+                                onClick={e => { e.stopPropagation(); handleDeleteClick(user); }}>
                                 <TrashIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
@@ -432,12 +435,13 @@ function ManageUser() {
             showAlertMessage(`เพิ่มผู้ใช้ ${newUser.fullname} เรียบร้อยแล้ว`, "success");
           }}
         />
+        <ViewUserDialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} userData={viewUser} />
       </Card>
       {/* Floating Add User Button */}
       <Tooltip content="เพิ่มผู้ใช้งาน" placement="left">
         <button
           onClick={handleAddClick}
-          className="fixed bottom-8 right-8 z-50 bg-indigo-950 hover:bg-indigo-900 text-white rounded-full shadow-lg w-13 h-13 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+          className="fixed bottom-8 right-8 z-[60] border-black bg-black/70 hover:bg-white hover:border-2 hover:border-black hover:text-black text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
           aria-label="เพิ่มผู้ใช้งาน"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">

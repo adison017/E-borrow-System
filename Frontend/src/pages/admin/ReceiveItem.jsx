@@ -59,7 +59,9 @@ const initialPendingDeliveries = [
     borrow_code: "BR-001",
     borrower: {
       name: "John Doe",
-      department: "แผนก IT",
+      student_id: "64010123",
+      position: "นิสิต",
+      department: "วิทยาการคอมพิวเตอร์",
       avatar: "https://randomuser.me/api/portraits/men/1.jpg"
     },
     equipment: [
@@ -87,7 +89,9 @@ const initialPendingDeliveries = [
     borrow_code: "BR-002",
     borrower: {
       name: "Jane Smith",
-      department: "แผนกการเงิน",
+      student_id: "64010124",
+      position: "บุคลากร",
+      department: "เทคโนโลยีสารสนเทศ",
       avatar: "https://randomuser.me/api/portraits/women/2.jpg"
     },
     equipment: [
@@ -109,7 +113,9 @@ const initialPendingDeliveries = [
     borrow_code: "BR-003",
     borrower: {
       name: "Robert Johnson",
-      department: "แผนกการตลาด",
+      student_id: "64010125",
+      position: "นิสิต",
+      department: "วิทยาการคอมพิวเตอร์",
       avatar: "https://randomuser.me/api/portraits/men/3.jpg"
     },
     equipment: [
@@ -140,7 +146,9 @@ const initialCompletedDeliveries = [
     borrow_code: "BR-004",
     borrower: {
       name: "Mary Williams",
-      department: "แผนกทรัพยากรบุคคล",
+      student_id: "64010126",
+      position: "บุคลากร",
+      department: "ทรัพยากรบุคคล",
       avatar: "https://randomuser.me/api/portraits/women/4.jpg"
     },
     equipment: [
@@ -248,9 +256,10 @@ const ReceiveItem = () => {
   const handleScanComplete = (code) => {
     setIsScannerOpen(false);
 
-    // ตรวจสอบว่ารหัสที่สแกนตรงกับรายการยืมหรือไม่
+    // ตรวจสอบว่ารหัสที่สแกนตรงกับรายการยืมหรือไม่ (ทั้ง borrow_code และ equipment.code ทุกชิ้น)
     const borrowedItem = allDeliveries.find(item =>
-      item.borrow_code === code || item.equipment.code === code
+      item.borrow_code === code ||
+      (Array.isArray(item.equipment) && item.equipment.some(eq => eq.code === code))
     );
 
     if (borrowedItem) {
@@ -267,10 +276,10 @@ const ReceiveItem = () => {
 
     if (!code.trim()) return;
 
-    // ตรวจสอบว่ารหัสที่ป้อนตรงกับรายการยืมหรือไม่
+    // ตรวจสอบว่ารหัสที่ป้อนตรงกับรายการยืมหรือไม่ (ทั้ง borrow_code และ equipment.code ทุกชิ้น)
     const borrowedItem = allDeliveries.find(item =>
       item.borrow_code.toLowerCase() === code.toLowerCase() ||
-      item.equipment.code.toLowerCase() === code.toLowerCase()
+      (Array.isArray(item.equipment) && item.equipment.some(eq => eq.code.toLowerCase() === code.toLowerCase()))
     );
 
     if (borrowedItem) {
@@ -379,7 +388,7 @@ const ReceiveItem = () => {
                 <input
                   id="search"
                   type="text"
-                  className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-2xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
+                  className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-full text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
                   placeholder="ค้นหาผู้ยืม, ครุภัณฑ์, แผนก..."
                   value={searchTerm}
                   onChange={handleSearch}
@@ -405,7 +414,7 @@ const ReceiveItem = () => {
                 </MenuList>
               </Menu>
               <Button
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 px-4 py-3"
                 color="blue"
                 size="sm"
                 onClick={() => setIsScannerOpen(true)}
@@ -444,7 +453,12 @@ const ReceiveItem = () => {
                           />
                           <div>
                             <Typography variant="small" className="font-semibold text-gray-900">{item.borrower.name}</Typography>
-                            <Typography variant="small" className="font-normal text-gray-600 text-xs">{item.borrower.department}</Typography>
+                            <Typography variant="small" className="font-normal text-gray-600 text-xs">
+                              {item.borrower.position}
+                            </Typography>
+                            <Typography variant="small" className="font-normal text-gray-400 text-xs">
+                              {item.borrower.department}
+                            </Typography>
                           </div>
                         </div>
                       </td>
