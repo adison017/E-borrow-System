@@ -1,9 +1,9 @@
 import {
-    EyeIcon,
-    MagnifyingGlassIcon
+  EyeIcon,
+  MagnifyingGlassIcon
 } from "@heroicons/react/24/outline";
 import {
-    CheckCircleIcon as CheckCircleSolidIcon
+  CheckCircleIcon as CheckCircleSolidIcon
 } from "@heroicons/react/24/solid";
 import { useState } from "react";
 
@@ -12,20 +12,21 @@ import Notification from "../../components/Notification";
 import ReturnDetailsDialog from "./dialog/ReturndetailsDialog";
 
 import {
-    Avatar,
-    Button,
-    Card,
-    CardBody,
-    CardFooter,
-    CardHeader,
-    IconButton,
-    ThemeProvider,
-    Tooltip,
-    Typography
+  Avatar,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  IconButton,
+  ThemeProvider,
+  Tooltip,
+  Typography
 } from "@material-tailwind/react";
 
 const TABLE_HEAD = [
   "รหัสการยืม",
+  "รหัสการคืน",
   "ผู้ยืม",
   "ครุภัณฑ์",
   "วันที่ยืม",
@@ -40,7 +41,8 @@ const initialBorrows = [
     borrow_code: "BR-001",
     borrower: {
       name: "John Doe",
-      department: "แผนกไอที",
+      position: "นิสิต",
+      department: "วิทยาการคอมพิวเตอร์",
       avatar: "https://randomuser.me/api/portraits/men/1.jpg"
     },
     equipment: [
@@ -60,7 +62,8 @@ const initialBorrows = [
     borrow_code: "BR-002",
     borrower: {
       name: "Jane Smith",
-      department: "แผนกการเงิน",
+      position: "บุคลากร",
+      department: "เทคโนโลยีสารสนเทศ",
       avatar: "https://randomuser.me/api/portraits/women/2.jpg"
     },
     equipment: [
@@ -79,7 +82,8 @@ const initialBorrows = [
     borrow_code: "BR-003",
     borrower: {
       name: "Alex Brown",
-      department: "แผนกการตลาด",
+      position: "นิสิต",
+      department: "วิทยาการคอมพิวเตอร์",
       avatar: "https://randomuser.me/api/portraits/men/3.jpg"
     },
     equipment: [
@@ -245,12 +249,13 @@ function Success() {
                       key={head}
                       className={`px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
                         index === 0 ? "w-28 text-left" : // รหัสการยืม
-                        index === 1 ? "w-48 text-left" : // ผู้ยืม
-                        index === 2 ? "w-64 text-left" : // ครุภัณฑ์
-                        index === 3 ? "w-32 text-left" : // วันที่ยืม
-                        index === 4 ? "w-32 text-left" : // วันที่คืน
-                        index === 5 ? "w-32 text-center" : // สถานะ
-                        index === 6 ? "w-32 text-center" : ""
+                        index === 1 ? "w-28 text-left" : // รหัสการคืน
+                        index === 2 ? "w-48 text-left" : // ผู้ยืม
+                        index === 3 ? "w-64 text-left" : // ครุภัณฑ์
+                        index === 4 ? "w-32 text-left" : // วันที่ยืม
+                        index === 5 ? "w-32 text-left" : // วันที่คืน
+                        index === 6 ? "w-32 text-center" : // สถานะ
+                        index === 7 ? "w-32 text-center" : ""
                       }`}
                     >
                       {head}
@@ -263,6 +268,7 @@ function Success() {
                   filteredBorrows.map((borrow, index) => (
                     <tr key={borrow.borrow_id} className="hover:bg-gray-50">
                       <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{borrow.borrow_code}</td>
+                      <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{borrow.borrow_code}</td>
                       <td className="w-48 px-4 py-4 whitespace-nowrap text-left">
                         <div className="flex items-center gap-3">
                           <Avatar src={borrow.borrower.avatar} alt={borrow.borrower.name} size="sm" className="bg-white shadow-sm rounded-full flex-shrink-0" />
@@ -270,7 +276,10 @@ function Success() {
                             <Typography variant="small" className="font-semibold text-gray-900 truncate">
                               {borrow.borrower.name}
                             </Typography>
-                            <Typography variant="small" className="font-normal text-gray-600 text-xs truncate">
+                            <Typography variant="small" className="font-normal text-gray-600 text-xs">
+                              {borrow.borrower.position}
+                            </Typography>
+                            <Typography variant="small" className="font-normal text-gray-400 text-xs">
                               {borrow.borrower.department}
                             </Typography>
                           </div>

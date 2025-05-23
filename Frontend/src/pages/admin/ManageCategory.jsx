@@ -1,5 +1,4 @@
 import {
-  EyeIcon,
   MagnifyingGlassIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
@@ -44,7 +43,6 @@ const initialCategories = [
     category_id: 1,
     category_code: "CAT-001",
     name: "อุปกรณ์อิเล็กทรอนิกส์",
-    description: "หมวดหมู่สำหรับอุปกรณ์อิเล็กทรอนิกส์ทั้งหมด",
     created_at: "2023-10-01 10:00:00",
     updated_at: "2023-10-05 15:30:00"
   },
@@ -52,7 +50,6 @@ const initialCategories = [
     category_id: 2,
     category_code: "CAT-002",
     name: "เครื่องใช้ในบ้าน",
-    description: "เครื่องใช้ไฟฟ้าและเฟอร์นิเจอร์สำหรับบ้าน",
     created_at: "2023-09-25 14:30:00",
     updated_at: "2023-09-28 09:15:00"
   },
@@ -60,7 +57,6 @@ const initialCategories = [
     category_id: 3,
     category_code: "CAT-003",
     name: "เสื้อผ้าและแฟชั่น",
-    description: "เสื้อผ้า เครื่องแต่งกาย และอุปกรณ์แฟชั่น",
     created_at: "2023-09-15 09:20:00",
     updated_at: "2023-09-20 11:45:00"
   }
@@ -81,14 +77,12 @@ function ManageCategory() {
   const [editFormData, setEditFormData] = useState({
     category_id: "",
     category_code: "",
-    name: "",
-    description: ""
+    name: ""
   });
 
   const [addFormData, setAddFormData] = useState({
     category_code: "",
-    name: "",
-    description: ""
+    name: ""
   });
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -117,8 +111,7 @@ function ManageCategory() {
     setEditFormData({
       category_id: category.category_id,
       category_code: category.category_code,
-      name: category.name,
-      description: category.description
+      name: category.name
     });
     setEditDialogOpen(true);
   };
@@ -146,8 +139,7 @@ function ManageCategory() {
     const newCode = `CAT-${String(categoryList.length + 1).padStart(3, '0')}`;
     setAddFormData({
       category_code: newCode,
-      name: "",
-      description: ""
+      name: ""
     });
     setAddDialogOpen(true);
   };
@@ -179,8 +171,7 @@ function ManageCategory() {
   const filteredCategories = categoryList.filter(
     category =>
       category.category_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -232,7 +223,7 @@ function ManageCategory() {
                   {TABLE_HEAD.map((head, index) => (
                     <th
                       key={head}
-                      className={`px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                      className={`px-5 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
                         index === 0 ? "w-32 text-left" : // รหัสหมวดหมู่
                         index === 1 ? "w-48 text-left" : // ชื่อหมวดหมู่
                         index === 2 ? "w-32 text-center" : ""
@@ -245,23 +236,18 @@ function ManageCategory() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredCategories.length > 0 ? (
-                  filteredCategories.map(({ category_id, category_code, name, description, created_at }, index) => (
+                  filteredCategories.map(({ category_id, category_code, name, created_at }, index) => (
                     <tr key={category_id} className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="w-32 px-3 py-3 whitespace-nowrap text-md font-bold  text-left">{category_code}</td>
-                      <td className="w-48 px-3 py-3 whitespace-nowrap text-md text-gray-700 text-left">{name}</td>
+                      <td className="px-5 w-32 px-3 py-3 whitespace-nowrap  font-bold  text-left">{category_code}</td>
+                      <td className="w-48 px-3 py-3 whitespace-nowrap text-gray-700 text-left">{name}</td>
                       <td className="w-32 px-3 py-3 whitespace-nowrap text-center">
                         <div className="flex gap-2 justify-center">
-                          <Tooltip content="ดูรายละเอียด">
-                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200">
-                              <EyeIcon className="h-4 w-4" />
-                            </IconButton>
-                          </Tooltip>
                           <Tooltip content="แก้ไข">
                             <IconButton
                               variant="text"
                               color="amber"
                               className="bg-amber-50 hover:bg-amber-100 shadow-sm transition-all duration-200"
-                              onClick={() => handleEditClick({ category_id, category_code, name, description })}
+                              onClick={() => handleEditClick({ category_id, category_code, name })}
                             >
                               <PencilIcon className="h-4 w-4" />
                             </IconButton>
@@ -271,7 +257,7 @@ function ManageCategory() {
                               variant="text"
                               color="red"
                               className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200"
-                              onClick={() => handleDeleteClick({ category_id, name })}
+                              onClick={e => { e.stopPropagation(); handleDeleteClick({ category_id, category_code, name }); }}
                             >
                               <TrashIcon className="h-4 w-4" />
                             </IconButton>
@@ -347,8 +333,7 @@ function ManageCategory() {
           onClose={() => setAddDialogOpen(false)}
           initialFormData={{
             category_code: `CAT-${String(categoryList.length + 1).padStart(3, '0')}`,
-            name: "",
-            description: ""
+            name: ""
           }}
           onSave={(newCategory) => {
             const now = new Date();
@@ -368,7 +353,7 @@ function ManageCategory() {
       <Tooltip content="เพิ่มหมวดหมู่" placement="left">
         <button
           onClick={handleAddClick}
-          className="fixed bottom-8 right-8 z-[60] bg-indigo-950 hover:bg-indigo-900 text-white rounded-full shadow-lg w-13 h-13 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+          className="fixed bottom-8 right-8 z-[60] border-black bg-black/70 hover:bg-white hover:border-2 hover:border-black hover:text-black text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
           aria-label="เพิ่มหมวดหมู่"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">

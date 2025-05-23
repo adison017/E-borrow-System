@@ -264,17 +264,6 @@ function ManageEquipment() {
     setSelectedEquipmentForRepair(null);
   };
 
-  const handleApproveRepair = (equipmentId) => {
-    // Update equipment status to 'ระหว่างซ่อม'
-    const updatedEquipment = equipmentList.map(item => {
-      if (item.id === equipmentId) {
-        return { ...item, status: 'ระหว่างซ่อม' };
-      }
-      return item;
-    });
-    setEquipmentList(updatedEquipment);
-  };
-
   const handleInspectEquipment = (equipment) => {
     setSelectedEquipment(equipment);
     setShowInspectDialog(true);
@@ -397,7 +386,7 @@ function ManageEquipment() {
                   {TABLE_HEAD.map((head, index) => (
                     <th
                       key={head}
-                      className={`px-3 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                      className={`px-3 py-4 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
                         index === 0 ? "w-16 text-center" : // รูปภาพ
                         index === 1 ? "w-20 text-left" : // รหัสครุภัณฑ์
                         index === 2 ? "w-20 text-left" : // ชื่อครุภัณฑ์
@@ -419,7 +408,7 @@ function ManageEquipment() {
                     const { pic, id, name, category, quantity, status, created_at } = item;
                     return (
                     <tr key={id} className="hover:bg-gray-50"> {/* Reverted tr className */}
-                    <td className="w-16 px-3 py-3 whitespace-nowrap text-center">
+                    <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center">
                           <img
                             className="h-10 w-10 object-contain bg-gray-100 rounded"
@@ -428,29 +417,22 @@ function ManageEquipment() {
                           />
                         </div>
                       </td>
-                      <td className="w-20 px-3 py-3 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{id}</td>
-                      <td className="w-20 px-3 py-3 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
-                      <td className="w-20 px-3 py-3 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
-                      <td className="w-10 px-3 py-3 whitespace-nowrap text-md text-gray-900 text-right">{quantity}</td>
-                      <td className="w-20 px-3 py-3 whitespace-nowrap text-center text-gray-700">
+                      <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{id}</td>
+                      <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
+                      <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
+                      <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}</td>
+                      <td className="w-20 px-3 py-4 whitespace-nowrap text-center text-gray-700">
                         <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-sm ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
                           {status}
                         </span>
                       </td>
-                      <td className="w-20 px-3 py-3 whitespace-nowrap text-md text-gray-700 text-left">{created_at?.split(" ")[0]}</td>
-                      <td className="w-30 px-3 py-3 whitespace-nowrap text-center">
+                      <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left">{created_at?.split(" ")[0]}</td>
+                      <td className="w-30 px-3 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           {status === 'ชำรุด' && (
                             <Tooltip content="แจ้งซ่อม" placement="top">
                               <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleRepairRequest(item)}>
                                 <WrenchIcon className="h-5 w-5" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          {status === 'รออนุมัติซ่อม' && (
-                            <Tooltip content="อนุมัติซ่อม" placement="top">
-                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleApproveRepair(id)}>
-                                <CheckCircleIcon className="h-5 w-5" />
                               </IconButton>
                             </Tooltip>
                           )}
@@ -577,7 +559,7 @@ function ManageEquipment() {
       <Tooltip content="เพิ่มครุภัณฑ์" placement="left">
         <button
           onClick={openAddEquipmentDialog}
-          className="fixed bottom-8 right-8 z-[60] bg-indigo-950 hover:bg-indigo-900 text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+          className="fixed bottom-8 right-8 z-[60] border-black bg-black/70 hover:bg-white hover:border-2 hover:border-black hover:text-black text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
           aria-label="เพิ่มครุภัณฑ์"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">

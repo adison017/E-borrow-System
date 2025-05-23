@@ -76,17 +76,6 @@ export default function AddCategoryDialog({
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย</label>
-            <textarea
-              name="description"
-              value={formData.description || ""}
-              onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 transition-shadow"
-              placeholder="คำอธิบายเกี่ยวกับหมวดหมู่"
-              rows={4}
-            />
-          </div>
         </div>
         {/* Footer */}
         <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end space-x-3">

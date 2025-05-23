@@ -87,7 +87,7 @@ export default function AddUserDialog({
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-h-[850px] max-w-6xl mx-auto bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden animate-fadeIn transition-all duration-300 transform">
+      <div className="relative w-full max-h-[90vh] max-w-6xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -100,7 +100,7 @@ export default function AddUserDialog({
         {/* Main Content: 2 columns */}
         <div className="flex flex-col md:flex-row h-full">
           {/* Left: Profile Image */}
-          <div className="flex flex-col items-center justify-start pt-13 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px] border-b md:border-r border-gray-100">
+          <div className="flex flex-col items-center justify-start pt-13 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px] ">
             <div className="mb-8">
               <h3 className="text-lg font-bold text-blue-800 text-center mb-2">รูปโปรไฟล์</h3>
               <p className="text-xs text-gray-500 text-center">อัพโหลดรูปภาพสำหรับใช้เป็นรูปโปรไฟล์</p>
@@ -297,8 +297,8 @@ export default function AddUserDialog({
                 </div>
                 
                 {/* Right: Address & Security */}
-                <div className="space-y-5 bg-white p-2 rounded-2xl transition-all duration-300 border border-gray-50">
-                  <div className="flex items-center space-x-2 pb-3 mb-1 border-b border-gray-100">
+                <div className="space-y-5 bg-white p-2 rounded-2xl transition-all duration-300 ">
+                  <div className="flex items-center space-x-2 pb-3 mb-1 ">
                     <FaMapMarkerAlt className="w-5 h-5 text-blue-600" />
                     <h3 className="text-lg font-semibold text-gray-800">ที่อยู่</h3>
                   </div>
@@ -379,7 +379,7 @@ export default function AddUserDialog({
               </div>
               
               {/* Footer */}
-              <div className="flex justify-end gap-4 border-t border-gray-100 pb-6">
+              <div className="flex justify-end gap-4 pb-6">
                 <button
                   type="button"
                   className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 hover:text-red-600 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 shadow-sm"
