@@ -33,9 +33,9 @@ export default function BorrowDetailsDialog({
   const [expandedSections, setExpandedSections] = useState({
     requester: true,
     equipment: true,
-    timeline: false,
+    timeline: true,
     purpose: true,
-    notes: borrowRequest?.approvalNotes ? true : false
+    notes: true
   });
 
   const rejectReasonOptions = [
@@ -187,14 +187,14 @@ export default function BorrowDetailsDialog({
 
   return (
     <div className="modal modal-open">
-      <div data-theme="light" className="modal-box max-w-[90vw] w-[90vw] h-fit max-h-[90vh] rounded-lg shadow-xl">
+      <div data-theme="light" className="modal-box max-w-[90vw] w-full h-full max-h-[90vh] rounded-xl shadow-lg border border-gray-200">
         {borrowRequest ? (
           <div className="flex flex-col h-full">
-            <div className="sticky top-0 bg-white z-10 pb-3 border-b border-gray-200">
-              <div className="flex justify-between items-start">
-                <div className="flex items-start gap-2">
+            <div className="sticky top-0 bg-white z-10 p-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <div className="flex items-start gap-3">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                       {getDialogTitle()}
                       {renderStatusBadge(borrowRequest.status)}
                     </h2>
@@ -206,7 +206,7 @@ export default function BorrowDetailsDialog({
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors duration-150"
+                  className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors duration-150"
                 >
                   <MdClose className="w-5 h-5" />
                 </button>
@@ -219,15 +219,14 @@ export default function BorrowDetailsDialog({
                 <div>
                   <SectionHeader 
                     title="ข้อมูลผู้ขอยืม" 
-                    icon={<UserIcon className="h-4 w-4" />}
+                    icon={<UserIcon className="h-5 w-5 text-gray-500" />}
                     section="requester"
                     isExpanded={expandedSections.requester}
                   />
-                  
                   {expandedSections.requester && (
-                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg mt-2 shadow-sm">
+                    <div className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg mt-3 shadow-sm">
                       <div className="avatar">
-                        <div className="w-14 rounded-full ring-2 ring-white shadow">
+                        <div className="w-16 h-16 rounded-full ring-2 ring-offset-1 ring-blue-400 shadow">
                           <img 
                             src={borrowRequest.requester?.avatar || "/placeholder-user.png"} 
                             alt={borrowRequest.requester?.name} 
@@ -235,128 +234,113 @@ export default function BorrowDetailsDialog({
                         </div>
                       </div>
                       <div>
-                        <h5 className="text-sm font-medium">{borrowRequest.requester?.name}</h5>
-                        <p className="text-sm text-gray-500">{borrowRequest.requester?.department}</p>
+                        <h5 className="text-base font-medium text-gray-800">{borrowRequest.requester?.name}</h5>
+                        <p className="text-sm text-gray-600">{borrowRequest.requester?.department}</p>
                       </div>
                     </div>
                   )}
                   
-                  <div className="mt-4">
+                  <div className="mt-5">
                     <SectionHeader 
                       title="ข้อมูลการยืม" 
-                      icon={<CalendarIcon className="h-4 w-4" />}
+                      icon={<CalendarIcon className="h-5 w-5 text-gray-500" />}
                     />
-                    
-                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg mt-2 shadow-sm">
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-white border border-gray-200 rounded-lg mt-3 shadow-sm">
                       <div className="border-r border-gray-200 pr-4">
-                        <p className="text-sm text-gray-500 mb-1">วันที่ต้องการยืม:</p>
-                        <p className="font-medium text-sm">{borrowRequest.borrowDate}</p>
+                        <p className="text-sm text-gray-600 mb-1">วันที่ต้องการยืม:</p>
+                        <p className="font-medium text-base text-gray-800">{borrowRequest.borrowDate}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500 mb-1">กำหนดคืน:</p>
-                        <p className="font-medium text-sm">{borrowRequest.dueDate}</p>
+                        <p className="text-sm text-gray-600 mb-1">กำหนดคืน:</p>
+                        <p className="font-medium text-base text-gray-800">{borrowRequest.dueDate}</p>
                       </div>
                       {borrowRequest.status === "returned" && (
-                        <div className="col-span-2 pt-2 mt-2 border-t border-gray-200">
-                          <p className="text-sm text-gray-500 mb-1">วันที่คืน:</p>
-                          <p className="font-medium text-sm">{borrowRequest.returnDate || "-"}</p>
+                        <div className="col-span-2 pt-3 mt-3 border-t border-gray-200">
+                          <p className="text-sm text-gray-600 mb-1">วันที่คืน:</p>
+                          <p className="font-medium text-base text-gray-800">{borrowRequest.returnDate || "-"}</p>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="mt-4">
+                  <div className="mt-5">
                     <SectionHeader 
                       title="วัตถุประสงค์" 
-                      icon={<TagIcon className="h-4 w-4" />}
+                      icon={<TagIcon className="h-5 w-5 text-gray-500" />}
                       section="purpose"
                       isExpanded={expandedSections.purpose}
                     />
-                    
                     {expandedSections.purpose && (
-                      <div className="p-4 bg-gray-50 rounded-lg mt-2 shadow-sm">
-                        <p className="text-sm leading-relaxed">{borrowRequest.purpose}</p>
+                      <div className="p-4 bg-white border border-gray-200 rounded-lg mt-3 shadow-sm">
+                        <p className="text-sm leading-relaxed text-gray-700">{borrowRequest.purpose}</p>
                       </div>
                     )}
                   </div>
-
-                  <div className="mt-4">
-                    <SectionHeader 
-                      title="สถานะการดำเนินการ" 
-                      icon={<ClockIcon className="h-4 w-4" />}
-                      section="timeline"
-                      isExpanded={expandedSections.timeline}
-                    />
-                    
-                    {expandedSections.timeline && (
-                      <div className="p-4 bg-gray-50 rounded-lg mt-2 shadow-sm">
-                        <ol className="relative border-l-2 border-gray-300 ml-2.5 text-sm">
-                          <li className="mb-4 ml-6">
-                            <span className="absolute flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full -left-3 ring-4 ring-white">
-                              <CalendarIcon className="w-3 h-3 text-blue-800" />
-                            </span>
-                            <h3 className="font-medium text-gray-900">ยื่นคำขอยืม</h3>
-                            <p className="text-xs text-gray-500 mt-1">{borrowRequest.requestDate || "-"}</p>
-                          </li>
-                          
-                          {(borrowRequest.status === "approved" || borrowRequest.status === "rejected" || 
-                          borrowRequest.status === "borrowing" || borrowRequest.status === "returned") && (
-                            <li className="mb-4 ml-6">
-                              <span className={`absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ring-4 ring-white 
-                                ${borrowRequest.status === "rejected" ? "bg-red-100" : "bg-green-100"}`}>
-                                {borrowRequest.status === "rejected" ? 
-                                  <XCircleIcon className="w-3 h-3 text-red-800" /> : 
-                                  <CheckCircleIcon className="w-3 h-3 text-green-800" />
-                                }
-                              </span>
-                              <h3 className="font-medium text-gray-900">
-                                {borrowRequest.status === "rejected" ? "ปฏิเสธคำขอ" : "อนุมัติคำขอ"}
-                              </h3>
-                              <p className="text-xs text-gray-500 mt-1">{borrowRequest.approvalDate || "-"}</p>
-                            </li>
-                          )}
-
-                          {(borrowRequest.status === "borrowing" || borrowRequest.status === "returned") && (
-                            <li className="mb-4 ml-6">
-                              <span className="absolute flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full -left-3 ring-4 ring-white">
-                                <ArrowPathIcon className="w-3 h-3 text-blue-800" />
-                              </span>
-                              <h3 className="font-medium text-gray-900">รับอุปกรณ์</h3>
-                              <p className="text-xs text-gray-500 mt-1">{borrowRequest.borrowDate || "-"}</p>
-                            </li>
-                          )}
-
-                          {borrowRequest.status === "returned" && (
-                            <li className="ml-6">
-                              <span className="absolute flex items-center justify-center w-6 h-6 bg-purple-100 rounded-full -left-3 ring-4 ring-white">
-                                <DocumentCheckIcon className="w-3 h-3 text-purple-800" />
-                              </span>
-                              <h3 className="font-medium text-gray-900">คืนอุปกรณ์แล้ว</h3>
-                              <p className="text-xs text-gray-500 mt-1">{borrowRequest.returnDate || "-"}</p>
-                            </li>
-                          )}
-                        </ol>
-                      </div>
-                    )}
-                  </div>
-                  
+                </div>
+                
+                {/* ข้อมูลอุปกรณ์ */}
+                <div>
+                  <SectionHeader 
+                    title="ข้อมูลอุปกรณ์" 
+                    icon={<CubeIcon className="h-5 w-5 text-gray-500" />}
+                    section="equipment"
+                    isExpanded={expandedSections.equipment}
+                  />
+                  {expandedSections.equipment && (
+                    <div className="mt-3 space-y-3">
+                      {Array.isArray(borrowRequest?.equipments) ? (
+                        borrowRequest.equipments.map((equipment, index) => (
+                          <div key={index} className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-gray-50 p-2 rounded-lg">
+                              <img
+                                src={equipment?.image || '/placeholder-equipment.png'}
+                                alt={equipment?.name || 'Equipment'}
+                                className="h-20 w-20 object-contain"
+                              />
+                            </div>
+                            <div>
+                              <h5 className="text-base font-medium text-gray-800">{equipment?.name || 'ไม่ระบุชื่ออุปกรณ์'}</h5>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {equipment?.code || 'ไม่ระบุรหัส'}{equipment?.category ? ` | ${equipment.category}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                          <div className="bg-gray-50 p-2 rounded-lg">
+                            <img
+                              src={borrowRequest?.equipment?.image || '/placeholder-equipment.png'}
+                              alt={borrowRequest?.equipment?.name || 'Equipment'}
+                              className="h-20 w-20 object-contain"
+                            />
+                          </div>
+                          <div>
+                            <h5 className="text-base font-medium text-gray-800">{borrowRequest?.equipment?.name || 'ไม่ระบุชื่ออุปกรณ์'}</h5>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {borrowRequest?.equipment?.code || 'ไม่ระบุรหัส'}{borrowRequest?.equipment?.category ? ` | ${borrowRequest.equipment.category}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {/* หมายเหตุการอนุมัติ */}
                   {borrowRequest.approvalNotes && (
-                    <div className="mt-4">
+                    <div className="mt-5">
                       <SectionHeader 
                         title="หมายเหตุการอนุมัติ" 
-                        icon={<InformationCircleIcon className="h-4 w-4" />}
+                        icon={<InformationCircleIcon className="h-5 w-5 text-gray-500" />}
                         section="notes"
                         isExpanded={expandedSections.notes}
                       />
-                      
                       {expandedSections.notes && (
-                        <div className="mt-2">
+                        <div className="mt-3">
                           <div
-                            className={`p-4 rounded-lg shadow-sm ${
+                            className={`p-4 rounded-lg shadow-sm border ${
                               borrowRequest.status === "rejected"
-                                ? "bg-red-50 border border-red-100"
-                                : "bg-green-50 border border-green-100"
+                                ? "bg-red-50 border-red-200 text-red-700"
+                                : "bg-green-50 border-green-200 text-green-700"
                             }`}
                           >
                             <div className="flex items-start gap-3">
@@ -366,7 +350,7 @@ export default function BorrowDetailsDialog({
                                 <CheckCircleIcon className="h-5 w-5 flex-shrink-0 text-green-500 mt-0.5" />
                               )}
                               <div>
-                                <p className="text-sm mb-2 font-medium">
+                                <p className="text-sm mb-1 font-medium">
                                   {borrowRequest.status === "rejected" ? "คำขอถูกปฏิเสธ" : "คำขอได้รับการอนุมัติ"}
                                 </p>
                                 <p className="text-sm leading-relaxed">{borrowRequest.approvalNotes}</p>
@@ -380,67 +364,15 @@ export default function BorrowDetailsDialog({
                       )}
                     </div>
                   )}
-                </div>
-                
-                {/* ข้อมูลอุปกรณ์ */}
-                <div>
-                  <SectionHeader 
-                    title="ข้อมูลอุปกรณ์" 
-                    icon={<CubeIcon className="h-4 w-4" />}
-                    section="equipment"
-                    isExpanded={expandedSections.equipment}
-                  />
-                  
-                  {expandedSections.equipment && (
-                    <div className="mt-2">
-                      {Array.isArray(borrowRequest?.equipments) ? (
-                        <div className="space-y-3">
-                          {borrowRequest.equipments.map((equipment, index) => (
-                            <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg shadow-sm transition-all hover:shadow-md">
-                              <div className="bg-white p-2 rounded-md shadow-sm">
-                                <img
-                                  src={equipment?.image || '/placeholder-equipment.png'}
-                                  alt={equipment?.name || 'Equipment'}
-                                  className="h-16 w-16 object-contain"
-                                />
-                              </div>
-                              <div>
-                                <h5 className="text-sm font-medium">{equipment?.name || 'ไม่ระบุชื่ออุปกรณ์'}</h5>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  {equipment?.code || 'ไม่ระบุรหัส'}{equipment?.category ? ` | ${equipment.category}` : ''}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg shadow-sm transition-all hover:shadow-md">
-                          <div className="bg-white p-2 rounded-md shadow-sm">
-                            <img
-                              src={borrowRequest?.equipment?.image || '/placeholder-equipment.png'}
-                              alt={borrowRequest?.equipment?.name || 'Equipment'}
-                              className="h-16 w-16 object-contain"
-                            />
-                          </div>
-                          <div>
-                            <h5 className="text-sm font-medium">{borrowRequest?.equipment?.name || 'ไม่ระบุชื่ออุปกรณ์'}</h5>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {borrowRequest?.equipment?.code || 'ไม่ระบุรหัส'}{borrowRequest?.equipment?.category ? ` | ${borrowRequest.equipment.category}` : ''}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                   
                   {/* ยืนยันการดำเนินการ */}
                   {showConfirm && (
                     <div className="mt-6">
                       <div
-                        className={`p-4 rounded-lg shadow-sm ${
+                        className={`p-4 rounded-lg shadow-sm border ${
                           actionType === "approve"
-                            ? "bg-green-50 border border-green-200"
-                            : "bg-red-50 border border-red-200"
+                            ? "bg-green-50 border-green-200 text-green-700"
+                            : "bg-red-50 border-red-200 text-red-700"
                         }`}
                       >
                         <div className="flex items-start gap-3">
@@ -461,9 +393,9 @@ export default function BorrowDetailsDialog({
                                 : "คุณกำลังจะปฏิเสธคำขอยืมนี้"}
                             </p>
                             {approvalNotes && (
-                              <div className="mt-3 p-2 bg-white rounded text-sm border border-gray-200">
-                                <p className="font-medium">หมายเหตุ:</p>
-                                <p className="mt-1">{approvalNotes}</p>
+                              <div className="mt-3 p-3 bg-white rounded-md text-sm border border-gray-300">
+                                <p className="font-medium text-gray-700">หมายเหตุ:</p>
+                                <p className="mt-1 text-gray-600">{approvalNotes}</p>
                               </div>
                             )}
                           </div>
@@ -471,46 +403,103 @@ export default function BorrowDetailsDialog({
                       </div>
                     </div>
                   )}
+                  <div className="mt-5">
+                    <SectionHeader 
+                      title="สถานะการดำเนินการ" 
+                      icon={<ClockIcon className="h-5 w-5 text-gray-500" />}
+                      section="timeline"
+                      isExpanded={expandedSections.timeline}
+                    />
+                    {expandedSections.timeline && (
+                      <div className="p-4 bg-white border border-gray-200 rounded-lg mt-3 shadow-sm">
+                        <ol className="relative border-l-2 border-blue-300 ml-2.5 text-sm">
+                          <li className="mb-5 ml-6">
+                            <span className="absolute flex items-center justify-center w-7 h-7 bg-blue-100 rounded-full -left-4 ring-4 ring-white">
+                              <CalendarIcon className="w-3.5 h-3.5 text-blue-700" />
+                            </span>
+                            <h3 className="font-medium text-gray-800">ยื่นคำขอยืม</h3>
+                            <p className="text-xs text-gray-500 mt-0.5">{borrowRequest.requestDate || "-"}</p>
+                          </li>
+                          
+                          {(borrowRequest.status === "approved" || borrowRequest.status === "rejected" || 
+                          borrowRequest.status === "borrowing" || borrowRequest.status === "returned") && (
+                            <li className="mb-5 ml-6">
+                              <span className={`absolute flex items-center justify-center w-7 h-7 rounded-full -left-4 ring-4 ring-white 
+                                ${borrowRequest.status === "rejected" ? "bg-red-100" : "bg-green-100"}`}>
+                                {borrowRequest.status === "rejected" ? 
+                                  <XCircleIcon className="w-3.5 h-3.5 text-red-700" /> : 
+                                  <CheckCircleIcon className="w-3.5 h-3.5 text-green-700" />
+                                }
+                              </span>
+                              <h3 className="font-medium text-gray-800">
+                                {borrowRequest.status === "rejected" ? "ปฏิเสธคำขอ" : "อนุมัติคำขอ"}
+                              </h3>
+                              <p className="text-xs text-gray-500 mt-0.5">{borrowRequest.approvalDate || "-"}</p>
+                            </li>
+                          )}
+
+                          {(borrowRequest.status === "borrowing" || borrowRequest.status === "returned") && (
+                            <li className="mb-5 ml-6">
+                              <span className="absolute flex items-center justify-center w-7 h-7 bg-blue-100 rounded-full -left-4 ring-4 ring-white">
+                                <ArrowPathIcon className="w-3.5 h-3.5 text-blue-700" />
+                              </span>
+                              <h3 className="font-medium text-gray-800">รับอุปกรณ์</h3>
+                              <p className="text-xs text-gray-500 mt-0.5">{borrowRequest.borrowDate || "-"}</p>
+                            </li>
+                          )}
+
+                          {borrowRequest.status === "returned" && (
+                            <li className="ml-6">
+                              <span className="absolute flex items-center justify-center w-7 h-7 bg-purple-100 rounded-full -left-4 ring-4 ring-white">
+                                <DocumentCheckIcon className="w-3.5 h-3.5 text-purple-700" />
+                              </span>
+                              <h3 className="font-medium text-gray-800">คืนอุปกรณ์แล้ว</h3>
+                              <p className="text-xs text-gray-500 mt-0.5">{borrowRequest.returnDate || "-"}</p>
+                            </li>
+                          )}
+                        </ol>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-4 mt-auto px-6 pb-2">
+            <div className="border-t border-gray-200 pt-4 mt-auto px-6 pb-4">
               {!showConfirm ? (
                 <>
                   {borrowRequest.status === "pending" && (
                     <div className="flex justify-end gap-3">
                       <button
-                        className="px-4 py-2 rounded-md bg-red-50 text-red-700 font-medium hover:bg-red-100 transition-colors duration-150 flex items-center gap-1"
+                        className="btn btn-error hover:opacity-90 text-white rounded-2xl"
                         onClick={() => handleAction("reject")}
                       >
-                        <XCircleIcon className="w-5 h-5" />
+                        <XCircleIcon className="w-4 h-4" />
                         ปฏิเสธ
                       </button>
                       <button
-                        className="px-4 py-2 rounded-md bg-green-600 text-white font-medium hover:bg-green-700 transition-colors duration-150 flex items-center gap-1"
+                        className="btn btn-success hover:opacity-90 text-white rounded-2xl"
                         onClick={() => handleAction("approve")}
                       >
-                        <CheckCircleIcon className="w-5 h-5" />
+                        <CheckCircleIcon className="w-4 h-4" />
                         อนุมัติ
                       </button>
                     </div>
                   )}
-              
                 </>
               ) : (
                 <div className="flex justify-end gap-3">
                   <button
-                    className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-150"
+                    className="btn btn-ghost hover:opacity-90 text-black rounded-2xl border-2 border-gray-300"
                     onClick={() => setShowConfirm(false)}
                     disabled={isSubmitting}
                   >
                     ยกเลิก
                   </button>
                   <button
-                    className={`px-4 py-2 rounded-md font-medium text-white transition-colors duration-150 flex items-center gap-1
+                    className={`btn btn-success hover:opacity-90 text-white rounded-2xl
                       ${actionType === "approve" 
-                        ? "bg-green-600 hover:bg-green-700" 
+                        ? "bg-emerald-600 hover:bg-emerald-700" 
                         : "bg-red-600 hover:bg-red-700"
                       }`}
                     onClick={confirmAction}
@@ -523,12 +512,10 @@ export default function BorrowDetailsDialog({
                       </>
                     ) : actionType === "approve" ? (
                       <>
-                        <CheckCircleIcon className="w-5 h-5" />
                         ยืนยันการอนุมัติ
                       </>
                     ) : (
                       <>
-                        <XCircleIcon className="w-5 h-5" />
                         ยืนยันการปฏิเสธ
                       </>
                     )}
@@ -538,19 +525,19 @@ export default function BorrowDetailsDialog({
             </div>
           </div>
         ) : (
-          <div className="text-center py-8">
+          <div className="text-center py-10">
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-100">
               <InformationCircleIcon
                 className="h-8 w-8 text-gray-400"
                 aria-hidden="true"
               />
             </div>
-            <h3 className="mt-3 text-md font-medium text-gray-900">
+            <h3 className="mt-4 text-base font-medium text-gray-800">
               ไม่พบข้อมูลคำขอยืม
             </h3>
             <div className="mt-6">
               <button
-                className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors duration-150"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-150 text-sm"
                 onClick={handleClose}
               >
                 ปิด
@@ -561,34 +548,38 @@ export default function BorrowDetailsDialog({
 
         {/* Reject Confirmation Dialog */}
         {showRejectDialog && (
-          <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-md transform transition-all duration-300 overflow-hidden">
-              <div className="p-5">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <div className="fixed inset-0 backdrop-blur bg-black/50 bg-opacity-30 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg transform transition-all duration-300 overflow-hidden border border-gray-200">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <XCircleIcon className="w-5 h-5 text-red-500" />
                     <span>ปฏิเสธคำขอยืม</span>
                   </h3>
                   <button
                     onClick={handleCancelReject}
-                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors duration-150"
+                    className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors duration-150"
                   >
                     <MdClose className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       โปรดเลือกเหตุผลในการปฏิเสธ
                       <span className="text-red-500 ml-1">*</span>
                     </label>
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1 rounded-md border border-gray-200 divide-y">
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                       {rejectReasonOptions.map((reason) => (
                         <label 
                           key={reason} 
-                          className={`flex items-start gap-3 p-3 cursor-pointer transition-colors duration-150
-                            ${rejectReason === reason ? 'bg-red-50' : 'hover:bg-gray-50'}`}
+                          className={`flex items-start gap-2.5 p-3 cursor-pointer transition-colors duration-150 rounded-lg border
+                            ${
+                              rejectReason === reason
+                                ? 'bg-red-50 border-red-300 shadow-sm'
+                                : 'border-gray-200 hover:bg-red-50 hover:border-red-200'
+                            }`}
                         >
                           <input
                             type="radio"
@@ -596,51 +587,51 @@ export default function BorrowDetailsDialog({
                             value={reason}
                             checked={rejectReason === reason}
                             onChange={() => setRejectReason(reason)}
-                            className="mt-0.5"
+                            className="mt-0.5 form-radio accent-red-500"
                           />
                           <span className="text-sm text-gray-700">{reason}</span>
                         </label>
                       ))}
                     </div>
                     {formErrors.rejectReason && !rejectReason && (
-                      <p className="mt-2 text-sm text-red-600">{formErrors.rejectReason}</p>
+                      <p className="mt-1.5 text-sm text-red-600">{formErrors.rejectReason}</p>
                     )}
                   </div>
 
                   {/* Additional notes for "Other" reason */}
                   {rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && (
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         ระบุเหตุผลเพิ่มเติม
                         <span className="text-red-500 ml-1">*</span>
                       </label>
                       <textarea
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm"
                         placeholder="โปรดระบุเหตุผลในการปฏิเสธ"
                         value={approvalNotes}
                         onChange={(e) => setApprovalNotes(e.target.value)}
                         required
                       />
                       {formErrors.rejectReason && rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !approvalNotes.trim() && (
-                        <p className="mt-2 text-sm text-red-600">{formErrors.rejectReason}</p>
+                        <p className="mt-1.5 text-sm text-red-600">{formErrors.rejectReason}</p>
                       )}
                     </div>
                   )}
 
-                  <div className="flex justify-end gap-3 pt-2">
+                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-5">
                     <button
                       onClick={handleCancelReject}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-150"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-100 transition-colors duration-150 text-sm"
                     >
                       ยกเลิก
                     </button>
                     <button
                       onClick={handleConfirmReject}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors duration-150 flex items-center gap-1"
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors duration-150 flex items-center gap-1.5 text-sm"
                       disabled={!rejectReason || (rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !approvalNotes.trim())}
                     >
-                      <XCircleIcon className="w-5 h-5" />
+                      <XCircleIcon className="w-4 h-4" />
                       ยืนยัน
                     </button>
                   </div>

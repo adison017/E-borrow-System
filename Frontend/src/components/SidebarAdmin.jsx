@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BiPackage } from "react-icons/bi";
 import { BsGraphUp } from "react-icons/bs";
 import { FaHandshake, FaSignOutAlt, FaUserEdit } from "react-icons/fa";
-import { MdClose, MdManageAccounts, MdMenu, MdOutlineEditNote, MdViewList } from "react-icons/md";
+import { MdAnnouncement, MdClose, MdManageAccounts, MdMenu, MdOutlineEditNote, MdViewList } from "react-icons/md";
 import { RiArrowGoBackLine } from "react-icons/ri";
 import { TbCategory } from "react-icons/tb";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -16,6 +16,7 @@ const menuItems = [
   { to: '/ReceiveItem', icon: <BiPackage size={22} />, label: 'ส่งมอบครุภัณฑ์', key: 'receiveItem' },
   { to: '/return-list', icon: <RiArrowGoBackLine size={22} />, label: 'รายการคืนครุภัณฑ์', key: 'returnList' },
   { to: '/success', icon: <FaHandshake size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
+  { to: '/manage-news', icon: <MdAnnouncement size={22} />, label: 'จัดการข่าวสาร', key: 'manageNews' },
   { to: '/edit_profile', icon: <FaUserEdit size={22} />, label: 'แก้ไขข้อมูลส่วนตัว', key: 'profile' },
 ];
 

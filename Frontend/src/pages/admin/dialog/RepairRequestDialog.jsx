@@ -127,7 +127,7 @@ export default function RepairRequestDialog({
   };
 
   return (
-    <div className="modal modal-open backdrop-blur bg-black/50 bg-opacity-30">
+    <div className="modal modal-open">
       <div className="modal-box max-w-5xl max-h-[90vh] overflow-y-auto bg-white">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
@@ -297,6 +297,9 @@ export default function RepairRequestDialog({
           </button>
         </div>
       </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
     </div>
   );
 }

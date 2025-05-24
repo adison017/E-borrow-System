@@ -392,7 +392,7 @@ const DashboardExeutive = () => {
         </motion.div>
 
         {/* Main Content Area - Two Column Layout */}
-        <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8" variants={containerVariants}>
+        <motion.div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8" variants={containerVariants}>
           {/* Left Column (Span 2) - Equipment Status & My Requests */}
           <motion.div className="lg:col-span-2 space-y-6" variants={itemVariants}>
             {/* Equipment Status Chart */}
@@ -562,45 +562,6 @@ const DashboardExeutive = () => {
 
           {/* Right Column (Span 1) - Upcoming Returns & Recent Activities */}
           <motion.div className="lg:col-span-1 space-y-6" variants={itemVariants}>
-            {/* Upcoming Returns - Enhanced */}
-            <motion.div 
-                className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 h-auto min-h-[420px]"
-                variants={itemVariants} 
-                whileHover={{ scale: 1.01 }}
-            >
-              <h2 className="text-xl font-semibold mb-5 text-gray-700 pb-3 flex items-center">
-                <ScheduleIcon className="mr-2 text-orange-500" />
-                รายการที่จะครบกำหนดคืน
-              </h2>
-              <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                {upcomingReturnsData.map((item) => (
-                  <motion.div 
-                    key={item.id} 
-                    className={`p-4 rounded-lg border-l-4 transition-all duration-200 ${getStatusColor(item.status)} shadow-md hover:shadow-lg`}
-                    variants={itemVariants} 
-                    whileHover={{ scale: 1.02}}
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <p className="font-semibold text-gray-800 text-sm">{item.item}</p>
-                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${ 
-                        item.status === 'เกินกำหนด' ? 'bg-red-100 text-red-700' : 
-                        item.status === 'ใกล้เกินกำหนด' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600">ผู้ยืม: {item.user}</p>
-                    <p className="text-xs text-gray-500">คืนวันที่: {item.returnDate}</p>
-                  </motion.div>
-                ))}
-                {upcomingReturnsData.length === 0 && 
-                  <motion.p className="text-gray-500 text-center py-4" variants={itemVariants}>
-                    ไม่มีรายการที่ใกล้ครบกำหนดคืน
-                  </motion.p>
-                }
-              </div>
-            </motion.div>
-
             {/* Recent Activities - New Section */}
             <motion.div 
                 className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 h-auto min-h-[420px]"
