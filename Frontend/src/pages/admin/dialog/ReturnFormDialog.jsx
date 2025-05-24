@@ -52,8 +52,8 @@ const ReturnFormDialog = ({
   const equipmentItems = Array.isArray(borrowedItem.equipment) ? borrowedItem.equipment : [borrowedItem.equipment];
 
   return (
-    <div className="fixed inset-0 backdrop-blur bg-black/50 bg-opacity-30 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-8xl max-h-[90vh] overflow-y-auto">
+    <div className="modal modal-open">
+      <div className="modal-box bg-white rounded-xl shadow-xl w-full max-w-8xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
@@ -275,6 +275,9 @@ const ReturnFormDialog = ({
           </div>
         </div>
       </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
     </div>
   );
 };

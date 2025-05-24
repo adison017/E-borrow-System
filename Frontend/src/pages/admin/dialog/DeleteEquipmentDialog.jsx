@@ -8,9 +8,8 @@ export default function DeleteEquipmentDialog({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
-      <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w-full p-6 z-50">
+    <div className="modal modal-open">
+      <div className="modal-box relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w-full p-6 z-50">
         {/* Header */}
         <div className="flex justify-between items-center pb-4 mb-4 border-b border-gray-100">
           <h3 className="text-xl font-semibold text-gray-800 flex items-center">
@@ -56,6 +55,9 @@ export default function DeleteEquipmentDialog({
           </button>
         </div>
       </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
     </div>
   );
 }

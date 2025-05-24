@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FaCheck, FaTools } from 'react-icons/fa';
+import { FaTools } from 'react-icons/fa';
 
 export default function InspectRepairedEquipmentDialog({
   open,
@@ -29,7 +29,7 @@ export default function InspectRepairedEquipmentDialog({
   if (!open) return null;
 
   return (
-    <div className="modal modal-open backdrop-blur bg-black/50 bg-opacity-30 flex items-center justify-center z-50">
+    <div className="modal modal-open">
       <div className="modal-box max-w-4xl w-full bg-white rounded-2xl shadow-2xl border border-gray-200 p-0 overflow-hidden animate-fade-in">
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-blue-100 to-blue-50">
@@ -120,6 +120,9 @@ export default function InspectRepairedEquipmentDialog({
           </button>
         </div>
       </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
       <style>{`
         .animate-fade-in {
           animation: fadeIn 0.3s ease;

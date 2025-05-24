@@ -1,9 +1,9 @@
 import {
-  CheckCircleIcon as CheckCircleSolidIcon,
-  ClockIcon,
-  DocumentCheckIcon,
-  ExclamationTriangleIcon,
-  UserCircleIcon
+    CheckCircleIcon as CheckCircleSolidIcon,
+    ClockIcon,
+    DocumentCheckIcon,
+    ExclamationTriangleIcon,
+    UserCircleIcon
 } from "@heroicons/react/24/solid";
 import { MdClose } from "react-icons/md";
 
@@ -42,8 +42,8 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose }) => {
   const equipmentItems = Array.isArray(returnItem.equipment) ? returnItem.equipment : [returnItem.equipment];
 
   return (
-    <div className="fixed inset-0 backdrop-blur bg-black/50 bg-opacity-30 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-8xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
+    <div className="modal modal-open">
+      <div className="modal-box bg-white rounded-xl shadow-xl w-full max-w-8xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
@@ -268,6 +268,9 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose }) => {
           </div>
         </div>
       </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
     </div>
   );
 };

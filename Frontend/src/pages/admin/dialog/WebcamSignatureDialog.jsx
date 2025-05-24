@@ -20,11 +20,8 @@ const WebcamSignatureDialog = ({
     };
 
     return (
-        <div 
-            className="fixed inset-0 backdrop-blur-md bg-black/60 flex items-center justify-center z-[60] p-4 transition-opacity duration-300"
-            // Higher z-index than the parent dialog (z-50)
-        >
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300">
+        <div className="modal modal-open">
+            <div className="modal-box bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                     <h3 className="text-xl font-semibold text-gray-800">ถ่ายภาพลายเซ็น</h3>
@@ -84,6 +81,9 @@ const WebcamSignatureDialog = ({
                     </div>
                 </div>
             </div>
+            <form method="dialog" className="modal-backdrop">
+                <button onClick={onClose}>close</button>
+            </form>
         </div>
     );
 };

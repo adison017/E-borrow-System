@@ -1,10 +1,10 @@
 import { MdClose } from "react-icons/md";
 
-export default function DeleteUserDialog({ 
-  open, 
-  onClose, 
-  selectedUser, 
-  onConfirm 
+export default function DeleteNewsDialog({
+  open,
+  onClose,
+  selectedNews,
+  onConfirm
 }) {
   if (!open) return null;
   return (
@@ -18,7 +18,7 @@ export default function DeleteUserDialog({
                 <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
             </span>
-            ยืนยันการลบผู้ใช้งาน
+            ยืนยันการลบข่าวสาร
           </h3>
           <button
             onClick={onClose}
@@ -30,18 +30,11 @@ export default function DeleteUserDialog({
         {/* Content */}
         <div className="py-2">
           <div className="text-sm text-gray-600 mb-2">
-            คุณแน่ใจว่าต้องการลบผู้ใช้งานนี้หรือไม่?
+            คุณแน่ใจว่าต้องการลบข่าวสารนี้หรือไม่?
           </div>
-          <div className="mt-2 bg-gray-50 p-3 rounded-lg flex items-center gap-3">
-            <img
-              src={selectedUser?.pic || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
-              alt={selectedUser?.username}
-              className="w-12 h-12 rounded-full object-cover border border-gray-200 bg-white"
-            />
-            <div>
-              <div className="font-medium text-lg text-gray-900">{selectedUser?.fullname}</div>
-              <div className="text-sm text-gray-500">{selectedUser?.student_id}</div>
-            </div>
+          <div className="mt-2 bg-gray-50 p-3 rounded-lg">
+            {/* Display news title or other relevant info */}
+            <div className="font-medium text-lg text-gray-900">{selectedNews?.title}</div>
           </div>
         </div>
         {/* Footer */}
@@ -67,4 +60,4 @@ export default function DeleteUserDialog({
       </form>
     </div>
   );
-}
+} 

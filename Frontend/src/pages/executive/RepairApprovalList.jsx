@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { CheckCircleIcon, XCircleIcon, ClockIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, MagnifyingGlassIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
 
 export default function RepairApprovalList() {
@@ -374,14 +374,14 @@ export default function RepairApprovalList() {
                       {request.status === "pending" ? (
                         <button
                           onClick={() => handleOpenDialog(request)}
-                          className="cursor-pointer text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md text-sm mx-auto"
+                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
                         >
                           พิจารณา
                         </button>
                       ) : (
                         <button
                           onClick={() => handleOpenDialog(request)}
-                          className="cursor-pointer text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-md text-sm mx-auto"
+                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 hover:text-blue-700 transition-all duration-200"
                         >
                           ดูรายละเอียด
                         </button>

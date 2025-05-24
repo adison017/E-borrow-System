@@ -13,6 +13,7 @@ import BorrowList from './pages/admin/BorrowList';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 import ManageCategory from './pages/admin/ManageCategory';
 import ManageEquipment from './pages/admin/ManageEquipment';
+import ManageNews from './pages/admin/ManageNews';
 import ManageUser from './pages/admin/ManageUser';
 import ReceiveItem from './pages/admin/ReceiveItem';
 import ReturnList from './pages/admin/ReturnList';
@@ -191,6 +192,7 @@ function AppInner() {
                 <Route path="/ReceiveItem" element={<ReceiveItem />} />
                 <Route path="/category" element={<ManageCategory />} />
                 <Route path="/success" element={<Success />} />
+                <Route path="/manage-news" element={<ManageNews />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />
                 <Route path="/reports" element={<DashboardAdmin />} />
               </>

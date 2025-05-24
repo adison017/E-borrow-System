@@ -102,9 +102,8 @@ export default function AddEquipmentDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
-      <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-200 w-full p-5 z-50 overflow-y-auto max-h-[100vh]">
+    <div className="modal modal-open">
+      <div className="modal-box relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-200 w-full p-5 z-50 overflow-y-auto max-h-[100vh]">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-100">
           <h3 className="text-2xl font-bold text-gray-800 flex items-center tracking-tight">
@@ -266,6 +265,9 @@ export default function AddEquipmentDialog({
           </button>
         </div>
       </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
     </div>
   );
 }

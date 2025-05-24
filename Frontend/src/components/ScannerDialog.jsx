@@ -117,96 +117,98 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 backdrop-blur-sm bg-black/50 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
-          <h3 className="text-xl font-semibold text-gray-800">สแกน QR Code / Barcode</h3>
-          <button 
-            onClick={handleCloseDialog} 
-            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <MdClose className="w-6 h-6" />
-          </button>
-        </div>
+    <div className="modal modal-open">
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+        <div className="modal-box bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 flex flex-col max-h-[90vh]">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
+            <h3 className="text-xl font-semibold text-gray-800">สแกน QR Code / Barcode</h3>
+            <button 
+              onClick={handleCloseDialog} 
+              className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <MdClose className="w-6 h-6" />
+            </button>
+          </div>
 
-        {/* Content Area */}
-        <div className="p-6 space-y-5 overflow-y-auto flex-grow">
-          {error && (
-            <div className="bg-red-50 p-4 rounded-lg flex items-start space-x-3">
-              <ErrorIcon className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-red-700">เกิดข้อผิดพลาด</p>
-                <p className="text-xs text-red-600">{error}</p>
-              </div>
-              <button 
-                className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700 underline whitespace-nowrap"
-                onClick={() => { initializeScanner(); }} // Removed stopScanner from here, initializeScanner handles reset
-              >
-                ลองอีกครั้ง
-              </button>
-            </div>
-          )}
-
-          <p className="text-sm text-gray-600 text-center">
-            วาง QR Code หรือ Barcode ของครุภัณฑ์ให้อยู่ในกรอบเพื่อสแกน
-          </p>
-
-          <div 
-            className="relative w-full aspect-[4/3] bg-gray-800 rounded-lg overflow-hidden shadow-inner mx-auto max-h-[50vh]"
-            ref={scannerRef} // Keep ref if needed by zxing or other logic, though videoRef is primary for stream
-          >
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover"
-              muted
-              autoPlay
-              playsInline // Important for iOS
-            />
-            {/* Optional: Add a scanning animation or overlay here if desired */}
-            {scanning && !error && (
-                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    {/* Example: Simple animated focus square (optional) */}
-                    <div className="w-3/4 h-3/4 border-2 border-dashed border-white/50 rounded-lg animate-pulse"></div>
+          {/* Content Area */}
+          <div className="p-6 space-y-5 overflow-y-auto flex-grow">
+            {error && (
+              <div className="bg-red-50 p-4 rounded-lg flex items-start space-x-3">
+                <ErrorIcon className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-700">เกิดข้อผิดพลาด</p>
+                  <p className="text-xs text-red-600">{error}</p>
                 </div>
+                <button 
+                  className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700 underline whitespace-nowrap"
+                  onClick={() => { initializeScanner(); }} // Removed stopScanner from here, initializeScanner handles reset
+                >
+                  ลองอีกครั้ง
+                </button>
+              </div>
             )}
-          </div>
 
-          <div className="pt-2">
-            <label htmlFor="manualCodeInput" className="block text-sm font-medium text-gray-700 mb-1">
-              หรือป้อนรหัสด้วยตนเอง:
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                id="manualCodeInput"
-                type="text"
-                placeholder="รหัสการยืม หรือ รหัสครุภัณฑ์"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
-                value={manualCode}
-                onChange={(e) => setManualCode(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleManualSearch()}
+            <p className="text-sm text-gray-600 text-center">
+              วาง QR Code หรือ Barcode ของครุภัณฑ์ให้อยู่ในกรอบเพื่อสแกน
+            </p>
+
+            <div 
+              className="relative w-full aspect-[4/3] bg-gray-800 rounded-lg overflow-hidden shadow-inner mx-auto max-h-[50vh]"
+              ref={scannerRef} // Keep ref if needed by zxing or other logic, though videoRef is primary for stream
+            >
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                muted
+                autoPlay
+                playsInline // Important for iOS
               />
-              <button
-                type="button"
-                className="inline-flex items-center justify-center p-2.5 border border-transparent rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm disabled:opacity-60 transition-colors"
-                onClick={handleManualSearch}
-                disabled={!manualCode.trim()}
-              >
-                <MagnifyingGlassIcon className="h-5 w-5" />
-              </button>
+              {/* Optional: Add a scanning animation or overlay here if desired */}
+              {scanning && !error && (
+                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      {/* Example: Simple animated focus square (optional) */}
+                      <div className="w-3/4 h-3/4 border-2 border-dashed border-white/50 rounded-lg animate-pulse"></div>
+                  </div>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <label htmlFor="manualCodeInput" className="block text-sm font-medium text-gray-700 mb-1">
+                หรือป้อนรหัสด้วยตนเอง:
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="manualCodeInput"
+                  type="text"
+                  placeholder="รหัสการยืม"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleManualSearch()}
+                />
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center p-2.5 border border-transparent rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm disabled:opacity-60 transition-colors"
+                  onClick={handleManualSearch}
+                  disabled={!manualCode.trim()}
+                >
+                  <MagnifyingGlassIcon className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleCloseDialog}
-            className="px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm"
-          >
-            ยกเลิก
-          </button>
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
+            <button
+              type="button"
+              onClick={handleCloseDialog}
+              className="px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm"
+            >
+              ยกเลิก
+            </button>
+          </div>
         </div>
       </div>
     </div>

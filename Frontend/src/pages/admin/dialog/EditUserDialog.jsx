@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  FaBook,
-  FaBuilding,
-  FaEnvelope,
-  FaIdCard,
-  FaLock,
-  FaMapMarkerAlt,
-  FaPhone,
-  FaUser
+    FaBook,
+    FaBuilding,
+    FaEnvelope,
+    FaIdCard,
+    FaLock,
+    FaMapMarkerAlt,
+    FaPhone,
+    FaUser
 } from "react-icons/fa";
 import { MdClose, MdCloudUpload } from "react-icons/md";
 
@@ -85,8 +85,8 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   if (!open) return null;
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-h-[90vh] max-w-6xl mx-auto bg-white rounded-3xl  overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
+    <div className="modal modal-open">
+      <div className="modal-box relative w-full max-h-[90vh] max-w-6xl mx-auto bg-white rounded-3xl  overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -101,6 +101,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
           {/* Left: Profile Image */}
           <div className="flex flex-col items-center justify-start pt-16 px-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px]">
             <div className="mb-8">
+              <h2 className="text-xl font-bold text-blue-800 text-center mb-2">แก้ข้อมูลผู้ใช้งาน</h2>
               <h3 className="text-lg font-bold text-blue-800 text-center mb-2">รูปโปรไฟล์</h3>
               <p className="text-xs text-gray-500 text-center">อัพโหลดรูปภาพสำหรับใช้เป็นรูปโปรไฟล์</p>
             </div>
@@ -394,6 +395,9 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
           </div>
         </div>
       </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
     </div>
   );
 }

@@ -1,15 +1,9 @@
-import { BiSearchAlt2 } from "react-icons/bi";
-import { FaClock } from "react-icons/fa";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
   CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
-  ChevronDownIcon,
-  ChevronUpIcon
+  XCircleIcon
 } from "@heroicons/react/24/outline";
 import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
 
@@ -397,14 +391,14 @@ export default function BorrowApprovalList() {
                       {request.status === "pending" ? (
                         <button
                           onClick={() => handleOpenDialog(request)}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md text-sm mx-auto"
+                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
                         >
                           พิจารณา
                         </button>
                       ) : (
                         <button
                           onClick={() => handleOpenDialog(request)}
-                          className="cursor-pointer text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-1 rounded-md text-sm mx-auto"
+                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 hover:text-blue-700 transition-all duration-200"
                         >
                           ดูรายละเอียด
                         </button>

@@ -1,3 +1,4 @@
+import { XCircleIcon } from "@heroicons/react/24/outline";
 import { useState } from 'react';
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import {
@@ -5,13 +6,12 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaClipboardList,
-  FaExclamationTriangle,
   FaImage,
   FaTimesCircle,
   FaTools,
   FaUser
 } from 'react-icons/fa';
-import { MdAssignment, MdFullscreen, MdGridView } from "react-icons/md";
+import { MdAssignment, MdClose, MdFullscreen, MdGridView } from "react-icons/md";
 import { RiCoinsFill } from "react-icons/ri";
 
 export default function RepairApprovalDialog({
@@ -28,6 +28,9 @@ export default function RepairApprovalDialog({
   const [isZoomed, setIsZoomed] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [viewMode, setViewMode] = useState('single') // 'single' or 'grid'
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [formError, setFormError] = useState("");
 
   // Sample technicians data if none provided
   const availableTechnicians = technicians.length > 0 ? technicians : [
@@ -36,6 +39,13 @@ export default function RepairApprovalDialog({
     { id: 3, name: "นายช่างคนที่ 3" },
     { id: 4, name: "แผนกซ่อมบำรุง" },
   ]
+
+  const rejectReasonOptions = [
+    "งบประมาณไม่ผ่านการอนุมัติ",
+    "ไม่สามารถซ่อมแซมได้",
+    "รายการนี้ไม่อยู่ในขอบเขตงานซ่อม",
+    "อื่นๆ (โปรดระบุในหมายเหตุ)"
+  ];
 
   const handleApprove = () => {
     onApprove({
@@ -49,15 +59,39 @@ export default function RepairApprovalDialog({
     onClose()
   }
 
-  const handleReject = () => {
+  const handleRejectClick = () => {
+    setShowRejectDialog(true);
+    setRejectReason("");
+    setFormError("");
+  };
+
+  const handleCancelReject = () => {
+    setShowRejectDialog(false);
+    setRejectReason("");
+    setFormError("");
+  };
+
+  const handleConfirmReject = () => {
+    if (!rejectReason) {
+      setFormError("โปรดเลือกเหตุผลในการปฏิเสธ");
+      return;
+    }
+    if (rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !notes.trim()) {
+      setFormError("โปรดระบุเหตุผลเพิ่มเติม");
+      return;
+    }
+    const finalNotes = rejectReason.includes("อื่นๆ")
+      ? notes
+      : `${rejectReason}${notes ? `. ${notes}` : ''}`.trim();
     onReject({
       ...repairRequest,
-      approvalNotes: notes,
+      approvalNotes: finalNotes,
       rejectionDate: new Date().toISOString().split('T')[0]
-    })
-    setNotes('')
-    onClose()
-  }
+    });
+    setNotes("");
+    setShowRejectDialog(false);
+    onClose();
+  };
 
   const nextImage = () => {
     setActiveImageIndex(prev => (prev + 1) % repairRequest.images.length);
@@ -77,19 +111,17 @@ export default function RepairApprovalDialog({
   if (!repairRequest) return null
 
   return (
-    <div data-theme="light" className={`modal ${open ? 'modal-open' : ''}`}>
-      <div className="modal-box max-w-5xl max-h-[90vh] overflow-y-auto bg-white">
+    <div data-theme="light" className={`modal ${open ? 'modal-open ' : ''}`}>
+      <div className="modal-box max-w-5xl max-h-[90vh] overflow-y-auto bg-white ">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
           <h3 className="text-lg font-bold flex items-center gap-2">
             {repairRequest.status === 'pending' ? (
               <>
-                <FaExclamationTriangle className="text-yellow-500" />
                 <span className="text-primary">พิจารณาคำขอแจ้งซ่อมครุภัณฑ์</span>
               </>
             ) : (
               <>
-                <FaTools className="text-blue-500" />
                 <span className="text-primary">รายละเอียดการแจ้งซ่อม</span>
               </>
             )}
@@ -102,28 +134,28 @@ export default function RepairApprovalDialog({
         {/* Main Content */}
         <div className="space-y-4">
           {/* ข้อมูลผู้แจ้งและครุภัณฑ์ */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded-lg">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-blue-200/50 p-4 rounded-full">
             {/* ข้อมูลผู้แจ้ง */}
-            <div className="flex items-start gap-3 bg-white p-3 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+            <div className="flex items-start gap-3 bg-white py-4 px-10 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                 <FaUser className="text-xl" />
               </div>
               <div>
                 <h4 className="font-medium text-blue-800">ผู้แจ้งซ่อม</h4>
-                <p className="text-sm font-semibold">
+                <p className="text-sm font-semibold mt-1">
                   {repairRequest.requester.name}
                 </p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-600 mt-1">
                   {repairRequest.requester.department}
                 </p>
-                <p className="text-xs text-gray-500 mt-1 flex items-center">
+                <p className="text-xs text-gray-500 mt-2 flex items-center">
                   <BsFillCalendarDateFill className="mr-1" /> วันที่แจ้ง: {repairRequest.requestDate}
                 </p>
               </div>
             </div>
 
             {/* ข้อมูลครุภัณฑ์ */}
-            <div className="bg-white p-3 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+            <div className="bg-white py-3 px-12 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
               <h4 className="font-medium text-primary flex items-center gap-2 mb-2">
                 <FaTools className="text-primary" />
                 ข้อมูลครุภัณฑ์
@@ -276,7 +308,7 @@ export default function RepairApprovalDialog({
           )}
 
           {/* รายละเอียดปัญหา */}
-          <div className="bg-white p-3 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+          <div className="bg-white p-3 hover:bg-gray-50 transition-colors">
             <h4 className="font-medium mb-2 flex items-center gap-2 text-primary">
               <FaClipboardList />
               รายละเอียดปัญหา
@@ -312,7 +344,7 @@ export default function RepairApprovalDialog({
 
           {/* การดำเนินการ */}
           {repairRequest.status === 'pending' && (
-            <div className="bg-white p-4 rounded-lg shadow-sm">
+            <div className="bg-white p-4">
               <h4 className="font-medium mb-3 flex items-center gap-2 text-primary">
                 <MdAssignment />
                 การดำเนินการ
@@ -325,10 +357,10 @@ export default function RepairApprovalDialog({
                   </label>
                   <textarea
                     rows={2}
-                    className="textarea w-full focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                    className="textarea w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="ระบุหมายเหตุเพิ่มเติม..."
+                    placeholder="ระบุหมายเหตุเพิ่มเติม"
                   />
                 </div>
 
@@ -339,7 +371,7 @@ export default function RepairApprovalDialog({
                     </label>
                     <input
                       type="number"
-                      className="input w-full focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                      className="input w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl"
                       value={budgetApproved}
                       onChange={(e) => setBudgetApproved(e.target.value)}
                     />
@@ -349,7 +381,7 @@ export default function RepairApprovalDialog({
                       <span className="label-text font-medium">มอบหมายให้</span>
                     </label>
                     <select
-                      className="select w-full focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                      className="select w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl"
                       value={assignedTo}
                       onChange={(e) => setAssignedTo(e.target.value)}
                     >
@@ -368,7 +400,7 @@ export default function RepairApprovalDialog({
 
           {/* สำหรับคำขอที่อนุมัติแล้ว */}
           {repairRequest.status === 'approved' && (
-            <div className="alert alert-success shadow-sm">
+            <div className="alert alert-success">
               <div className="flex items-start gap-3">
                 <FaCheckCircle className="text-xl mt-0.5" />
                 <div>
@@ -392,7 +424,7 @@ export default function RepairApprovalDialog({
 
           {/* สำหรับคำขอที่ปฏิเสธ */}
           {repairRequest.status === 'rejected' && (
-            <div className="alert alert-error shadow-sm">
+            <div className="alert alert-error">
               <div className="flex items-start gap-3">
                 <FaTimesCircle className="text-xl mt-0.5" />
                 <div>
@@ -414,24 +446,111 @@ export default function RepairApprovalDialog({
 
         {/* Footer actions */}
         <div className="modal-action mt-6 pt-3">
-          {repairRequest.status === 'pending' ? (
+          {repairRequest.status === 'pending' && (
             <>
-              <button onClick={handleReject} className="btn btn-error hover:opacity-90">
+              <button onClick={handleRejectClick} className="btn btn-error hover:opacity-90 text-white rounded-2xl">
                 <FaTimesCircle className="mr-1" />
                 ปฏิเสธ
               </button>
-              <button onClick={handleApprove} className="btn btn-success hover:opacity-90">
+              <button onClick={handleApprove} className="btn btn-success hover:opacity-90 text-white rounded-2xl">
                 <FaCheckCircle className="mr-1" />
                 อนุมัติ
               </button>
             </>
-          ) : (
-            <button onClick={onClose} className="btn btn-primary hover:opacity-90">
-              ปิด
-            </button>
           )}
         </div>
       </div>
+      {/* Reject Reason Dialog */}
+      {showRejectDialog && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-xl h-max-h-[90vh] transform transition-all duration-300 overflow-hidden">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <XCircleIcon className="w-5 h-5 text-red-500" />
+                  <span>ปฏิเสธคำขอซ่อม</span>
+                </h3>
+                <button
+                  onClick={handleCancelReject}
+                  className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors duration-150"
+                >
+                  <MdClose className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    โปรดเลือกเหตุผลในการปฏิเสธ
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <div className="space-y-2 h-full overflow-y-auto pr-1 p-2">
+                    {rejectReasonOptions.map((reason) => (
+                      <label
+                        key={reason}
+                        className={`flex items-start gap-3 p-3 cursor-pointer transition-colors duration-150 rounded-md
+                          ${
+                            rejectReason === reason
+                              ? 'bg-red-50 border border-red-300 shadow-sm'
+                              : 'border border-transparent hover:bg-red-50 hover:border-red-200'
+                          }`}
+                      >
+                        <input
+                          type="radio"
+                          name="rejectReason"
+                          value={reason}
+                          checked={rejectReason === reason}
+                          onChange={() => setRejectReason(reason)}
+                          className="mt-0.5"
+                        />
+                        <span className="text-sm text-gray-700">{reason}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {formError && !rejectReason && (
+                    <p className="mt-2 text-sm text-red-600">{formError}</p>
+                  )}
+                </div>
+                {/* Additional notes for 'Other' reason */}
+                {rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ระบุเหตุผลเพิ่มเติม
+                      <span className="text-red-500 ml-1">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                      placeholder="โปรดระบุเหตุผลในการปฏิเสธ"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      required
+                    />
+                    {formError && rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !notes.trim() && (
+                      <p className="mt-2 text-sm text-red-600">{formError}</p>
+                    )}
+                  </div>
+                )}
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    onClick={handleCancelReject}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-150"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleConfirmReject}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors duration-150 flex items-center gap-1"
+                    disabled={!rejectReason || (rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !notes.trim())}
+                  >
+                    <XCircleIcon className="w-5 h-5" />
+                    ยืนยัน
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
