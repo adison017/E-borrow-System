@@ -2,9 +2,9 @@ import mysql from 'mysql2';
 
 const connection = mysql.createConnection({
   host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'mydb',
+  user: 'root',       
+  password: '',         
+  database: 'e-borrow', 
 });
 
 connection.connect((err) => {
@@ -15,5 +15,4 @@ connection.connect((err) => {
   }
 });
 
-// ส่งออก connection ด้วย ES module
 export default connection;

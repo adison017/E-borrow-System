@@ -327,7 +327,7 @@ const DashboardExeutive = () => {
                       borderTop: 'none' 
                   },
                   '& .MuiDataGrid-virtualScroller': {
-                     borderTop: '1px solid #e5e7eb' 
+                      borderTop: '1px solid #e5e7eb' 
                   }
                 }}
               />
@@ -383,7 +383,7 @@ const DashboardExeutive = () => {
                       borderTop: 'none' 
                   },
                   '& .MuiDataGrid-virtualScroller': {
-                     borderTop: '1px solid #e5e7eb' 
+                      borderTop: '1px solid #e5e7eb' 
                   }
                 }}
               />
