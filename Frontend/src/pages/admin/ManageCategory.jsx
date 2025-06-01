@@ -16,8 +16,9 @@ import {
   Tooltip,
   Typography
 } from "@material-tailwind/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Notification from "../../components/Notification";
+import { addCategory, deleteCategory, getCategories, updateCategory } from "../../utils/api";
 import AddCategoryDialog from "./dialog/AddCategoryDialog";
 import DeleteCategoryDialog from "./dialog/DeleteCategoryDialog";
 import EditCategoryDialog from "./dialog/EditCategoryDialog";
@@ -38,32 +39,8 @@ const TABLE_HEAD = [
   "จัดการ"
 ];
 
-const initialCategories = [
-  {
-    category_id: 1,
-    category_code: "CAT-001",
-    name: "อุปกรณ์อิเล็กทรอนิกส์",
-    created_at: "2023-10-01 10:00:00",
-    updated_at: "2023-10-05 15:30:00"
-  },
-  {
-    category_id: 2,
-    category_code: "CAT-002",
-    name: "เครื่องใช้ในบ้าน",
-    created_at: "2023-09-25 14:30:00",
-    updated_at: "2023-09-28 09:15:00"
-  },
-  {
-    category_id: 3,
-    category_code: "CAT-003",
-    name: "เสื้อผ้าและแฟชั่น",
-    created_at: "2023-09-15 09:20:00",
-    updated_at: "2023-09-20 11:45:00"
-  }
-];
-
 function ManageCategory() {
-  const [categoryList, setCategoryList] = useState(initialCategories);
+  const [categoryList, setCategoryList] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -87,6 +64,10 @@ function ManageCategory() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
+  useEffect(() => {
+    getCategories().then(setCategoryList);
+  }, []);
+
   const showNotification = (message, type = "success") => {
     setNotification({ show: true, message, type });
     setTimeout(() => {
@@ -100,7 +81,7 @@ function ManageCategory() {
   };
 
   const confirmDelete = () => {
-    setCategoryList(categoryList.filter(item => item.category_id !== selectedCategory.category_id));
+    deleteCategory(selectedCategory.category_id).then(() => getCategories().then(setCategoryList));
     setDeleteDialogOpen(false);
     setSelectedCategory(null);
     showNotification(`ลบหมวดหมู่ ${selectedCategory.name} เรียบร้อยแล้ว`);
@@ -125,12 +106,7 @@ function ManageCategory() {
   };
 
   const saveEdit = () => {
-    setCategoryList(categoryList.map(item =>
-      item.category_id === editFormData.category_id ? {
-        ...editFormData,
-        updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
-      } : item
-    ));
+    updateCategory(editFormData.category_id, editFormData).then(() => getCategories().then(setCategoryList));
     setEditDialogOpen(false);
     showNotification(`แก้ไขหมวดหมู่ ${editFormData.name} เรียบร้อยแล้ว`);
   };
@@ -152,20 +128,16 @@ function ManageCategory() {
     }));
   };
 
-  const saveNewCategory = () => {
-    const now = new Date();
-    const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
+  const handleAddCategory = (data) => {
+    addCategory(data).then(() => getCategories().then(setCategoryList));
+  };
 
-    const newCategory = {
-      ...addFormData,
-      category_id: categoryList.length > 0 ? Math.max(...categoryList.map(c => c.category_id)) + 1 : 1,
-      created_at: formattedDate,
-      updated_at: formattedDate
-    };
+  const handleEditCategory = (data) => {
+    updateCategory(data.category_id, data).then(() => getCategories().then(setCategoryList));
+  };
 
-    setCategoryList([...categoryList, newCategory]);
-    setAddDialogOpen(false);
-    showNotification(`เพิ่มหมวดหมู่ ${addFormData.name} เรียบร้อยแล้ว`);
+  const handleDeleteCategory = (category) => {
+    deleteCategory(category.category_id).then(() => getCategories().then(setCategoryList));
   };
 
   const filteredCategories = categoryList.filter(
@@ -317,15 +289,7 @@ function ManageCategory() {
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
           categoryData={selectedCategory}
-          onSave={(updatedData) => {
-            setCategoryList(categoryList.map(item =>
-              item.category_id === updatedData.category_id ? {
-                ...updatedData,
-                updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
-              } : item
-            ));
-            showNotification(`แก้ไขหมวดหมู่ ${updatedData.name} เรียบร้อยแล้ว`);
-          }}
+          onSave={saveEdit}
         />
         {/* Add Category Dialog Modal */}
         <AddCategoryDialog
@@ -335,18 +299,7 @@ function ManageCategory() {
             category_code: `CAT-${String(categoryList.length + 1).padStart(3, '0')}`,
             name: ""
           }}
-          onSave={(newCategory) => {
-            const now = new Date();
-            const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
-            const categoryWithId = {
-              ...newCategory,
-              category_id: categoryList.length > 0 ? Math.max(...categoryList.map(c => c.category_id)) + 1 : 1,
-              created_at: formattedDate,
-              updated_at: formattedDate
-            };
-            setCategoryList([...categoryList, categoryWithId]);
-            showNotification(`เพิ่มหมวดหมู่ ${newCategory.name} เรียบร้อยแล้ว`);
-          }}
+          onSave={handleAddCategory}
         />
       </Card>
       {/* Floating Add Category Button */}
