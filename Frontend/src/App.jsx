@@ -39,7 +39,7 @@ import Homes from './pages/users/Product';
 import Return from './pages/users/Return';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState(null); // เปลี่ยนค่าเริ่มต้นเป็น null
+  const [userRole, setUserRole] = useState('user'); // เปลี่ยนค่าเริ่มต้นเป็น null
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -63,10 +63,10 @@ function AppInner() {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  // ถ้ายังไม่ได้ login ให้แสดงหน้า AuthSystem
-  if (!userRole) {
-    return <AuthSystem onLoginSuccess={changeRole} />;
-  }
+  // // ถ้ายังไม่ได้ login ให้แสดงหน้า AuthSystem
+  // if (!userRole) {
+  //   return <AuthSystem onLoginSuccess={changeRole} />;
+  // }
 
   // Navigate to the first menu item on application startup
   useEffect(() => {
