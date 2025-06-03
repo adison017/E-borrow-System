@@ -18,23 +18,34 @@ export const LoginSuccessDialog = () => (
   </dialog>
 );
 
-export const LoginErrorDialog = () => (
-  <dialog id="login-error-alert" className="modal">
-    <div className="modal-box max-w-sm text-center rounded-2xl shadow-2xl bg-white">
-      <div className="w-24 h-24 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5 shadow-lg">
-        <svg className="h-14 w-14 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-        </svg>
+export const LoginErrorDialog = () => {
+  return (
+    <dialog id="login-error-alert" className="modal">
+      <div className="modal-box bg-white">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="font-bold text-lg text-gray-800 mb-2">เข้าสู่ระบบไม่สำเร็จ</h3>
+          <p className="text-gray-600 text-center mb-4">
+            ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง<br />
+            กรุณาตรวจสอบและลองใหม่อีกครั้ง
+          </p>
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn bg-red-500 hover:bg-red-600 text-white">ลองอีกครั้ง</button>
+            </form>
+          </div>
+        </div>
       </div>
-      <h3 className="font-bold text-2xl text-gray-800 mb-3">เกิดข้อผิดพลาด!</h3>
-      <p className="py-4 text-gray-600">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</p>
-      <form method="dialog" className="modal-action justify-center">
-        <button className="btn bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-10 py-3 rounded-xl shadow-lg hover:shadow-xl border-0">ตกลง</button>
+      <form method="dialog" className="modal-backdrop">
+        <button>close</button>
       </form>
-    </div>
-    <form method="dialog" className="modal-backdrop"><button>close</button></form>
-  </dialog>
-);
+    </dialog>
+  );
+};
 
 export const RegisterSuccessDialog = () => (
   <dialog id="register-success-alert" className="modal">

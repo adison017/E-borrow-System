@@ -82,7 +82,7 @@ const AuthSystem = (props) => {
     if (initialProvince) {
       const provinceDistricts = districts[initialProvince.id] || [];
       setAvailableDistricts(provinceDistricts);
-      
+
       // โหลดตำบลเริ่มต้นตามอำเภอเริ่มต้น
       const initialDistrict = provinceDistricts.find(d => d.name === registerData.district);
       if (initialDistrict) {
@@ -106,7 +106,7 @@ const AuthSystem = (props) => {
   const handleProvinceChange = (e) => {
     const provinceName = e.target.value;
     const selectedProvince = provinces.find(p => p.name === provinceName);
-    
+
     setRegisterData(prev => ({
       ...prev,
       province: provinceName,
@@ -114,7 +114,7 @@ const AuthSystem = (props) => {
       subdistrict: '',
       postalCode: ''
     }));
-    
+
     if (selectedProvince) {
       const provinceDistricts = districts[selectedProvince.id] || [];
       setAvailableDistricts(provinceDistricts);
@@ -128,14 +128,14 @@ const AuthSystem = (props) => {
   const handleDistrictChange = (e) => {
     const districtName = e.target.value;
     const selectedDistrict = availableDistricts.find(d => d.name === districtName);
-    
+
     setRegisterData(prev => ({
       ...prev,
       district: districtName,
       subdistrict: '',
       postalCode: ''
     }));
-    
+
     if (selectedDistrict) {
       const districtSubdistricts = subdistricts[selectedDistrict.id] || [];
       setAvailableSubdistricts(districtSubdistricts);
@@ -147,7 +147,7 @@ const AuthSystem = (props) => {
   const handleSubdistrictChange = (e) => {
     const subdistrictName = e.target.value;
     const selectedSubdistrict = availableSubdistricts.find(s => s.name === subdistrictName);
-    
+
     setRegisterData(prev => ({
       ...prev,
       subdistrict: subdistrictName,
@@ -157,11 +157,35 @@ const AuthSystem = (props) => {
 
   const handleLoginSubmit = (e) => {
     e.preventDefault();
-    if (loginData.username === 'user' && loginData.password === 'pass') {
-      document.getElementById('login-success-alert').showModal();
-    } else {
-      document.getElementById('login-error-alert').showModal();
+    setIsLoading(true);
+
+    // กำหนด username และ password สำหรับแต่ละบทบาท
+    const credentials = {
+      admin: { username: 'admin', password: 'admin123' },
+      user: { username: 'user', password: 'user123' },
+      executive: { username: 'executive', password: 'executive123' }
+    };
+
+    // ตรวจสอบ credentials
+    let role = null;
+    if (loginData.username === credentials.admin.username && loginData.password === credentials.admin.password) {
+      role = 'admin';
+    } else if (loginData.username === credentials.user.username && loginData.password === credentials.user.password) {
+      role = 'user';
+    } else if (loginData.username === credentials.executive.username && loginData.password === credentials.executive.password) {
+      role = 'executive';
     }
+
+    // Simulate API call delay
+    setTimeout(() => {
+      setIsLoading(false);
+      if (role) {
+        props.onLoginSuccess(role);
+        document.getElementById('login-success-alert').showModal();
+      } else {
+        document.getElementById('login-error-alert').showModal();
+      }
+    }, 1000);
   };
 
   const handleRegisterSubmit = (e) => {
@@ -176,7 +200,7 @@ const AuthSystem = (props) => {
   return (
     <div data-theme="light" className="min-h-screen bg-gradient-to-br from-indigo-950 to-blue-700  flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-8xl bg-white/5 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row transition-all duration-500 hover:shadow-glow">
-        
+
         {/* Left: Logo and Welcome */}
         <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 md:p-8 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-white z-0"></div>
@@ -206,7 +230,7 @@ const AuthSystem = (props) => {
         {/* Right: Form Section */}
         <div className="w-full lg:w-1/2 p-6 md:p-10">
           <div className="max-w-3xl w-full mx-auto">
-            
+
             {/* Tab Navigation */}
             <div className="flex bg-white/20 backdrop-blur-sm rounded-full p-1 shadow-inner mb-8">
               <button
@@ -388,7 +412,7 @@ const AuthSystem = (props) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Account Info Section */}
                   <div className="space-y-4">
                     <div className="flex items-center mb-4">
@@ -449,7 +473,7 @@ const AuthSystem = (props) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Contact Info Section */}
                   <div className="space-y-4">
                     <div className="flex items-center mb-4">
@@ -493,7 +517,7 @@ const AuthSystem = (props) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Address Info Section */}
                   <div className="space-y-4">
                     <div className="flex items-center mb-4">
@@ -608,7 +632,7 @@ const AuthSystem = (props) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <button
                     type="submit"
                     disabled={isLoading}
