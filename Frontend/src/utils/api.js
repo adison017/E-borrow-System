@@ -5,9 +5,10 @@ const UPLOAD_BASE = "http://localhost:5000";
 export const getEquipment = () => fetch(`${API_BASE}/equipment`).then(res => res.json());
 
 // Upload image and return filename only
-export const uploadImage = async (file) => {
+export const uploadImage = async (file, id) => {
   const formData = new FormData();
   formData.append("image", file);
+  if (id) formData.append("id", id); // ส่ง id ไปด้วย
   const res = await fetch("http://localhost:5000/api/equipment/upload", {
     method: "POST",
     body: formData,

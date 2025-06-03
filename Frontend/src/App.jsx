@@ -40,6 +40,7 @@ import Return from './pages/users/Return';
 
 function AppInner() {
   const [userRole, setUserRole] = useState(null);
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -62,7 +63,32 @@ function AppInner() {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  // Handle mobile sidebar
+
+  // // ถ้ายังไม่ได้ login ให้แสดงหน้า AuthSystem
+  // if (!userRole) {
+  //   return <AuthSystem onLoginSuccess={changeRole} />;
+  // }
+
+  // Navigate to the first menu item on application startup
+  useEffect(() => {
+    // Always navigate to the default route for the current role on app startup
+    navigate(defaultRoutes[userRole] || '/DashboardUs');
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // Handle route changes or root navigation
+  useEffect(() => {
+    if (location.pathname === '/') {
+      // Navigate to the default route of the initial role if at root path
+      if (defaultRoutes[userRole]) {
+        navigate(defaultRoutes[userRole]);
+      } else {
+        navigate('/DashboardUs'); // Fallback if role not in defaultRoutes
+      }
+    }
+  }, [userRole, navigate, location.pathname, defaultRoutes]);
+
+  // ปิด sidebar overlay อัตโนมัติเมื่อจอกว้างขึ้น (desktop)
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
