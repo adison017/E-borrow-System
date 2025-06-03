@@ -1,40 +1,28 @@
 import { Announcement as AnnouncementIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 // Renamed component from DashboardUser to NewsPage
 const NewsPage = () => {
-  // Placeholder data for news items
-  const newsItems = [
-    { 
-      id: 1, 
-      title: 'ปรับปรุงระบบครั้งใหญ่!', 
-      date: '25/04/2025', 
-      content: 'ระบบ E-borrow จะมีการปิดปรับปรุงเพื่อเพิ่มประสิทธิภาพและฟีเจอร์ใหม่ๆ ในวันที่ 30 เมษายน 2568 ตั้งแต่เวลา 00:00 ถึง 06:00 น. ขออภัยในความไม่สะดวก',
-      category: 'การบำรุงรักษา' 
-    },
-    { 
-      id: 2, 
-      title: 'อุปกรณ์ใหม่: โดรนสำหรับการถ่ายภาพมุมสูง', 
-      date: '22/04/2025', 
-      content: 'เราได้เพิ่มโดรน DJI Mavic Air 3 เข้ามาในระบบ ท่านสามารถเริ่มยืมได้ตั้งแต่วันนี้เป็นต้นไป',
-      category: 'อุปกรณ์ใหม่'
-    },
-    { 
-      id: 3, 
-      title: 'อบรมการใช้งานโปรเจกเตอร์รุ่นใหม่', 
-      date: '20/04/2025', 
-      content: 'ขอเชิญผู้ที่สนใจเข้าร่วมอบรมการใช้งานโปรเจกเตอร์ Epson EB-L200SW ในวันที่ 5 พฤษภาคม 2568 เวลา 13:00 - 15:00 น. ณ ห้องประชุมใหญ่',
-      category: 'กิจกรรม'
-    },
-    {
-      id: 4,
-      title: 'ประกาศวันหยุดเทศกาลสงกรานต์',
-      date: '10/04/2025',
-      content: 'เนื่องในเทศกาลสงกรานต์ ระบบ E-borrow จะงดให้บริการในวันที่ 13-15 เมษายน 2568 และจะเปิดให้บริการตามปกติในวันที่ 16 เมษายน 2568',
-      category: 'ประกาศ'
+  const [newsItems, setNewsItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const fetchNews = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/news');
+      setNewsItems(response.data);
+      setLoading(false);
+    } catch (err) {
+      setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      setLoading(false);
     }
-  ];
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -73,14 +61,35 @@ const NewsPage = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 flex-grow text-black">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 flex-grow text-black">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">เกิดข้อผิดพลาด! </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <motion.div 
+    <motion.div
       className="p-6 flex-grow text-black"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <motion.h1 
+      <motion.h1
         className="text-3xl font-bold mb-8 flex items-center"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -91,33 +100,37 @@ const NewsPage = () => {
       </motion.h1>
 
       {/* News Items List */}
-      <motion.div 
+      <motion.div
         className="space-y-6"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {newsItems.map((item, index) => (
-          <motion.div 
-            key={item.id} 
-            className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow"
-            variants={itemVariants}
-            whileHover={{ scale: 1.02 }}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <h2 className="text-2xl font-semibold text-blue-600">{item.title}</h2>
-              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getCategoryColor(item.category)}`}>
-                {item.category}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 mb-3">เผยแพร่เมื่อ: {item.date}</p>
-            <p className="text-gray-700 leading-relaxed">{item.content}</p>
-          </motion.div>
-        ))}
+        {newsItems.length === 0 ? (
+          <p className="text-gray-500">ยังไม่มีข่าวสารในระบบ</p>
+        ) : (
+          newsItems.map((item) => (
+            <motion.div
+              key={item.id}
+              className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow"
+              variants={itemVariants}
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <h2 className="text-2xl font-semibold text-blue-600">{item.title}</h2>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getCategoryColor(item.category)}`}>
+                  {item.category}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mb-3">เผยแพร่เมื่อ: {new Date(item.date).toLocaleDateString('th-TH')}</p>
+              <p className="text-gray-700 leading-relaxed">{item.content}</p>
+            </motion.div>
+          ))
+        )}
       </motion.div>
     </motion.div>
   );
 };
 
 // Exporting the renamed component
-export default NewsPage; 
+export default NewsPage;
