@@ -88,8 +88,7 @@ export default function AddEquipmentDialog({
   const handleSubmit = async () => {
     let dataToSave = { ...formData };
     if (dataToSave.pic instanceof File) {
-      // ได้ path เช่น "/uploads/xxxx.png"
-      dataToSave.pic = await uploadImage(dataToSave.pic);
+      dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.id); // ส่ง id ไปด้วย
     }
     // ไม่ต้องตัด path แล้ว เพราะ backend รับได้เลย
     onSave(dataToSave);

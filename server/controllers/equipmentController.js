@@ -102,15 +102,36 @@ export const deleteEquipment = (req, res) => {
       filename = filename.replace(/^\/uploads\//, '');
     }
 
+    console.log('picUrl:', picUrl);
+    console.log('filename:', filename);
+
     // ลบไฟล์ (ถ้าไม่ใช่ default)
     if (
       filename &&
       filename !== 'https://cdn-icons-png.flaticon.com/512/3474/3474360.png'
     ) {
       const filePath = path.join(process.cwd(), 'server', 'uploads', filename);
+      console.log('filePath:', filePath);
       fs.unlink(filePath, (err) => {
         // ไม่ต้อง return error ถ้าไฟล์ไม่มี
       });
+    }
+
+    // สมมติ filename ไม่มีนามสกุล ลองเติม .png หรือ .jpg ตรวจสอบก่อนลบ
+    const tryExtensions = ['', '.png', '.jpg', '.jpeg', '.webp'];
+    let found = false;
+    for (const ext of tryExtensions) {
+      const tryPath = path.join(process.cwd(), 'server', 'uploads', filename + ext);
+      if (fs.existsSync(tryPath)) {
+        fs.unlink(tryPath, (err) => {
+          if (err) console.error('ลบไฟล์ไม่สำเร็จ:', tryPath, err.message);
+        });
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      console.log('ไม่พบไฟล์ที่จะลบ:', filename);
     }
 
     // ลบข้อมูลใน DB
