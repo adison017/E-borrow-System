@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { MdClose } from "react-icons/md";
+import { getCategories, uploadImage } from "../../../utils/api";
 
 export default function EditEquipmentDialog({
   open,
@@ -13,11 +14,13 @@ export default function EditEquipmentDialog({
     category: "",
     description: "",
     quantity: "",
+    unit: "", // <-- ต้องเป็นค่าว่าง
     status: "พร้อมใช้งาน",
     pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
   });
   const fileInputRef = useRef(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [categories, setCategories] = useState([]);
 
   const statusConfig = {
     "ชำรุด": { color: "red", icon: "XCircleIcon" },
@@ -26,34 +29,36 @@ export default function EditEquipmentDialog({
     "ถูกยืม": { color: "blue", icon: "ExclamationCircleIcon" }
   };
   
-  // กำหนดหมวดหมู่ครุภัณฑ์
-  const categoryOptions = [
-    "อุปกรณ์มัลติมีเดีย",
-    "อุปกรณ์เสียง",
-    "อุปกรณ์คอมพิวเตอร์",
-    "อุปกรณ์สำนักงาน",
-    "อุปกรณ์อิเล็กทรอนิกส์"
-  ];
-
   useEffect(() => {
-    if (equipmentData) {
-      setFormData({
-        id: equipmentData.id || "",
-        name: equipmentData.name || "",
-        category: equipmentData.category || "",
-        description: equipmentData.description || "",
-        quantity: equipmentData.quantity || "",
-        status: equipmentData.status || "พร้อมใช้งาน",
-        pic: equipmentData.pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
-      });
+  if (open) {
+    getCategories().then(data => setCategories(data));
+  }
+  setFormData(equipmentData || {
+    id: "",
+    name: "",
+    category: "",
+    description: "",
+    quantity: "",
+    unit: "", // <-- ต้องเป็นค่าว่าง
+    status: "พร้อมใช้งาน",
+    pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
+  });
 
-      if (equipmentData.pic) {
-        setPreviewImage(equipmentData.pic);
-      } else {
-        setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
-      }
+  // ตั้งค่า previewImage ใหม่ทุกครั้งที่เปิด dialog
+  if (equipmentData?.pic) {
+    if (typeof equipmentData.pic === 'string') {
+      setPreviewImage(
+        equipmentData.pic.startsWith('http') || equipmentData.pic.startsWith('/uploads')
+          ? equipmentData.pic
+          : `/uploads/${equipmentData.pic}`
+      );
+    } else {
+      setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
     }
-  }, [equipmentData]);
+  } else {
+    setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
+  }
+}, [equipmentData, open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -70,7 +75,6 @@ export default function EditEquipmentDialog({
         ...prev,
         pic: file
       }));
-
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
@@ -79,12 +83,18 @@ export default function EditEquipmentDialog({
     }
   };
 
-  const handleSubmit = () => {
-    onSave(formData);
+  const handleSubmit = async () => {
+    let dataToSave = { ...formData };
+    if (dataToSave.pic instanceof File) {
+      // ได้ path เช่น "/uploads/xxxx.png"
+      dataToSave.pic = await uploadImage(dataToSave.pic);
+    }
+    // ไม่ต้องตัด path แล้ว เพราะ backend รับได้เลย
+    onSave(dataToSave);
     onClose();
   };
   
-  const isFormValid = formData.name && formData.quantity && formData.category;
+  const isFormValid = formData.name && formData.quantity && formData.category && formData.unit;
 
   const StatusDisplay = ({ status }) => {
     const config = statusConfig[status] || {
@@ -132,13 +142,21 @@ export default function EditEquipmentDialog({
               className="w-40 h-40 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer relative overflow-hidden group shadow-sm"
               onClick={() => fileInputRef.current.click()}
             >
-              <img
-                src={previewImage}
-                alt="รูปภาพครุภัณฑ์"
-                className="max-h-36 max-w-36 object-contain z-10"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-all duration-200">
-                <div className="bg-white/80 p-2 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-md">
+                <img
+                  src={
+                    previewImage ||
+                    (typeof formData.pic === 'string'
+                      ? (formData.pic.startsWith('http') || formData.pic.startsWith('/uploads'))
+                        ? formData.pic
+                        : `/uploads/${formData.pic}`
+                      : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png")
+                  }
+                  alt={formData.name}
+                  className="max-h-36 max-w-36 object-contain z-10"
+                  onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
+                />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 flex items-center justify-center transition-all duration-200 z-20">
+                <div className="bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-md">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -198,8 +216,8 @@ export default function EditEquipmentDialog({
               required
             >
               <option value="" disabled>เลือกหมวดหมู่</option>
-              {categoryOptions.map(category => (
-                <option key={category} value={category}>{category}</option>
+              {categories.map(category => (
+                <option key={category.category_id} value={category.name}>{category.name}</option>
               ))}
             </select>
           </div>
@@ -219,15 +237,32 @@ export default function EditEquipmentDialog({
               <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                 จำนวน <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 transition-shadow"
-                placeholder="ระบุจำนวน"
-                required
-              />
+              <div className="flex w-full">
+                <input
+                  type="number"
+                  name="quantity"
+                  value={formData.quantity}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 transition-shadow"
+                  placeholder="ระบุจำนวน"
+                  required
+                  min={1}
+                />
+                <select
+                  name="unit"
+                  value={formData.unit}
+                  onChange={handleChange}
+                  className="py-2 bg-white border-t border-b border-r border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
+                  required
+                >
+                  <option value="" disabled>เลือกหน่วย</option>
+                  <option value="ชิ้น">ชิ้น</option>
+                  <option value="ชุด">ชุด</option>
+                  <option value="กล่อง">กล่อง</option>
+                  <option value="อัน">อัน</option>
+                  <option value="รายการ">รายการ</option>
+                </select>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-800 mb-1.5">สถานะ</label>

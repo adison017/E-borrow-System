@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MdMenu } from 'react-icons/md';
 import { Route, BrowserRouter as Router, Routes, useLocation, useNavigate } from 'react-router-dom';
+import AuthSystem from './components/AuthSystem'; // เพิ่มบรรทัดนี้
 import Footer from './components/Footer';
 import Header from './components/Header';
 import SidebarAdmin from './components/SidebarAdmin';
@@ -38,7 +39,7 @@ import Homes from './pages/users/Product';
 import Return from './pages/users/Return';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState('admin');
+  const [userRole, setUserRole] = useState(null); // เปลี่ยนค่าเริ่มต้นเป็น null
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -61,6 +62,11 @@ function AppInner() {
   const toggleSidebarCollapse = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
+
+  // ถ้ายังไม่ได้ login ให้แสดงหน้า AuthSystem
+  if (!userRole) {
+    return <AuthSystem onLoginSuccess={changeRole} />;
+  }
 
   // Navigate to the first menu item on application startup
   useEffect(() => {
