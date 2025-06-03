@@ -11,20 +11,22 @@ const getPicUrl = (pic) => {
   return `http://localhost:5000/uploads/${pic}`;
 };
 
-export const getAllEquipment = (req, res) => {
-  Equipment.getAllEquipment((err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
+export const getAllEquipment = async (req, res) => {
+  try {
+    const results = await Equipment.getAllEquipment();
     const mapped = results.map(item => ({
       ...item,
       pic: getPicUrl(item.pic)
     }));
     res.json(mapped);
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-export const getEquipmentById = (req, res) => {
-  Equipment.getEquipmentById(req.params.id, (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
+export const getEquipmentById = async (req, res) => {
+  try {
+    const results = await Equipment.getEquipmentById(req.params.id);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
     const item = results[0];
     const mapped = {
@@ -32,34 +34,38 @@ export const getEquipmentById = (req, res) => {
       pic: getPicUrl(item.pic)
     };
     res.json(mapped);
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-export const addEquipment = (req, res) => {
-  const data = req.body;
-  if (data.pic && typeof data.pic === 'string') {
-    if (!data.pic.startsWith('http')) {
-      // ถ้าเป็นชื่อไฟล์หรือ /uploads/xxx.png ให้แปลงเป็น URL เต็ม
-      data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
+export const addEquipment = async (req, res) => {
+  try {
+    const data = req.body;
+    if (data.pic && typeof data.pic === 'string') {
+      if (!data.pic.startsWith('http')) {
+        // ถ้าเป็นชื่อไฟล์หรือ /uploads/xxx.png ให้แปลงเป็น URL เต็ม
+        data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
+      }
     }
-  }
-  Equipment.addEquipment(data, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
+    await Equipment.addEquipment(data);
     res.status(201).json({ message: 'Equipment added', id: data.id });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-export const updateEquipment = (req, res) => {
-  const data = req.body;
-  if (data.pic && typeof data.pic === 'string') {
-    if (!data.pic.startsWith('http')) {
-      data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
+export const updateEquipment = async (req, res) => {
+  try {
+    const data = req.body;
+    if (data.pic && typeof data.pic === 'string') {
+      if (!data.pic.startsWith('http')) {
+        data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
+      }
     }
-  }
 
-  // ดึงข้อมูลเดิมก่อนอัปเดต
-  Equipment.getEquipmentById(req.params.id, (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
+    // ดึงข้อมูลเดิมก่อนอัปเดต
+    const results = await Equipment.getEquipmentById(req.params.id);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
 
     const oldPic = results[0].pic;
@@ -80,17 +86,17 @@ export const updateEquipment = (req, res) => {
     }
 
     // อัปเดตข้อมูล
-    Equipment.updateEquipment(req.params.id, data, (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Equipment updated' });
-    });
-  });
+    await Equipment.updateEquipment(req.params.id, data);
+    res.json({ message: 'Equipment updated' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-export const deleteEquipment = (req, res) => {
-  // ดึงข้อมูลก่อนลบ เพื่อรู้ชื่อไฟล์
-  Equipment.getEquipmentById(req.params.id, (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
+export const deleteEquipment = async (req, res) => {
+  try {
+    // ดึงข้อมูลก่อนลบ เพื่อรู้ชื่อไฟล์
+    const results = await Equipment.getEquipmentById(req.params.id);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
 
     const picUrl = results[0].pic;
@@ -135,9 +141,9 @@ export const deleteEquipment = (req, res) => {
     }
 
     // ลบข้อมูลใน DB
-    Equipment.deleteEquipment(req.params.id, (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Equipment deleted' });
-    });
-  });
+    await Equipment.deleteEquipment(req.params.id);
+    res.json({ message: 'Equipment deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
