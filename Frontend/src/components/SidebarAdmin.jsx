@@ -23,7 +23,7 @@ const menuItems = [
 function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [menuReady, setMenuReady] = useState(false); 
+  const [menuReady, setMenuReady] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -36,12 +36,14 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
 
   const handleLogout = () => {
     if (setMobileOpen) setMobileOpen(false);
-    navigate('/login');
+    navigate('/');
   };
 
   const handleMenuClick = (to) => {
     if (setMobileOpen) setMobileOpen(false);
-    if (to) navigate(to);
+    if (to) {
+      navigate(to, { replace: true });
+    }
   };
 
   const iconSize = 22;
@@ -53,7 +55,7 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
           ? "fixed top-0 left-0 h-full w-72 z-50 bg-white shadow-xl rounded-r-2xl transition-all duration-300 ease-in-out overflow-y-auto mobile-menu-enter-active"
           : `${isCollapsed ? 'w-20' : 'w-72'} flex-none bg-white border-r border-gray-200 shadow-md transition-all duration-300 h-full hidden lg:block rounded-r-3xl overflow-y-auto`
       }
-      style={mobileOpen ? { 
+      style={mobileOpen ? {
         maxWidth: '85vw',
         animation: 'slideIn 0.3s ease-in-out'
       } : {}}
@@ -65,7 +67,7 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
           <div className="flex items-center">
             <h1 className={`font-bold text-blue-600 text-xl ${isCollapsed && !mobileOpen ? 'hidden' : ''}`}>e-Borrow</h1>
           </div>
-          
+
           {/* Close button for mobile */}
           {mobileOpen && (
             <button
@@ -97,24 +99,23 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
 
           {/* Menu Items */}
           {menuItems.map((item, index) => (
-            <li 
-              key={item.key} 
+            <li
+              key={item.key}
               className={`${isCollapsed ? "w-full flex justify-center" : "w-full"} transition-all duration-300 ease-in-out
                 ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}
-              style={{ 
+              style={{
                 transitionDelay: menuReady ? `${(index + 1) * 100}ms` : '0ms',
                 animation: !isCollapsed && menuReady ? 'fadeIn 0.3s ease-in-out' : 'none'
               }}
             >
-              <Link
-                to={item.to}
+              <button
                 onClick={() => handleMenuClick(item.to)}
-                className={`flex items-center rounded-xl transition-all duration-200 
-                  ${isCollapsed 
-                    ? 'justify-center w-12 h-12' 
+                className={`flex items-center rounded-xl transition-all duration-200
+                  ${isCollapsed
+                    ? 'justify-center w-12 h-12'
                     : 'justify-start w-full p-3'}
-                  ${isActive(item.to) 
-                    ? 'bg-blue-500 text-white shadow-md shadow-blue-200' 
+                  ${isActive(item.to)
+                    ? 'bg-blue-500 text-white shadow-md shadow-blue-200'
                     : 'hover:bg-blue-50 text-gray-700'}`}
                 title={isCollapsed ? item.label : undefined}
               >
@@ -124,11 +125,11 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
                 >
                   {item.label}
                 </span>
-              </Link>
+              </button>
             </li>
           ))}
         </ul>
-        
+
         {/* Logout button - moved to bottom */}
         <div className={`mt-auto px-4 pb-6 ${isCollapsed ? 'flex justify-center' : ''} transition-all duration-500 ease-in-out ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: menuReady ? `${(menuItems.length + 1) * 100}ms` : '0ms' }}>
           <button
