@@ -9,9 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import attendanceRoutes from './routes/attendanceRoutes.js';
+
+
 import categoryRoutes from './routes/categoryRoutes.js';
 import equipmentRoutes from './routes/equipmentRoutes.js';
 
@@ -73,7 +72,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.use('/api/attendance', attendanceRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/category', categoryRoutes);
 
