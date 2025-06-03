@@ -1,10 +1,10 @@
 import { MdClose } from "react-icons/md";
 
-export default function DeleteUserDialog({ 
-  open, 
-  onClose, 
-  selectedUser, 
-  onConfirm 
+export default function DeleteUserDialog({
+  open,
+  onClose,
+  selectedUser,
+  onConfirm
 }) {
   if (!open) return null;
   return (
@@ -39,8 +39,8 @@ export default function DeleteUserDialog({
               className="w-12 h-12 rounded-full object-cover border border-gray-200 bg-white"
             />
             <div>
-              <div className="font-medium text-lg text-gray-900">{selectedUser?.fullname}</div>
-              <div className="text-sm text-gray-500">{selectedUser?.student_id}</div>
+              <div className="font-medium text-lg text-gray-900">{selectedUser?.Fullname}</div>
+              <div className="text-sm text-gray-500">{selectedUser?.user_code}</div>
             </div>
           </div>
         </div>

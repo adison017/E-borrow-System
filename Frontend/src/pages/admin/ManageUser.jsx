@@ -2,7 +2,9 @@ import {
   MagnifyingGlassIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import Swal from "sweetalert2";
 
 import {
   PencilIcon,
@@ -45,47 +47,9 @@ const TABLE_HEAD = [
   "จัดการ"
 ];
 
-const initialUsers = [
-  {
-    user_id: 1,
-    student_id: "64010123",
-    username: "johndoe",
-    fullname: "John Doe",
-    pic: "https://randomuser.me/api/portraits/men/1.jpg",
-    email: "john@example.com",
-    phone: "0812345678",
-    position: "นิสิต",
-    department: "วิทยาการคอมพิวเตอร์",
-    updated_at: "2023-10-05 15:30:00"
-  },
-  {
-    user_id: 2,
-    student_id: "64010124",
-    username: "janesmith",
-    fullname: "Jane Smith",
-    pic: "https://randomuser.me/api/portraits/men/1.jpg",
-    email: "jane@example.com",
-    phone: "0898765432",
-    position: "บุคลากร",
-    department: "เทคโนโลยีสารสนเทศ",
-    updated_at: "2023-09-28 09:15:00"
-  },
-  {
-    user_id: 3,
-    student_id: "64010125",
-    username: "alexbrown",
-    fullname: "Alex Brown",
-    pic: "https://randomuser.me/api/portraits/men/1.jpg",
-    email: "alex@example.com",
-    phone: "0976543210",
-    position: "นิสิต",
-    department: "วิทยาการคอมพิวเตอร์",
-    updated_at: "2023-09-20 11:45:00"
-  }
-];
 
 function ManageUser() {
-  const [userList, setUserList] = useState(initialUsers);
+  const [userList, setUserList] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -100,11 +64,18 @@ function ManageUser() {
     phone: "",
     position: "",
     department: "",
+    street: "",
+    province: "",
+    district: "",
+    parish: "",
+    postal_no: "",
     password: ""
   });
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("success");
+  const [isLoading, setIsLoading] = useState(true);
+  const effectRan = useRef(false);
 
   const [addFormData, setAddFormData] = useState({
     student_id: "",
@@ -122,6 +93,46 @@ function ManageUser() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewUser, setViewUser] = useState(null);
 
+  // Function to fetch users
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('http://localhost:5000/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      const data = await response.json();
+      setUserList(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้งาน', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch users when component mounts
+  useEffect(() => {
+    if (effectRan.current === true) {
+      fetchUsers();
+    }
+    return () => {
+      effectRan.current = true;
+    };
+  }, []);
+
+  // Add event listener for user data updates
+  useEffect(() => {
+    const handleUserDataUpdate = (event) => {
+      if (event.detail && event.detail.userList) {
+        setUserList(event.detail.userList);
+      }
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, []);
+
   // ฟังก์ชั่นแสดง Alert
   const showAlertMessage = (message, type = "success") => {
     setAlertMessage(message);
@@ -132,34 +143,66 @@ function ManageUser() {
     }, 3000);
   };
 
-  const handleDeleteClick = (user) => {
+  const handleDeleteClick = async (user) => {
     setSelectedUser(user);
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    setUserList(userList.filter(item => item.user_id !== selectedUser.user_id));
-    setDeleteDialogOpen(false);
-    setSelectedUser(null);
-    showAlertMessage(`ลบผู้ใช้ ${selectedUser.fullname} เรียบร้อยแล้ว`, "success");
+  const confirmDelete = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/users/id/${selectedUser.user_id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) throw new Error('Failed to delete user');
+
+      // Update the list immediately
+      setUserList(prevList => prevList.filter(item => item.user_id !== selectedUser.user_id));
+      setDeleteDialogOpen(false);
+      setSelectedUser(null);
+      showAlertMessage(`ลบผู้ใช้ ${selectedUser.Fullname} เรียบร้อยแล้ว`, "success");
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการลบผู้ใช้งาน', 'error');
+    }
   };
 
   const handleEditClick = (user) => {
-    console.log("user.pic = ", user.pic);
     setSelectedUser(user);
+    // Clean up avatar path to show only filename
+    let avatarPath = user.avatar || '';
+    if (avatarPath) {
+      // Extract only the filename from any path
+      avatarPath = avatarPath.split('/').pop();
+    }
     setEditFormData({
       user_id: user.user_id,
-      student_id: user.student_id,
+      student_id: user.user_code,
       username: user.username,
-      fullname: user.fullname,
-      pic:user.pic,
+      fullname: user.Fullname,
+      pic: avatarPath,
       email: user.email,
-      phone: user.phone,
-      position: user.position,
-      department: user.department,
-      password: "" // ไม่แสดง password จริง แต่เก็บไว้สำหรับการอัปเดต
+      phone: user.phone || '',
+      position: user.position_name,
+      department: user.branch_name,
+      street: user.street || '',
+      province: user.province || '',
+      district: user.district || '',
+      parish: user.parish || '',
+      postal_no: user.postal_no || '',
+      password: ""
     });
     setEditDialogOpen(true);
+  };
+
+  const handleEditSave = (updatedUser) => {
+    // อัปเดตข้อมูลในตารางทันที
+    setUserList(prevList =>
+      prevList.map(user =>
+        user.user_id === updatedUser.user_id ? updatedUser : user
+      )
+    );
+    showAlertMessage('อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว', 'success');
   };
 
   const handleEditChange = (e) => {
@@ -170,15 +213,71 @@ function ManageUser() {
     }));
   };
 
-  const saveEdit = () => {
-    setUserList(userList.map(item =>
-      item.user_id === editFormData.user_id ? {
-        ...editFormData,
-        updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
-      } : item
-    ));
-    setEditDialogOpen(false);
-    showAlertMessage(`แก้ไขผู้ใช้ ${editFormData.fullname} เรียบร้อยแล้ว`, "success");
+  const saveEdit = async () => {
+    try {
+      // Handle image upload first if there's a new image
+      if (editFormData.pic && typeof editFormData.pic !== 'string') {
+        const formDataImage = new FormData();
+        formDataImage.append('user_code', editFormData.student_id);
+        formDataImage.append('avatar', editFormData.pic);
+
+        try {
+          const uploadResponse = await fetch('http://localhost:5000/users/upload-image', {
+            method: 'POST',
+            body: formDataImage
+          });
+
+          if (!uploadResponse.ok) throw new Error('Failed to upload image');
+          const uploadData = await uploadResponse.json();
+
+          // Extract only the filename
+          const filename = uploadData.path.split('/').pop();
+          editFormData.pic = filename;
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          throw error;
+        }
+      }
+
+      const response = await fetch(`http://localhost:5000/users/id/${editFormData.user_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_code: editFormData.student_id,
+          username: editFormData.username,
+          Fullname: editFormData.fullname,
+          email: editFormData.email,
+          phone: editFormData.phone || '',
+          position_name: editFormData.position,
+          branch_name: editFormData.department,
+          password: editFormData.password || undefined,
+          avatar: editFormData.pic
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update user');
+      }
+
+      // Fetch the updated user data
+      const updatedUserResponse = await fetch(`http://localhost:5000/users/id/${editFormData.user_id}`);
+      if (!updatedUserResponse.ok) throw new Error('Failed to fetch updated user data');
+      const updatedUser = await updatedUserResponse.json();
+
+      // Update the list immediately with the new data
+      setUserList(prevList => prevList.map(item =>
+        item.user_id === editFormData.user_id ? updatedUser : item
+      ));
+
+      setEditDialogOpen(false);
+      showAlertMessage(`แก้ไขผู้ใช้ ${editFormData.fullname} เรียบร้อยแล้ว`, "success");
+    } catch (error) {
+      console.error('Error updating user:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการแก้ไขผู้ใช้งาน: ' + error.message, 'error');
+    }
   };
 
   const handleAddClick = () => {
@@ -204,19 +303,29 @@ function ManageUser() {
     }));
   };
 
-  const saveNewUser = () => {
-    const now = new Date();
-    const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
+  const handleAddUser = async (newUser) => {
+    try {
+      console.log('=== ManageUser: Adding New User ===');
+      console.log('New User Data:', newUser);
 
-    const newUser = {
-      ...addFormData,
-      user_id: userList.length > 0 ? Math.max(...userList.map(u => u.user_id)) + 1 : 1,
-      updated_at: formattedDate
-    };
-
-    setUserList([...userList, newUser]);
-    setAddDialogOpen(false);
-    showAlertMessage(`เพิ่มผู้ใช้ ${addFormData.fullname} เรียบร้อยแล้ว`, "success");
+      // Refresh user list after adding new user
+      const response = await axios.get('http://localhost:5000/users');
+      if (response.data) {
+        setUserList(response.data);
+        console.log('User list updated successfully');
+      } else {
+        throw new Error('ไม่ได้รับข้อมูลผู้ใช้งานจาก server');
+      }
+    } catch (error) {
+      console.error('Error in handleAddUser:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถอัพเดทรายการผู้ใช้งานได้',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#3085d6'
+      });
+    }
   };
 
   const filteredUsers = userList.filter(
@@ -287,13 +396,13 @@ function ManageUser() {
                     <th
                       key={head}
                       className={`px-6 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
-                        index === 0 ? "w-15 text-left" : 
+                        index === 0 ? "w-15 text-left" :
                         index === 1 ? "w-20 text-center" :
-                        index === 2 ? "w-40 text-left" : 
-                        index === 3 ? "w-20 text-left" : 
-                        index === 4 ? "w-20 text-left" : 
-                        index === 5 ? "w-20 text-center" : 
-                        index === 6 ? "w-24 text-left" : 
+                        index === 2 ? "w-40 text-left" :
+                        index === 3 ? "w-20 text-left" :
+                        index === 4 ? "w-20 text-left" :
+                        index === 5 ? "w-20 text-center" :
+                        index === 6 ? "w-24 text-left" :
                         index === 7 ? "w-20 text-center" : ""
                       }`}
                     >
@@ -303,37 +412,50 @@ function ManageUser() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user, index) => {
-                    const { user_id, student_id, username, fullname, pic, email, phone, position, department } = user;
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={TABLE_HEAD.length} className="px-6 py-16 text-center">
+                      <div className="inline-flex items-center justify-center p-5 bg-gray-100 rounded-full mb-5">
+                        <svg className="animate-spin h-8 w-8 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                      <Typography variant="h6" className="text-gray-700 font-medium mb-1">
+                        กำลังโหลดข้อมูล...
+                      </Typography>
+                    </td>
+                  </tr>
+                ) : filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => {
+                    const { user_id, user_code, username, Fullname, avatar, email, phone, position_name, branch_name } = user;
                     return (
                       <tr key={user_id} className="hover:bg-gray-50 cursor-pointer" onClick={e => {
-                        // Prevent open dialog if click on edit/delete buttons
                         if (e.target.closest('button')) return;
                         setViewUser(user);
                         setViewDialogOpen(true);
                       }}>
-                        <td className="px-6 py-4 whitespace-nowrap text-md font-bold text-gray-900">{student_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md font-bold text-gray-900">{user_code}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-center">
                             <Avatar
-                              src={pic || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
-                              alt={fullname}
+                              src={avatar ? `http://localhost:5000/uploads/${avatar.split('/').pop()}?t=${Date.now()}` : "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
+                              alt={Fullname}
                               size="md"
                               className="object-contain rounded-full w-12 h-12"
                             />
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-md font-semibold text-gray-900">{fullname}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md font-semibold text-gray-900">{Fullname}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{email}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{phone}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900 text-center">{position}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{department}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900 text-center">{position_name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{branch_name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex gap-1 justify-center">
                             <Tooltip content="แก้ไข">
                               <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100"
-                                onClick={e => { e.stopPropagation(); handleEditClick({ user_id, student_id, username, fullname, pic, email, phone, position, department }); }}>
+                                onClick={e => { e.stopPropagation(); handleEditClick(user); }}>
                                 <PencilIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
@@ -395,15 +517,7 @@ function ManageUser() {
             setSelectedUser(null);
           }}
           userData={selectedUser}
-          onSave={(updatedData) => {
-            setUserList(userList.map(item =>
-              item.user_id === updatedData.user_id ? {
-                ...updatedData,
-                updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
-              } : item
-            ));
-            showAlertMessage(`แก้ไขผู้ใช้ ${updatedData.fullname} เรียบร้อยแล้ว`, "success");
-          }}
+          onSave={saveEdit}
         />
         {/* Add User Dialog Modal */}
         <AddUserDialog
@@ -423,17 +537,7 @@ function ManageUser() {
             department: "",
             password: ""
           }}
-          onSave={(newUser) => {
-            const now = new Date();
-            const formattedDate = now.toISOString().replace('T', ' ').substring(0, 19);
-            const userWithId = {
-              ...newUser,
-              user_id: userList.length > 0 ? Math.max(...userList.map(u => u.user_id)) + 1 : 1,
-              updated_at: formattedDate
-            };
-            setUserList([...userList, userWithId]);
-            showAlertMessage(`เพิ่มผู้ใช้ ${newUser.fullname} เรียบร้อยแล้ว`, "success");
-          }}
+          onSave={handleAddUser}
         />
         <ViewUserDialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} userData={viewUser} />
       </Card>
