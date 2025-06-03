@@ -26,14 +26,14 @@ import {
   Tooltip,
   Typography
 } from "@material-tailwind/react";
-import { useState } from "react"; // เพิ่ม useEffect
+import { useEffect, useState } from "react";
 import Notification from "../../components/Notification";
+import { addEquipment, deleteEquipment, getEquipment, updateEquipment, uploadImage } from "../../utils/api";
 import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
 import DeleteEquipmentDialog from "./dialog/DeleteEquipmentDialog";
 import EditEquipmentDialog from "./dialog/EditEquipmentDialog";
-import RepairRequestDialog from "./dialog/RepairRequestDialog";
-// import EquipmentInspectionDialog from "./dialog/EquipmentInspectionDialog";
 import InspectRepairedEquipmentDialog from './dialog/InspectRepairedEquipmentDialog';
+import RepairRequestDialog from "./dialog/RepairRequestDialog";
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -51,51 +51,7 @@ const TABLE_HEAD = [
   "หมวดหมู่",
   "จำนวน",
   "สถานะ",
-  "วันที่เพิ่ม",
   "จัดการ"
-];
-
-const initialEquipment = [
-  {
-    id: "EQ-001",
-    name: "กล้อง Sony",
-    category: "อุปกรณ์มัลติมีเดีย",
-    description: "กล้อง 1000 px",
-    quantity: "10 ชิ้น",
-    status: "พร้อมใช้งาน",
-    created_at: "2023-10-01 10:00:00",
-    pic: "https://cdn-icons-png.flaticon.com/512/2922/2922506.png"
-  },
-  {
-    id: "EQ-002",
-    name: "ไมโครโฟน",
-    category: "อุปกรณ์เสียง",
-    description: "ไมโครโฟนเสียงคมชัด",
-    quantity: "5 ชิ้น",
-    status: "ระหว่างซ่อม",
-    created_at: "2023-09-25 14:30:00",
-    pic: "https://cdn-icons-png.flaticon.com/512/3652/3652191.png"
-  },
-  {
-    id: "EQ-003",
-    name: "จอมอนิเตอร์",
-    category: "อุปกรณ์คอมพิวเตอร์",
-    description: "จอ LED 32 นิ้ว",
-    quantity: "2 ชิ้น",
-    status: "ชำรุด",
-    created_at: "2023-09-15 09:20:00",
-    pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
-  },
-  {
-    id: "EQ-004",
-    name: "เครื่องพิมพ์ HP",
-    category: "อุปกรณ์สำนักงาน",
-    description: "เครื่องพิมพ์อิงค์เจ็ท",
-    quantity: "3 ชิ้น",
-    status: "ถูกยืม",
-    created_at: "2023-09-10 13:45:00",
-    pic: "https://cdn-icons-png.flaticon.com/512/6134/6134781.png"
-  }
 ];
 
 // กำหนดสีและไอคอนตามสถานะ
@@ -133,7 +89,7 @@ const statusConfig = {
 };
 
 function ManageEquipment() {
-  const [equipmentList, setEquipmentList] = useState(initialEquipment);
+  const [equipmentList, setEquipmentList] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -146,6 +102,10 @@ function ManageEquipment() {
   const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
   const [showInspectDialog, setShowInspectDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    getEquipment().then(setEquipmentList);
+  }, []);
 
   // ฟังก์ชั่นแสดง Alert
   const showAlertMessage = (message, type = "success") => {
@@ -165,7 +125,7 @@ function ManageEquipment() {
   };
 
   const confirmDelete = () => {
-    setEquipmentList(equipmentList.filter(item => item.id !== selectedEquipment.id));
+    deleteEquipment(selectedEquipment.id).then(() => getEquipment().then(setEquipmentList));
     setDeleteDialogOpen(false);
     showAlertMessage(`ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "success");
     setSelectedEquipment(null);
@@ -191,20 +151,8 @@ function ManageEquipment() {
   };
 
   // ฟังก์ชั่นบันทึกครุภัณฑ์ใหม่
-  const saveNewEquipment = () => {
-    // สร้างวันที่ปัจจุบัน
-    const now = new Date();
-    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-    // เพิ่มครุภัณฑ์ใหม่เข้าไปในรายการ
-    const newEquipment = {
-      ...addFormData,
-      created_at: formattedDate
-    };
-
-    setEquipmentList([...equipmentList, newEquipment]);
-    setAddDialogOpen(false);
-    showAlertMessage(`เพิ่มครุภัณฑ์ ${addFormData.name} เรียบร้อยแล้ว`, "success");
+  const handleAddEquipment = (data) => {
+    addEquipment(data).then(() => getEquipment().then(setEquipmentList));
   };
 
   // ฟังก์ชั่นสำหรับกรองข้อมูลตามคำค้นหาและสถานะ
@@ -251,15 +199,14 @@ function ManageEquipment() {
     setRepairDialogOpen(true);
   };
 
-  const handleRepairSubmit = (repairData) => {
-    // Update equipment status to 'รออนุมัติซ่อม'
-    const updatedEquipment = equipmentList.map(item => {
-      if (item.id === repairData.equipment.code) {
-        return { ...item, status: 'รออนุมัติซ่อม' };
-      }
-      return item;
-    });
-    setEquipmentList(updatedEquipment);
+  const handleRepairSubmit = async (repairData) => {
+    // Update equipment status to 'รออนุมัติซ่อม' ใน database
+    const equipmentId = repairData.equipment.code;
+    const equipmentToUpdate = equipmentList.find(item => item.id === equipmentId);
+    if (equipmentToUpdate) {
+      await updateEquipment(equipmentId, { ...equipmentToUpdate, status: 'รออนุมัติซ่อม' });
+      getEquipment().then(setEquipmentList);
+    }
     setRepairDialogOpen(false);
     setSelectedEquipmentForRepair(null);
   };
@@ -378,85 +325,83 @@ function ManageEquipment() {
           </div>
         </div>
         </CardHeader>
-        <CardBody className="overflow-x-auto px-0"> {/* Reverted CardBody className for table section */}
+        <CardBody className="overflow-x-auto px-0">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200"> {/* Reverted table className */}
-              <thead className="bg-gradient-to-r from-indigo-950 to-blue-700"> {/* Reverted thead className */}
-                <tr>
-                  {TABLE_HEAD.map((head, index) => (
-                    <th
-                      key={head}
-                      className={`px-3 py-4 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
-                        index === 0 ? "w-16 text-center" : // รูปภาพ
-                        index === 1 ? "w-20 text-left" : // รหัสครุภัณฑ์
-                        index === 2 ? "w-20 text-left" : // ชื่อครุภัณฑ์
-                        index === 3 ? "w-20 text-left" : // หมวดหมู่
-                        index === 4 ? "w-10 text-right" : // จำนวน
-                        index === 5 ? "w-20 text-center" : // สถานะ
-                        index === 6 ? "w-24 text-left" : // วันที่เพิ่ม
-                        index === 7 ? "w-20 text-center" : ""
-                      }`}
-                    >
-                      {head}
-                    </th>
-                  ))}
-                </tr>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
+                <tr>{TABLE_HEAD.map((head, index) => (
+                  <th
+                    key={head}
+                    className={`px-3 py-4 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                      index === 0 ? "w-16 text-center" :
+                      index === 1 ? "w-20 text-left" :
+                      index === 2 ? "w-20 text-left" :
+                      index === 3 ? "w-20 text-left" :
+                      index === 4 ? "w-10 text-right" :
+                      index === 5 ? "w-20 text-center" :
+                      index === 6 ? "w-20 text-center" : ""
+                    }`}
+                  >
+                    {head}
+                  </th>
+                ))}</tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200"> {/* Reverted tbody className */}
+              <tbody className="bg-white divide-y divide-gray-200">
                 {filteredEquipment.length > 0 ? (
                   filteredEquipment.map((item, index) => {
                     const { pic, id, name, category, quantity, status, created_at } = item;
                     return (
-                    <tr key={id} className="hover:bg-gray-50"> {/* Reverted tr className */}
-                    <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center">
-                          <img
-                            className="h-10 w-10 object-contain bg-gray-100 rounded"
-                            src={pic}
-                            alt={name}
-                          />
-                        </div>
-                      </td>
-                      <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{id}</td>
-                      <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
-                      <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
-                      <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}</td>
-                      <td className="w-20 px-3 py-4 whitespace-nowrap text-center text-gray-700">
-                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-sm ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
-                          {status}
-                        </span>
-                      </td>
-                      <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left">{created_at?.split(" ")[0]}</td>
-                      <td className="w-30 px-3 py-4 whitespace-nowrap text-center">
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {status === 'ชำรุด' && (
-                            <Tooltip content="แจ้งซ่อม" placement="top">
-                              <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleRepairRequest(item)}>
-                                <WrenchIcon className="h-5 w-5" />
+                      <tr key={id} className="hover:bg-gray-50">
+                        <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
+                          <div className="flex items-center justify-center">
+                            <img
+                              className="h-10 w-10 object-contain bg-gray-100 rounded"
+                              src={pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"}
+                              alt={name}
+                              onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
+                            />
+                          </div>
+                        </td>
+                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{id}</td>
+                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
+                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
+                        <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}{item.unit ? ` ${item.unit}` : ''}</td>
+                        <td className="w-20 px-3 py-4 whitespace-nowrap text-center text-gray-700">
+                          <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-sm ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
+                            {status}
+                          </span>
+                        </td>
+                        <td className="w-25 px-3 py-4 whitespace-nowrap text-center">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            {status === 'ชำรุด' && (
+                              <Tooltip content="แจ้งซ่อม" placement="top">
+                                <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleRepairRequest(item)}>
+                                  <WrenchIcon className="h-5 w-5" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {status === 'ระหว่างซ่อม' && (
+                              <Tooltip content="ตรวจรับครุภัณฑ์" placement="top">
+                                <IconButton variant="text" color="teal" className="bg-teal-50 hover:bg-teal-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleInspectEquipment(item)}>
+                                  <CheckCircleIcon className="h-5 w-5" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            <Tooltip content="แก้ไข" placement="top">
+                              <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleEditClick(item)}>
+                                <PencilIcon className="h-5 w-5" />
                               </IconButton>
                             </Tooltip>
-                          )}
-                          {status === 'ระหว่างซ่อม' && (
-                            <Tooltip content="ตรวจรับครุภัณฑ์" placement="top">
-                              <IconButton variant="text" color="teal" className="bg-teal-50 hover:bg-teal-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleInspectEquipment(item)}>
-                                <CheckCircleIcon className="h-5 w-5" />
+                            <Tooltip content="ลบ" placement="top">
+                              <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteClick(item)}>
+                                <TrashIcon className="h-5 w-5" />
                               </IconButton>
                             </Tooltip>
-                          )}
-                          <Tooltip content="แก้ไข" placement="top">
-                            <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleEditClick(item)}>
-                              <PencilIcon className="h-5 w-5" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip content="ลบ" placement="top">
-                            <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteClick(item)}>
-                              <TrashIcon className="h-5 w-5" />
-                            </IconButton>
-                          </Tooltip>
-                        </div>
-                      </td>
-                    </tr>
-                  )})
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={TABLE_HEAD.length} className="px-6 py-16 text-center">
@@ -503,11 +448,14 @@ function ManageEquipment() {
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
           equipmentData={selectedEquipment}
-          onSave={(updatedData) => {
-            setEquipmentList(equipmentList.map(item =>
-              item.id === updatedData.id ? updatedData : item
-            ));
-            showAlertMessage(`แก้ไขครุภัณฑ์ ${updatedData.name} เรียบร้อยแล้ว`, "success");
+          onSave={async (updatedData) => {
+            let dataToSave = { ...updatedData };
+            if (dataToSave.pic instanceof File) {
+              dataToSave.pic = await uploadImage(dataToSave.pic);
+            }
+            await updateEquipment(dataToSave.id, dataToSave);
+            getEquipment().then(setEquipmentList);
+            showAlertMessage(`แก้ไขครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "success");
           }}
         />
 
@@ -524,15 +472,13 @@ function ManageEquipment() {
             status: "พร้อมใช้งาน",
             pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
           }}
-          onSave={(newEquipment) => {
-            const now = new Date();
-            const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-            setEquipmentList([...equipmentList, {
-              ...newEquipment,
-              created_at: formattedDate
-            }]);
-            showAlertMessage(`เพิ่มครุภัณฑ์ ${newEquipment.name} เรียบร้อยแล้ว`, "success");
+          onSave={async (newEquipment) => {
+            let dataToSave = { ...newEquipment };
+            if (dataToSave.pic instanceof File) {
+              dataToSave.pic = await uploadImage(dataToSave.pic);
+            }
+            await addEquipment(dataToSave);
+            getEquipment().then(setEquipmentList);
           }}
         />
 

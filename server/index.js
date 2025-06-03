@@ -1,5 +1,5 @@
-import express from 'express';
 import cors from 'cors';
+
 import userRoutes from './routes/userRoutes.js';
 import newsRoutes from './routes/newsRoutes.js';
 import positionRoutes from './routes/positionRoutes.js';
@@ -7,6 +7,14 @@ import branchRoutes from './routes/branchRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import attendanceRoutes from './routes/attendanceRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import equipmentRoutes from './routes/equipmentRoutes.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,6 +72,14 @@ app.use((err, req, res, next) => {
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 });
+
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/equipment', equipmentRoutes);
+app.use('/api/category', categoryRoutes);
+
+// เสิร์ฟไฟล์ static จาก uploads (ใช้ absolute path)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

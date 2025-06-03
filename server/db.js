@@ -1,6 +1,7 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
+
 dotenv.config();
 
 const pool = mysql.createPool({
@@ -11,6 +12,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
+
 });
 
 // Test the connection
@@ -27,3 +29,4 @@ const testConnection = async () => {
 testConnection();
 
 export default pool;
+
