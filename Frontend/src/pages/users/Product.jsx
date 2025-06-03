@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MdAdd, MdRemove, MdSearch, MdShoppingCart } from "react-icons/md";
+import { getCategories, getEquipment } from '../../utils/api'; // เพิ่ม getCategories
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
@@ -75,83 +76,47 @@ const Home = () => {
     returnDate: '',
   });
   const [selectedImage, setSelectedImage] = useState(null);
+  const [equipmentData, setEquipmentData] = useState([]);
+  const [categories, setCategories] = useState(['ทั้งหมด']); // default 'ทั้งหมด'
+  const [loading, setLoading] = useState(true);
 
-  // Sample equipment data with image references and categories
-  const equipmentData = [
-    {
-      id: 1,
-      name: 'โน๊ตบุ๊ค Dell XPS 15',
-      code: 'IT-001',
-      category: 'คอมพิวเตอร์',
-      status: 'พร้อมยืม',
-      dueDate: '',
-      image: 'https://mercular.s3.ap-southeast-1.amazonaws.com/images/products/2024/11/Computer/OIN5640101101GTH-1.jpg',
-      available: 5,
-      specifications: 'หน้าจอ 15.6 นิ้ว, CPU Intel Core i7, RAM 16GB, SSD 512GB',
-      location: 'ห้อง Server อาคาร 1 ชั้น 3',
-      purchaseDate: '10/01/2022',
-      price: '45,000 บาท'
-    },
-    {
-      id: 2,
-      name: 'โปรเจคเตอร์ Epson EB-U05',
-      code: 'AV-002',
-      category: 'อุปกรณ์มัลติมีเดีย',
-      status: 'ถูกยืม',
-      dueDate: '15/06/2023',
-      image: 'https://mercular.s3.ap-southeast-1.amazonaws.com/images/products/2024/11/Computer/OIN5640101101GTH-1.jpg',
-      available: 0,
-      specifications: 'ความสว่าง 3,500 ลูเมน, ความละเอียด Full HD, ขนาด 3.2 กก.',
-      location: 'ห้องสื่อการสอน อาคาร 2 ชั้น 1',
-      purchaseDate: '15/03/2021',
-      price: '22,500 บาท'
-    },
-    {
-      id: 3,
-      name: 'กล้อง Canon EOS 80D',
-      code: 'PH-003',
-      category: 'กล้องและอุปกรณ์ถ่ายภาพ',
-      status: 'กำลังซ่อม',
-      dueDate: '15/06/2023',
-      image: '/logo.png',
-      available: 2,
-      specifications: 'เซ็นเซอร์ APS-C 24.2MP, ระบบโฟกัส 45 จุด, ถ่ายวิดีโอ Full HD',
-      location: 'ห้องกิจกรรม อาคาร 1 ชั้น 1',
-      purchaseDate: '05/08/2020',
-      price: '32,000 บาท'
-    },
-    {
-      id: 4,
-      name: 'ไมโครโฟน Rode NT-USB',
-      code: 'AV-004',
-      category: 'อุปกรณ์มัลติมีเดีย',
-      status: 'พร้อมยืม',
-      dueDate: '',
-      image: '/logo.png',
-      available: 3,
-      specifications: 'ไมโครโฟนแบบคอนเดนเซอร์, USB, ความถี่ 20Hz-20kHz',
-      location: 'ห้องบันทึกเสียง อาคาร 2 ชั้น 2',
-      purchaseDate: '20/11/2021',
-      price: '5,900 บาท'
-    },
-    {
-      id: 5,
-      name: 'เครื่องพิมพ์ HP LaserJet Pro',
-      code: 'IT-005',
-      category: 'อุปกรณ์สำนักงาน',
-      status: 'พร้อมยืม',
-      dueDate: '',
-      image: '/logo.png',
-      available: 2,
-      specifications: 'ความเร็วพิมพ์ 30 หน้า/นาที, ความละเอียด 1200x1200 dpi',
-      location: 'ห้องสำนักงาน อาคาร 1 ชั้น 1',
-      purchaseDate: '15/09/2021',
-      price: '8,500 บาท'
-    }
-  ];
+  // โหลดข้อมูลจาก API
+  useEffect(() => {
+    setLoading(true);
+    getEquipment()
+      .then(data => {
+        // map field ให้ตรงกับ UI เดิม
+        const mapped = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          code: item.id, // ใช้ id เป็น code ถ้าไม่มี field code
+          category: item.category,
+          status: item.status, // ต้องตรงกับค่าที่ใช้ในปุ่ม
+          dueDate: '', // ไม่มีใน db, ใส่ค่าว่าง
+          image: item.pic, // ใช้ pic จาก db
+          available: item.quantity, // ใช้ quantity เป็น available
+          specifications: item.description, // ใช้ description เป็น specifications
+          location: '', // ไม่มีใน db, ใส่ค่าว่าง
+          purchaseDate: '', // ไม่มีใน db, ใส่ค่าว่าง
+          price: '', // ไม่มีใน db, ใส่ค่าว่าง
+          unit: item.unit // เพิ่ม unit ถ้าต้องใช้
+        }));
+        setEquipmentData(mapped);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // โหลด category จาก API
+  useEffect(() => {
+    getCategories().then(data => {
+      // สมมติ field ชื่อหมวดหมู่คือ name
+      const names = data.map(item => item.name);
+      setCategories(['ทั้งหมด', ...names]);
+    });
+  }, []);
 
   // Extract unique categories from equipment data
-  const categories = ['ทั้งหมด', ...new Set(equipmentData.map(item => item.category))];
+  const categoryOptions = ['ทั้งหมด', ...new Set(equipmentData.map(item => item.category))];
 
   // Handle quantity increase
   const handleIncrease = (id) => {
@@ -196,11 +161,13 @@ const Home = () => {
   const getStatusBadge = (status) => {
     const baseClasses = "badge px-4 py-4 rounded-full text-sm font-medium ";
     switch (status) {
-      case 'พร้อมยืม':
-        return <span className={`${baseClasses} badge-success text-white`}>พร้อมยืม</span>;
+      case 'พร้อมใช้งาน':
+        return <span className={`${baseClasses} badge-success text-white`}>พร้อมใช้งาน</span>;
       case 'ถูกยืม':
         return <span className={`${baseClasses} badge-warning text-black`}>ถูกยืม</span>;
-      case 'กำลังซ่อม':
+      case 'รออนุมัติซ่อม':
+      case 'ชำรุด':
+      case 'ระหว่างซ่อม':
         return <span className={`${baseClasses} badge-error text-white`}>กำลังซ่อม</span>;
       default:
         return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>{status}</span>;
@@ -262,17 +229,18 @@ const Home = () => {
   // Handle form submission
   const handleSubmitBorrow = (e) => {
     e.preventDefault();
-    
-    // Prepare selected equipment list
-    const selectedEquipmentList = Object.entries(quantities).map(([id, qty]) => {
+    const selectedList = Object.entries(quantities).map(([id, qty]) => {
       const equipment = equipmentData.find(item => item.id === parseInt(id));
-      return `${equipment.name} (${equipment.code}) ${qty} ชิ้น`;
-    }).join('\n');
-    
-    alert(`ยืนยันการยืมครุภัณฑ์\n\nรายการที่ยืม:\n${selectedEquipmentList}\n\nเหตุผล: ${borrowData.reason}\nวันที่ยืม: ${borrowData.borrowDate}\nวันที่คืน: ${borrowData.returnDate}`);
-    
-    // Reset everything
-    setQuantities({});
+      return {
+        id: equipment.id,
+        name: equipment.name,
+        qty,
+        unit: equipment.unit
+      };
+    });
+    // ส่ง selectedList และ borrowData ไป backend ได้เลย
+    // เช่น
+    // fetch('/api/borrow', { method: 'POST', body: JSON.stringify({ items: selectedList, ...borrowData }) })
     setShowBorrowDialog(false);
   };
 
@@ -340,196 +308,206 @@ const Home = () => {
 
       {/* Main Content */}
       <main className="max-w-auto mx-auto px-4 py-6 sm:px-6 lg:px-8 bg-white">
-        {/* Search and Filter Section */}
-        <motion.div 
-          className="mb-8"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Search Bar */}
-          <motion.div 
-            className="mb-6"
-            variants={itemVariants}
-          >
-            <div className="relative max-w-3xl mx-auto">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MdSearch className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl text-sm"
-                placeholder="ค้นหาชื่อครุภัณฑ์หรือรหัส..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </motion.div>
-
-          {/* Filter Controls */}
-          <motion.div 
-            className="bg-white p-6 mb-6 bg-gradient-to-r from-indigo-950 to-blue-700 rounded-2xl"
-            variants={itemVariants}
-            whileHover={{ scale: 1.01 }}
-          >
-            <div className="flex flex-col px-6 md:flex-row md:items-center md:justify-between gap-4">
-              {/* Status Filters */}
-              <div>
-                <h3 className="text-sm font-medium text-white mb-2">สถานะ</h3>
-                <div className="flex flex-wrap gap-2">
-                  {['ทั้งหมด', 'พร้อมยืม', 'ถูกยืม', 'กำลังซ่อม'].map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => handleStatusFilter(status)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        selectedStatus === status
-                          ? 'bg-blue-700 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {status}
-                    </button>
-                  ))}
+        {loading ? (
+          <div className="text-center py-12 text-gray-500">กำลังโหลดข้อมูล...</div>
+        ) : (
+          <>
+            {/* Search and Filter Section */}
+            <motion.div 
+              className="mb-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Search Bar */}
+              <motion.div 
+                className="mb-6"
+                variants={itemVariants}
+              >
+                <div className="relative max-w-3xl mx-auto">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MdSearch className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl text-sm"
+                    placeholder="ค้นหาชื่อครุภัณฑ์หรือรหัส..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Category Filter */}
-              <div>
-                <h3 className="text-sm font-medium text-white mb-2">หมวดหมู่</h3>
-                <select
-                  className="block w-full pl-3 pr-10 py-2 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 text-sm rounded-xl"
-                  value={selectedCategory}
-                  onChange={(e) => handleCategoryFilter(e.target.value)}
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Equipment Grid */}
-        <motion.div 
-          className="mb-16"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {filteredEquipment.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-              {filteredEquipment.map((equipment, index) => (
-                <motion.div 
-                  key={equipment.id} 
-                  className="card rounded-2xl shadow-md hover:shadow-xl bg-white"
-                  variants={itemVariants}
-                  whileHover={{ scale: 1.02 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <figure className="px-4 pt-4 relative">
-                    <img 
-                      src={equipment.image} 
-                      alt={equipment.name} 
-                      className="rounded-xl h-40 w-full object-contain cursor-pointer" 
-                      onClick={() => showImageModal(equipment.image)}
-                    />
-                    <div className="absolute top-6 right-6">
-                      {getStatusBadge(equipment.status)}
-                    </div>
-                  </figure>
-                  <div className="card-body p-4 md:p-6">
-                    <div className="card-title flex flex-col gap-2">
-                      <h2 className="font-semibold line-clamp-1 text-lg md:text-xl">{equipment.name}</h2>
-                      <p className="text-sm">รหัสครุภัณฑ์ {equipment.code}</p>
-                    </div>
-                    
-                    <div className="flex flex-col items-center w-full mt-4">
-                      {equipment.status === 'พร้อมยืม' && (
-                        <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
-                      )}
-                      {equipment.dueDate && equipment.status !== 'พร้อมยืม' && (
-                        <p className="text-sm">กำหนดคืน {equipment.dueDate}</p>
-                      )}
-                    </div>
-
-                    <div className="card-actions justify-center">
-                      {equipment.status === 'พร้อมยืม' ? (
-                        quantities[equipment.id] ? (
-                          <div className="join gap-2">
-                            <motion.button 
-                              className={`join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${quantities[equipment.id] >= equipment.available ? 'btn-disabled' : 'btn-ghost'}`}
-                              onClick={() => handleIncrease(equipment.id)}
-                              disabled={quantities[equipment.id] >= equipment.available}
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <MdAdd className="w-4 h-4" />
-                            </motion.button>
-                            <span className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700">
-                              {quantities[equipment.id]}
-                            </span>
-                            <motion.button 
-                              className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700" 
-                              onClick={() => handleDecrease(equipment.id)}
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <MdRemove className="w-4 h-4" />
-                            </motion.button>
-                          </div>
-                        ) : (
-                          <motion.button 
-                            className={`btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${equipment.available <= 0 ? 'btn-disabled' : 'btn-ghost'}`}
-                            onClick={() => handleIncrease(equipment.id)}
-                            disabled={equipment.available <= 0}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            {equipment.available > 0 ? (
-                              <MdAdd className="w-4 h-4" />
-                            ) : 'ไม่พร้อมให้ยืม'}
-                          </motion.button>
-                        )
-                      ) : (
-                        <motion.button 
-                          className="btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700"
-                          onClick={() => showEquipmentDetail(equipment)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
+              {/* Filter Controls */}
+              <motion.div 
+                className="bg-white p-6 mb-6 bg-gradient-to-r from-indigo-950 to-blue-700 rounded-2xl"
+                variants={itemVariants}
+                whileHover={{ scale: 1.01 }}
+              >
+                <div className="flex flex-col px-6 md:flex-row md:items-center md:justify-between gap-4">
+                  {/* Status Filters */}
+                  <div>
+                    <h3 className="text-sm font-medium text-white mb-2">สถานะ</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {['ทั้งหมด', 'พร้อมยืม', 'ถูกยืม', 'กำลังซ่อม'].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => handleStatusFilter(status)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                            selectedStatus === status
+                              ? 'bg-blue-700 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
                         >
-                          <MdSearch className="w-4 h-4" />
-                          รายละเอียด
-                        </motion.button>
-                      )}
+                          {status}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <motion.div 
-              className="text-center py-12 bg-white rounded-lg shadow-sm"
-              variants={itemVariants}
-            >
-              <p className="text-gray-500 text-lg">ไม่พบครุภัณฑ์ที่ตรงกับการค้นหา</p>
-              <button 
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedStatus('ทั้งหมด');
-                  setSelectedCategory('ทั้งหมด');
-                }}
-                className="mt-4 btn btn-md btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 transition-colors"
-              >
-                ล้างการค้นหา
-              </button>
+
+                  {/* Category Filter */}
+                  <div>
+                    <h3 className="text-sm font-medium text-white mb-2">หมวดหมู่</h3>
+                    <select
+                      className="block w-full pl-3 pr-10 py-2 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 text-sm rounded-xl"
+                      value={selectedCategory}
+                      onChange={(e) => handleCategoryFilter(e.target.value)}
+                    >
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
-          )}
-        </motion.div>
+
+            {/* Equipment Grid */}
+            <motion.div 
+              className="mb-16"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {filteredEquipment.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                  {filteredEquipment.map((equipment, index) => (
+                    <motion.div 
+                      key={equipment.id} 
+                      className="card rounded-2xl shadow-md hover:shadow-xl bg-white"
+                      variants={itemVariants}
+                      whileHover={{ scale: 1.02 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <figure className="px-4 pt-4 relative">
+                        <img 
+                          src={equipment.image} 
+                          alt={equipment.name} 
+                          className="rounded-xl h-40 w-full object-contain cursor-pointer" 
+                          onClick={() => showImageModal(equipment.image)}
+                        />
+                        <div className="absolute top-6 right-6">
+                          {getStatusBadge(equipment.status)}
+                        </div>
+                      </figure>
+                      <div className="card-body p-4 md:p-6">
+                        <div className="card-title flex flex-col gap-2">
+                          <h2 className="font-semibold line-clamp-1 text-lg md:text-xl">{equipment.name}</h2>
+                          <p className="text-sm">{equipment.code}</p>
+                        </div>
+                        
+                        <div className="flex flex-col items-center w-full mt-4">
+                          {/* เพิ่มข้อความจำนวนคงเหลือ */}
+                          <p className="text-sm font-medium text-gray-700">
+                            จำนวนคงเหลือ {equipment.available} {equipment.unit || ''}
+                          </p>
+                          {equipment.status === 'พร้อมยืม' && (
+                            <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
+                          )}
+                          {equipment.dueDate && equipment.status !== 'พร้อมยืม' && (
+                            <p className="text-sm">กำหนดคืน {equipment.dueDate}</p>
+                          )}
+                        </div>
+
+                        <div className="card-actions justify-center">
+                          {(equipment.status === 'พร้อมยืม' || equipment.status === 'พร้อมใช้งาน') ? (
+                            quantities[equipment.id] ? (
+                              <div className="join gap-2">
+                                <motion.button 
+                                  className={`join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${quantities[equipment.id] >= equipment.available ? 'btn-disabled' : 'btn-ghost'}`}
+                                  onClick={() => handleIncrease(equipment.id)}
+                                  disabled={quantities[equipment.id] >= equipment.available}
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <MdAdd className="w-4 h-4" />
+                                </motion.button>
+                                <span className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700">
+                                  {quantities[equipment.id]}
+                                </span>
+                                <motion.button 
+                                  className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700" 
+                                  onClick={() => handleDecrease(equipment.id)}
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <MdRemove className="w-4 h-4" />
+                                </motion.button>
+                              </div>
+                            ) : (
+                              <motion.button 
+                                className={`btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${equipment.available <= 0 ? 'btn-disabled' : 'btn-ghost'}`}
+                                onClick={() => handleIncrease(equipment.id)}
+                                disabled={equipment.available <= 0}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                {equipment.available > 0 ? (
+                                  <MdAdd className="w-4 h-4" />
+                                ) : 'ไม่พร้อมให้ยืม'}
+                              </motion.button>
+                            )
+                          ) : (
+                            <motion.button 
+                              className="btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700"
+                              onClick={() => showEquipmentDetail(equipment)}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <MdSearch className="w-4 h-4" />
+                              รายละเอียด
+                            </motion.button>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <motion.div 
+                  className="text-center py-12 bg-white rounded-lg shadow-sm"
+                  variants={itemVariants}
+                >
+                  <p className="text-gray-500 text-lg">ไม่พบครุภัณฑ์ที่ตรงกับการค้นหา</p>
+                  <button 
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSelectedStatus('ทั้งหมด');
+                      setSelectedCategory('ทั้งหมด');
+                    }}
+                    className="mt-4 btn btn-md btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 transition-colors"
+                  >
+                    ล้างการค้นหา
+                  </button>
+                </motion.div>
+              )}
+            </motion.div>
+          </>
+        )}
       </main>
 
       {/* Floating Cart Summary */}
