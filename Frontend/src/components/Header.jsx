@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { Avatar } from "@material-tailwind/react";
+
+// สร้าง global state สำหรับเก็บข้อมูลผู้ใช้
+let globalUserData = null;
+let globalUpdateProfileImage = null;
 
 function Header({ userRole, changeRole }) {
-  const username = "อดิศร";
+  const [username, setUsername] = useState("");
+  const [profileImage, setProfileImage] = useState('/logo_it.png');
   const roleNames = {
     admin: "ผู้ดูแลระบบ",
     user: "ผู้ใช้งาน",
@@ -9,6 +15,119 @@ function Header({ userRole, changeRole }) {
   };
   const role = roleNames[userRole] || "ผู้ใช้งาน";
   const [currentTime, setCurrentTime] = useState("");
+
+  // Function to update global user data
+  const updateGlobalUserData = (newData) => {
+    globalUserData = newData;
+    setUsername(newData.Fullname || newData.username);
+    if (newData.avatar) {
+      let avatarPath = newData.avatar;
+      avatarPath = avatarPath.replace(/^[\\/]+/, '');
+      avatarPath = avatarPath.replace(/^http:\/\/localhost:5000\//, '');
+      avatarPath = avatarPath.replace(/^uploads\//, '');
+      avatarPath = avatarPath.replace(/^imgEborow\//, '');
+      setProfileImage(`http://localhost:5000/uploads/${avatarPath}?t=${Date.now()}`);
+    }
+  };
+
+  // Add event listener for user data updates
+  useEffect(() => {
+    const handleUserDataUpdate = (event) => {
+      if (event.detail && event.detail.userData) {
+        updateGlobalUserData(event.detail.userData);
+      }
+    };
+
+    const handleProfileImageUpdate = (event) => {
+      if (event.detail && event.detail.imagePath) {
+        // Add timestamp to force image refresh
+        const timestamp = Date.now();
+        const imagePath = event.detail.imagePath.includes('?')
+          ? event.detail.imagePath
+          : `${event.detail.imagePath}?t=${timestamp}`;
+        setProfileImage(imagePath);
+      }
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+    window.addEventListener('profileImageUpdated', handleProfileImageUpdate);
+
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+      window.removeEventListener('profileImageUpdated', handleProfileImageUpdate);
+    };
+  }, []);
+
+  // Function to update profile image
+  const updateProfileImage = (newImagePath) => {
+    if (newImagePath) {
+      // Clean up the URL construction
+      let filename = newImagePath;
+      // Remove any base URLs
+      filename = filename.replace(/http:\/\/localhost:5000\//g, '');
+      // Remove any path prefixes
+      filename = filename.replace(/^uploads\//, '');
+      filename = filename.replace(/^imgEborow\//, '');
+      // Remove any leading slashes or backslashes
+      filename = filename.replace(/^[\\/]+/, '');
+      // Add timestamp to force image refresh
+      const timestamp = Date.now();
+      const cleanPath = `http://localhost:5000/uploads/${filename}?t=${timestamp}`;
+      setProfileImage(cleanPath);
+    }
+  };
+
+  // Set the global update function
+  useEffect(() => {
+    globalUpdateProfileImage = updateProfileImage;
+  }, []);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const userId = '31'; // กำหนดค่า user_id เป็น 28 สำหรับทดสอบ
+      try {
+        console.log('Fetching user data for ID:', userId);
+        const response = await fetch(`http://localhost:5000/users/id/${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Received user data:', data);
+          if (data) {
+            globalUserData = data; // เก็บข้อมูลใน global state
+            setUsername(data.Fullname || data.username);
+
+            // Fix avatar URL construction
+            let avatarPath = '/logo_it.png';
+            if (data.avatar) {
+              if (data.avatar.startsWith('http')) {
+                // If it's already a full URL, use it directly
+                avatarPath = data.avatar;
+              } else {
+                // Remove any path prefixes and clean the path
+                let cleanPath = data.avatar.replace(/^[\\/]+/, '');
+                cleanPath = cleanPath.replace(/^http:\/\/localhost:5000\//, '');
+                cleanPath = cleanPath.replace(/^uploads\//, '');
+                cleanPath = cleanPath.replace(/^imgEborow\//, '');
+                // Add timestamp to force image refresh
+                const timestamp = Date.now();
+                avatarPath = `http://localhost:5000/uploads/${cleanPath}?t=${timestamp}`;
+              }
+            }
+
+            console.log('Setting avatar path:', avatarPath);
+            setProfileImage(avatarPath);
+          } else {
+            console.error('No user data received');
+          }
+        } else {
+          console.error('Failed to fetch user data:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -19,10 +138,10 @@ function Header({ userRole, changeRole }) {
       }) + " น.";
       setCurrentTime(timeString);
     };
-    
+
     updateTime();
     const interval = setInterval(updateTime, 60000); // Update every minute
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -32,9 +151,9 @@ function Header({ userRole, changeRole }) {
         {/* Logo + System Name */}
         <div className="flex flex-col sm:flex-row items-center gap-2">
           <div className="flex items-center justify-center p-1 w-30 h-20">
-            <img 
-              src="/logo_it.png" 
-              alt="Logo" 
+            <img
+              src="/logo_it.png"
+              alt="Logo"
               className="object-contain md:w-40 md:h-50"
             />
           </div>
@@ -79,17 +198,20 @@ function Header({ userRole, changeRole }) {
             </div>
 
             {/* Profile Picture */}
-            <div className="relative">
+            <div className="flex items-center">
               <img
-                src="/lo.png"
-                alt="Profile"
-                className="h-10 w-10 sm:h-11 sm:w-11 rounded-full object-cover border-2 border-white shadow-md"
+                src={profileImage}
+                alt={username || "User"}
+                className="w-10 h-10 rounded-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+                }}
               />
-              <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-400 rounded-full border-2 border-white"></div>
             </div>
-            
+
             {/* Logout Button (optional) */}
-            <button 
+            <button
               className="md:flex items-center justify-center p-2 rounded-full hover:bg-blue-700 transition-colors"
               title="ออกจากระบบ"
             >
@@ -104,4 +226,6 @@ function Header({ userRole, changeRole }) {
   );
 }
 
+// Export globalUserData และ globalUpdateProfileImage เพื่อให้ edit_profile.jsx สามารถเข้าถึงได้
+export { globalUserData, globalUpdateProfileImage };
 export default Header;

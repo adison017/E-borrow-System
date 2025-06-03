@@ -13,19 +13,19 @@ import { MdClose } from "react-icons/md";
 export default function ViewUserDialog({ open, onClose, userData }) {
   const [formData, setFormData] = useState({
     user_id: "",
-    student_id: "",
+    user_code: "",
     username: "",
-    fullname: "",
+    Fullname: "",
     pic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
     email: "",
     phone: "",
-    position: "",
-    department: "",
-    currentAddress: "",
+    position_name: "",
+    branch_name: "",
+    street: "",
     province: "",
     district: "",
-    subdistrict: "",
-    postalCode: "",
+     parish: "",
+    postal_no: "",
     password: ""
   });
   const [previewImage, setPreviewImage] = useState(null);
@@ -34,19 +34,19 @@ export default function ViewUserDialog({ open, onClose, userData }) {
     if (userData) {
       setFormData({
         user_id: userData.user_id || "",
-        student_id: userData.student_id || "",
+        user_code: userData.user_code || "",
         username: userData.username || "",
-        fullname: userData.fullname || "",
+        Fullname: userData.Fullname || "",
         pic: userData.pic || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
         email: userData.email || "",
         phone: userData.phone || "",
-        position: userData.position || "",
-        department: userData.department || "",
-        currentAddress: userData.currentAddress || "",
+        position_name: userData.position_name || "",
+        branch_name: userData.branch_name || "",
+        street: userData.street || "",
         province: userData.province || "",
         district: userData.district || "",
-        subdistrict: userData.subdistrict || "",
-        postalCode: userData.postalCode || "",
+         parish: userData. parish || "",
+        postal_no: userData.postal_no || "",
         password: ""
       });
       if (userData.pic) {
@@ -58,7 +58,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
   }, [userData]);
 
   if (!open) return null;
-  
+
   return (
     <div className="modal modal-open">
       <div className="modal-box relative w-full max-h-[90vh] max-w-6xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
@@ -81,13 +81,13 @@ export default function ViewUserDialog({ open, onClose, userData }) {
               <p className="text-xs text-gray-500 text-center">รูปภาพโปรไฟล์ผู้ใช้งาน</p>
             </div>
             <div className="w-36 h-36 rounded-full bg-white shadow-lg flex items-center justify-center relative group overflow-hidden border-4 border-white hover:border-blue-200 transition-all duration-300">
-              <img
-                src={previewImage || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
+            <img
+                src={previewImage || "/logo_it.png"}
                 alt="Profile"
                 className="w-full h-full object-cover rounded-full"
                 onError={e => {
                   e.target.onerror = null;
-                  e.target.src = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+                  e.target.src = "/logo_it.png";
                 }}
               />
             </div>
@@ -116,9 +116,9 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                       </label>
                       <input
                         type="text"
-                        name="student_id"
+                        name="user_code"
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
-                        value={formData.student_id}
+                        value={formData.user_code}
                         readOnly
                         disabled
                       />
@@ -130,9 +130,9 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                       </label>
                       <input
                         type="text"
-                        name="fullname"
+                        name="Fullname"
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
-                        value={formData.fullname}
+                        value={formData.Fullname}
                         readOnly
                         disabled
                       />
@@ -145,9 +145,9 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                         </label>
                         <input
                           type="text"
-                          name="position"
+                          name="position_name"
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
-                          value={formData.position}
+                          value={formData.position_name}
                           readOnly
                           disabled
                         />
@@ -159,9 +159,9 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                         </label>
                         <input
                           type="text"
-                          name="department"
+                          name="branch_name"
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
-                          value={formData.department}
+                          value={formData.branch_name}
                           readOnly
                           disabled
                         />
@@ -221,10 +221,10 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ปัจจุบัน</label>
                       <textarea
-                        name="currentAddress"
+                        name="street"
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
                         rows="3"
-                        value={formData.currentAddress}
+                        value={formData.street}
                         readOnly
                         disabled
                       />
@@ -258,9 +258,9 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                         <label className="block text-sm font-medium text-gray-700 mb-1">ตำบล</label>
                         <input
                           type="text"
-                          name="subdistrict"
+                          name=" parish"
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
-                          value={formData.subdistrict}
+                          value={formData. parish}
                           readOnly
                           disabled
                         />
@@ -269,9 +269,9 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                         <label className="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
                         <input
                           type="text"
-                          name="postalCode"
+                          name="postal_no"
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
-                          value={formData.postalCode}
+                          value={formData.postal_no}
                           readOnly
                           disabled
                         />
@@ -299,4 +299,4 @@ export default function ViewUserDialog({ open, onClose, userData }) {
       </form>
     </div>
   );
-} 
+}
