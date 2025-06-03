@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MdMenu } from 'react-icons/md';
-import { Route, BrowserRouter as Router, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Route, BrowserRouter as Router, Routes, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import AuthSystem from './components/AuthSystem'; // เพิ่มบรรทัดนี้
 import Footer from './components/Footer';
 import Header from './components/Header';
@@ -39,7 +39,7 @@ import Homes from './pages/users/Product';
 import Return from './pages/users/Return';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState(null); // เปลี่ยนค่าเริ่มต้นเป็น null
+  const [userRole, setUserRole] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -53,7 +53,6 @@ function AppInner() {
 
   const changeRole = (role) => {
     setUserRole(role);
-    // Navigate to the default route for the selected role
     if (defaultRoutes[role]) {
       navigate(defaultRoutes[role]);
     }
@@ -63,30 +62,7 @@ function AppInner() {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  // ถ้ายังไม่ได้ login ให้แสดงหน้า AuthSystem
-  if (!userRole) {
-    return <AuthSystem onLoginSuccess={changeRole} />;
-  }
-
-  // Navigate to the first menu item on application startup
-  useEffect(() => {
-    // Always navigate to the default route for the current role on app startup
-    navigate(defaultRoutes[userRole] || '/DashboardUs');
-  }, []); // Empty dependency array ensures this runs only once on mount
-
-  // Handle route changes or root navigation
-  useEffect(() => {
-    if (location.pathname === '/') {
-      // Navigate to the default route of the initial role if at root path
-      if (defaultRoutes[userRole]) {
-        navigate(defaultRoutes[userRole]);
-      } else {
-        navigate('/DashboardUs'); // Fallback if role not in defaultRoutes
-      }
-    }
-  }, [userRole, navigate, location.pathname, defaultRoutes]);
-
-  // ปิด sidebar overlay อัตโนมัติเมื่อจอกว้างขึ้น (desktop)
+  // Handle mobile sidebar
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
@@ -101,29 +77,34 @@ function AppInner() {
     switch (userRole) {
       case 'admin':
         return (
-          <SidebarAdmin 
-            isCollapsed={isSidebarCollapsed} 
-            toggleCollapse={toggleSidebarCollapse} 
+          <SidebarAdmin
+            isCollapsed={isSidebarCollapsed}
+            toggleCollapse={toggleSidebarCollapse}
           />
         );
       case 'user':
         return (
-          <SidebarUser 
-            isCollapsed={isSidebarCollapsed} 
-            toggleCollapse={toggleSidebarCollapse} 
+          <SidebarUser
+            isCollapsed={isSidebarCollapsed}
+            toggleCollapse={toggleSidebarCollapse}
           />
         );
       case 'executive':
         return (
-          <SidebarExecutive 
-            isCollapsed={isSidebarCollapsed} 
-            toggleCollapse={toggleSidebarCollapse} 
+          <SidebarExecutive
+            isCollapsed={isSidebarCollapsed}
+            toggleCollapse={toggleSidebarCollapse}
           />
         );
       default:
         return null;
     }
   };
+
+  // ถ้ายังไม่ได้ login ให้แสดงหน้า AuthSystem
+  if (!userRole) {
+    return <AuthSystem onLoginSuccess={changeRole} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-row bg-gradient-to-r from-indigo-950 md:from-7% sm:from-1% to-blue-700 text-black">
@@ -171,14 +152,7 @@ function AppInner() {
           animation: isSidebarCollapsed ? 'none' : 'slideIn 0.3s ease-in-out'
         }}
       >
-        {userRole === 'user' ? (
-          <SidebarUser
-            isCollapsed={isSidebarCollapsed}
-            toggleCollapse={toggleSidebarCollapse}
-            mobileOpen={false}
-            setMobileOpen={() => {}}
-          />
-        ) : renderSidebar()}
+        {renderSidebar()}
       </div>
 
       {/* Main content */}
@@ -201,6 +175,7 @@ function AppInner() {
                 <Route path="/manage-news" element={<ManageNews />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />
                 <Route path="/reports" element={<DashboardAdmin />} />
+                <Route path="*" element={<Navigate to="/DashboardAd" replace />} />
               </>
             )}
 
@@ -213,6 +188,7 @@ function AppInner() {
                 <Route path="/History" element={<Historybt />} />
                 <Route path="/History_repair" element={<HistoryRe />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />
+                <Route path="*" element={<Navigate to="/DashboardEx" replace />} />
               </>
             )}
 
@@ -228,6 +204,7 @@ function AppInner() {
                 <Route path="/cancel" element={<Cancel_re />} />
                 <Route path="/fine" element={<Fine />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />
+                <Route path="*" element={<Navigate to="/DashboardUs" replace />} />
               </>
             )}
           </Routes>
