@@ -424,8 +424,8 @@ const ReceiveItem = () => {
             </div>
           </div>
         </CardHeader>
-        <CardBody className="overflow-x-auto px-0">
-          <div className="overflow-x-auto">
+        <CardBody className="overflow-x-auto ">
+          <div className="overflow-x-auto rounded-2xl">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
