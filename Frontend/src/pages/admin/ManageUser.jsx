@@ -2,8 +2,8 @@ import {
   MagnifyingGlassIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
-import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
 import {
@@ -92,6 +92,8 @@ function ManageUser() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewUser, setViewUser] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
 
   // Function to fetch users
   const fetchUsers = async () => {
@@ -195,13 +197,15 @@ function ManageUser() {
     setEditDialogOpen(true);
   };
 
-  const handleEditSave = (updatedUser) => {
-    // อัปเดตข้อมูลในตารางทันที
+  // เพิ่มฟังก์ชัน saveEdit ใหม่ที่รับ updatedUser
+  const saveEdit = (updatedUser) => {
     setUserList(prevList =>
       prevList.map(user =>
         user.user_id === updatedUser.user_id ? updatedUser : user
       )
     );
+    setEditDialogOpen(false);
+    setSelectedUser(null);
     showAlertMessage('อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว', 'success');
   };
 
@@ -211,73 +215,6 @@ function ManageUser() {
       ...prev,
       [name]: value
     }));
-  };
-
-  const saveEdit = async () => {
-    try {
-      // Handle image upload first if there's a new image
-      if (editFormData.pic && typeof editFormData.pic !== 'string') {
-        const formDataImage = new FormData();
-        formDataImage.append('user_code', editFormData.student_id);
-        formDataImage.append('avatar', editFormData.pic);
-
-        try {
-          const uploadResponse = await fetch('http://localhost:5000/users/upload-image', {
-            method: 'POST',
-            body: formDataImage
-          });
-
-          if (!uploadResponse.ok) throw new Error('Failed to upload image');
-          const uploadData = await uploadResponse.json();
-
-          // Extract only the filename
-          const filename = uploadData.path.split('/').pop();
-          editFormData.pic = filename;
-        } catch (error) {
-          console.error('Error uploading image:', error);
-          throw error;
-        }
-      }
-
-      const response = await fetch(`http://localhost:5000/users/id/${editFormData.user_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_code: editFormData.student_id,
-          username: editFormData.username,
-          Fullname: editFormData.fullname,
-          email: editFormData.email,
-          phone: editFormData.phone || '',
-          position_name: editFormData.position,
-          branch_name: editFormData.department,
-          password: editFormData.password || undefined,
-          avatar: editFormData.pic
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update user');
-      }
-
-      // Fetch the updated user data
-      const updatedUserResponse = await fetch(`http://localhost:5000/users/id/${editFormData.user_id}`);
-      if (!updatedUserResponse.ok) throw new Error('Failed to fetch updated user data');
-      const updatedUser = await updatedUserResponse.json();
-
-      // Update the list immediately with the new data
-      setUserList(prevList => prevList.map(item =>
-        item.user_id === editFormData.user_id ? updatedUser : item
-      ));
-
-      setEditDialogOpen(false);
-      showAlertMessage(`แก้ไขผู้ใช้ ${editFormData.fullname} เรียบร้อยแล้ว`, "success");
-    } catch (error) {
-      console.error('Error updating user:', error);
-      showAlertMessage('เกิดข้อผิดพลาดในการแก้ไขผู้ใช้งาน: ' + error.message, 'error');
-    }
   };
 
   const handleAddClick = () => {
@@ -339,6 +276,9 @@ function ManageUser() {
       user.department?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
   return (
     <ThemeProvider value={theme}>
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
@@ -388,7 +328,7 @@ function ManageUser() {
           </div>
         </CardHeader>
         <CardBody className="overflow-x-auto px-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-2xl">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
@@ -426,8 +366,8 @@ function ManageUser() {
                       </Typography>
                     </td>
                   </tr>
-                ) : filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => {
+                ) : paginatedUsers.length > 0 ? (
+                  paginatedUsers.map((user) => {
                     const { user_id, user_code, username, Fullname, avatar, email, phone, position_name, branch_name } = user;
                     return (
                       <tr key={user_id} className="hover:bg-gray-50 cursor-pointer" onClick={e => {
@@ -439,10 +379,10 @@ function ManageUser() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-center">
                             <Avatar
-                              src={avatar ? `http://localhost:5000/uploads/${avatar.split('/').pop()}?t=${Date.now()}` : "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
+                              src={avatar ? `http://localhost:5000/uploads/${avatar}?t=${Date.now()}` : "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
                               alt={Fullname}
                               size="md"
-                              className="object-contain rounded-full w-12 h-12"
+                              className="rounded-full w-14 h-14 object-cover border border-gray-200 shadow"
                             />
                           </div>
                         </td>
@@ -491,13 +431,26 @@ function ManageUser() {
         </CardBody>
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
           <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
-            แสดง {filteredUsers.length > 0 ? '1' : '0'} ถึง {filteredUsers.length} จากทั้งหมด {userList.length} รายการ
+            แสดง {filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} ถึง {Math.min(currentPage * itemsPerPage, filteredUsers.length)} จากทั้งหมด {userList.length} รายการ
           </Typography>
-          <div className="flex gap-2">
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <span className="text-sm text-gray-700">{currentPage} / {totalPages}</span>
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
               ถัดไป
             </Button>
           </div>
