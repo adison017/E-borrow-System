@@ -1,16 +1,16 @@
+import axios from 'axios';
 import { useEffect, useRef, useState } from "react";
 import {
-    FaBook,
-    FaBuilding,
-    FaEnvelope,
-    FaIdCard,
-    FaLock,
-    FaMapMarkerAlt,
-    FaPhone,
-    FaUser
+  FaBook,
+  FaBuilding,
+  FaEnvelope,
+  FaIdCard,
+  FaLock,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaUser
 } from "react-icons/fa";
 import { MdClose, MdCloudUpload } from "react-icons/md";
-import axios from 'axios';
 import Swal from 'sweetalert2';
 
 export default function AddUserDialog({
@@ -90,31 +90,51 @@ export default function AddUserDialog({
   }, [open]);
 
   useEffect(() => {
-    if (initialFormData?.pic) {
-      setPreviewImage(initialFormData.pic);
+    if (initialFormData) {
+      setFormData({
+        user_code: initialFormData.user_code || "",
+        username: initialFormData.username || "",
+        Fullname: initialFormData.Fullname || "",
+        email: initialFormData.email || "",
+        phone: initialFormData.phone || "",
+        position_name: initialFormData.position_name || "",
+        branch_name: initialFormData.branch_name || "",
+        position_id: initialFormData.position_id || "",
+        branch_id: initialFormData.branch_id || "",
+        role_id: initialFormData.role_id || "",
+        role_name: initialFormData.role_name || "",
+        street: initialFormData.street || "",
+        province: initialFormData.province || "",
+        district: initialFormData.district || "",
+        parish: initialFormData.parish || "",
+        postal_no: initialFormData.postal_no || "",
+        password: "",
+        pic: initialFormData.pic || "logo_it.png"
+      });
+      setPreviewImage(initialFormData.pic || "/logo_it.png");
     } else {
+      setFormData({
+        user_code: "",
+        username: "",
+        Fullname: "",
+        email: "",
+        phone: "",
+        position_name: "",
+        branch_name: "",
+        position_id: "",
+        branch_id: "",
+        role_id: "",
+        role_name: "",
+        street: "",
+        province: "",
+        district: "",
+        parish: "",
+        postal_no: "",
+        password: "",
+        pic: "logo_it.png"
+      });
       setPreviewImage("/logo_it.png");
     }
-    setFormData(initialFormData || {
-      user_code: "",
-      username: "",
-      Fullname: "",
-      email: "",
-      phone: "",
-      position_name: "",
-      branch_name: "",
-      position_id: "",
-      branch_id: "",
-      role_id: "",
-      role_name: "",
-      street: "",
-      province: "",
-      district: "",
-      parish: "",
-      postal_no: "",
-      password: "",
-      pic: "logo_it.png"
-    });
   }, [initialFormData, open]);
 
   const handleChange = (e) => {
