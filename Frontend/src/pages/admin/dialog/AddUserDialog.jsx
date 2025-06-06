@@ -4,12 +4,15 @@ import {
   FaBook,
   FaBuilding,
   FaEnvelope,
+  FaEye,
+  FaEyeSlash,
   FaIdCard,
   FaLock,
   FaMapMarkerAlt,
   FaPhone,
   FaUser
 } from "react-icons/fa";
+import { GiOfficeChair } from "react-icons/gi";
 import { MdClose, MdCloudUpload } from "react-icons/md";
 import Swal from 'sweetalert2';
 
@@ -19,6 +22,7 @@ export default function AddUserDialog({
   initialFormData,
   onSave
 }) {
+  const DEFAULT_PROFILE_URL = "/profile.png";
   const [formData, setFormData] = useState({
     user_code: "",
     username: "",
@@ -37,7 +41,7 @@ export default function AddUserDialog({
     parish: "",
     postal_no: "",
     password: "",
-    pic: "logo_it.png"
+    pic: DEFAULT_PROFILE_URL
   });
   const [positions, setPositions] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -51,8 +55,9 @@ export default function AddUserDialog({
     tambon_id: undefined
   });
   const fileInputRef = useRef(null);
-  const [previewImage, setPreviewImage] = useState("/logo_it.png");
+  const [previewImage, setPreviewImage] = useState(DEFAULT_PROFILE_URL);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // เพิ่ม state สำหรับแสดงรหัสผ่าน
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,9 +114,9 @@ export default function AddUserDialog({
         parish: initialFormData.parish || "",
         postal_no: initialFormData.postal_no || "",
         password: "",
-        pic: initialFormData.pic || "logo_it.png"
+        pic: initialFormData.pic || DEFAULT_PROFILE_URL
       });
-      setPreviewImage(initialFormData.pic || "/logo_it.png");
+      setPreviewImage(initialFormData.pic || DEFAULT_PROFILE_URL);
     } else {
       setFormData({
         user_code: "",
@@ -131,9 +136,9 @@ export default function AddUserDialog({
         parish: "",
         postal_no: "",
         password: "",
-        pic: "logo_it.png"
+        pic: DEFAULT_PROFILE_URL
       });
-      setPreviewImage("/logo_it.png");
+      setPreviewImage(DEFAULT_PROFILE_URL);
     }
   }, [initialFormData, open]);
 
@@ -223,18 +228,16 @@ export default function AddUserDialog({
         amphure_id: undefined,
         tambon_id: undefined
       });
-      if (id) {
-        const province = provinces.find(p => p.id === id);
-        if (province) {
-          setAmphures(province.amphure);
-          setFormData(prev => ({
-            ...prev,
-            province: province.name_th,
-            district: '',
-            parish: '',
-            postal_no: ''
-          }));
-        }
+      const provinceObj = provinces.find(p => p.id === id);
+      setFormData(prev => ({
+        ...prev,
+        province: provinceObj ? provinceObj.name_th : '',
+        district: '',
+        parish: '',
+        postal_no: ''
+      }));
+      if (provinceObj) {
+        setAmphures(provinceObj.amphure);
       }
     } else if (type === 'amphure') {
       setTambons([]);
@@ -243,33 +246,27 @@ export default function AddUserDialog({
         amphure_id: id,
         tambon_id: undefined
       }));
-      if (id) {
-        const amphure = amphures.find(a => a.id === id);
-        if (amphure) {
-          setTambons(amphure.tambon);
-          setFormData(prev => ({
-            ...prev,
-            district: amphure.name_th,
-            parish: '',
-            postal_no: ''
-          }));
-        }
+      const amphureObj = amphures.find(a => a.id === id);
+      setFormData(prev => ({
+        ...prev,
+        district: amphureObj ? amphureObj.name_th : '',
+        parish: '',
+        postal_no: ''
+      }));
+      if (amphureObj) {
+        setTambons(amphureObj.tambon);
       }
     } else if (type === 'tambon') {
       setSelected(prev => ({
         ...prev,
         tambon_id: id
       }));
-      if (id) {
-        const tambon = tambons.find(t => t.id === id);
-        if (tambon) {
-          setFormData(prev => ({
-            ...prev,
-            parish: tambon.name_th,
-            postal_no: tambon.zip_code
-          }));
-        }
-      }
+      const tambonObj = tambons.find(t => t.id === id);
+      setFormData(prev => ({
+        ...prev,
+        parish: tambonObj ? tambonObj.name_th : '',
+        postal_no: tambonObj ? tambonObj.zip_code : ''
+      }));
     }
   };
 
@@ -303,7 +300,7 @@ export default function AddUserDialog({
         district: formData.district || '',
         province: formData.province || '',
         postal_no: formData.postal_no || '',
-        avatar: `${formData.user_code}.jpg`,
+        avatar: formData.pic instanceof File ? `${formData.user_code}.jpg` : DEFAULT_PROFILE_URL,
         password: formData.password || undefined
       };
 
@@ -410,13 +407,23 @@ export default function AddUserDialog({
     }
   };
 
-  const isFormValid = formData.username && formData.Fullname && formData.email && formData.phone && formData.password;
+  const isFormValid =
+    formData.username &&
+    formData.Fullname &&
+    formData.email &&
+    formData.phone &&
+    formData.password &&
+    formData.province &&
+    formData.district &&
+    formData.parish &&
+    formData.street &&
+    formData.role_name;
 
   if (!open) return null;
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box relative w-full max-h-[90vh] max-w-6xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
+      <div className="modal-box relative w-full max-h-[95vh] max-w-8xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute right-5 top-5 text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-gray-50 z-10 transition-all duration-200 transform hover:rotate-90"
@@ -426,7 +433,7 @@ export default function AddUserDialog({
         </button>
 
         <div className="flex flex-col md:flex-row h-full">
-          <div className="flex flex-col items-center justify-start pt-16 px-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px]">
+          <div className="flex flex-col items-center justify-start pt-10 px-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px]">
             <div className="mb-8">
               <h2 className="text-xl font-bold text-blue-800 text-center mb-2">เพิ่มผู้ใช้งานใหม่</h2>
               <h3 className="text-lg font-bold text-blue-800 text-center mb-2">รูปโปรไฟล์</h3>
@@ -434,12 +441,12 @@ export default function AddUserDialog({
             </div>
             <div className="w-36 h-36 rounded-full bg-white shadow-lg flex items-center justify-center relative group overflow-hidden border-4 border-white hover:border-blue-200 transition-all duration-300">
               <img
-                src={previewImage || "/logo_it.png"}
+                src={previewImage || DEFAULT_PROFILE_URL}
                 alt="Profile"
                 className="w-full h-full object-cover rounded-full"
                 onError={e => {
                   e.target.onerror = null;
-                  e.target.src = "/logo_it.png";
+                  e.target.src = DEFAULT_PROFILE_URL;
                 }}
               />
               <label htmlFor="profile-upload-add" className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer rounded-full">
@@ -458,11 +465,31 @@ export default function AddUserDialog({
             {formData.pic && typeof formData.pic !== 'string' && (
               <span className="text-xs text-gray-500 max-w-full truncate px-3 bg-white/70 py-1.5 rounded-full mt-4 shadow-sm border border-gray-100">{formData.pic.name}</span>
             )}
+            <div>
+              <label className="mt-5 text-sm font-medium text-gray-700 mb-1 flex justify-center items-center">
+                <GiOfficeChair className="w-5 h-5 mr-2 text-center text-blue-500" />
+                บทบาท<span className="text-red-500 ml-1">*</span>
+              </label>
+              <select
+                name="role_name"
+                className="w-35 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
+                value={formData.role_name}
+                onChange={handleChange}
+                required
+              >
+                <option value="" disabled>เลือกบทบาท</option>
+                {roles.map(role => (
+                  <option key={role.role_id} value={role.role_name}>
+                    {role.role_name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex-1 flex flex-col justify-start px-8 md:px-10 bg-gradient-to-br from-white to-gray-50">
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent mb-2">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
                 เพิ่มผู้ใช้งานใหม่
               </h2>
             </div>
@@ -477,23 +504,33 @@ export default function AddUserDialog({
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaIdCard className="w-4 h-4 mr-2 text-blue-500" />
-                        รหัสนิสิต <span className="text-red-500 ml-1">*</span>
+                        รหัสนิสิต<span className="text-red-500 ml-1">*</span>
                       </label>
                       <input
                         type="text"
                         name="user_code"
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
                         value={formData.user_code}
-                        onChange={handleChange}
-                        placeholder="เช่น 64010123"
+                        onChange={e => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          setFormData({ ...formData, user_code: value });
+                        }}
+                        onKeyPress={e => {
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        placeholder="กรุณากรอกรหัสนิสิต 11 หลัก"
                         required
+                        maxLength={11}
+                        title="กรุณากรอกรหัสนิสิต 11 หลัก"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaUser className="w-4 h-4 mr-2 text-blue-500" />
                         ชื่อ-นามสกุล <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -510,7 +547,7 @@ export default function AddUserDialog({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                           <FaBuilding className="w-4 h-4 mr-2 text-blue-500" />
                           ตำแหน่ง <span className="text-red-500 ml-1">*</span>
                         </label>
@@ -529,9 +566,8 @@ export default function AddUserDialog({
                           ))}
                         </select>
                       </div>
-
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                           <FaBook className="w-4 h-4 mr-2 text-blue-500" />
                           สาขา <span className="text-red-500 ml-1">*</span>
                         </label>
@@ -553,7 +589,7 @@ export default function AddUserDialog({
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaUser className="w-4 h-4 mr-2 text-blue-500" />
                         ชื่อผู้ใช้งาน <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -562,30 +598,64 @@ export default function AddUserDialog({
                         name="username"
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
                         value={formData.username}
-                        onChange={handleChange}
+                        onChange={e => {
+                          // อนุญาตเฉพาะ a-z, A-Z, 0-9, _ และ . เท่านั้น
+                          const value = e.target.value.replace(/[^a-zA-Z0-9_.]/g, "");
+                          setFormData({ ...formData, username: value });
+                        }}
+                        onKeyPress={e => {
+                          // ไม่อนุญาตให้พิมพ์ถ้าไม่ใช่ a-z, A-Z, 0-9, _ หรือ .
+                          if (!/[a-zA-Z0-9_.]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
                         placeholder="ระบุชื่อผู้ใช้งาน"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaLock className="w-4 h-4 mr-2 text-blue-500" />
                         รหัสผ่าน <span className="text-red-500 ml-1">*</span>
                       </label>
-                      <input
-                        type="password"
-                        name="password"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="รหัสผ่าน"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white pr-12"
+                          value={formData.password}
+                          onChange={e => {
+                            // อนุญาตเฉพาะ a-z, A-Z, 0-9, _ และ . เท่านั้น (ไม่ให้เว้นวรรค)
+                            const value = e.target.value.replace(/[^a-zA-Z0-9_.]/g, "");
+                            setFormData({ ...formData, password: value });
+                          }}
+                          onKeyPress={e => {
+                            // ไม่อนุญาตให้พิมพ์ถ้าไม่ใช่ a-z, A-Z, 0-9, _ หรือ .
+                            if (!/[a-zA-Z0-9_.]/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          placeholder="รหัสผ่าน"
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600"
+                          tabIndex={-1}
+                          onClick={() => setShowPassword((prev) => !prev)}
+                        >
+                          {showPassword ? (
+                            <FaEyeSlash className="h-5 w-5" />
+                          ) : (
+                            <FaEye className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaEnvelope className="w-4 h-4 mr-2 text-blue-500" />
                         อีเมล <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -601,7 +671,7 @@ export default function AddUserDialog({
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaPhone className="w-4 h-4 mr-2 text-blue-500" />
                         เบอร์โทรศัพท์ <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -613,45 +683,35 @@ export default function AddUserDialog({
                           name="phone"
                           className="w-full pl-4 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
                           value={formData.phone}
-                          onChange={handleChange}
-                          placeholder="0812345678"
+                          onChange={e => {
+                            // อนุญาตเฉพาะตัวเลขเท่านั้น
+                            const value = e.target.value.replace(/\D/g, "");
+                            setFormData({ ...formData, phone: value });
+                          }}
+                          onKeyPress={e => {
+                            // ไม่อนุญาตให้พิมพ์ถ้าไม่ใช่ตัวเลข
+                            if (!/[0-9]/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          maxLength={10}
+                          placeholder="กรุณากรอกเบอร์โทรศัพท์"
                           required
                         />
                       </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaUser className="w-4 h-4 mr-2 text-blue-500" />
-                        บทบาท <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <select
-                        name="role_name"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
-                        value={formData.role_name}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="" disabled>เลือกบทบาท</option>
-                        {roles.map(role => (
-                          <option key={role.role_id} value={role.role_name}>
-                            {role.role_name}
-                          </option>
-                        ))}
-                      </select>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-5 bg-white p-2 rounded-2xl transition-all duration-300 border border-gray-50">
-                  <div className="flex items-center space-x-2 pb-3 mb-1">
+                  <div className="flex items-center space-x-2 pb-3 mb-1 border-b border-gray-100">
                     <FaMapMarkerAlt className="w-5 h-5 text-blue-600" />
                     <h3 className="text-lg font-semibold text-gray-800">ที่อยู่</h3>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ปัจจุบัน</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ปัจจุบัน<span className="text-red-500 ml-1">*</span></label>
                       <textarea
                         name="street"
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
@@ -662,16 +722,20 @@ export default function AddUserDialog({
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
+                          จังหวัด <span className="text-red-500 ml-1">*</span>
+                        </label>
                         <select
                           name="province"
+                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
                           value={selected.province_id || ''}
                           onChange={(e) => handleAddressChange(e, 'province')}
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
+                          required
                         >
-                          <option value="">เลือกจังหวัด</option>
+                          <option value="" disabled>เลือกจังหวัด</option>
                           {provinces.map(province => (
                             <option key={province.id} value={province.id}>
                               {province.name_th}
@@ -680,14 +744,18 @@ export default function AddUserDialog({
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">อำเภอ</label>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
+                          อำเภอ <span className="text-red-500 ml-1">*</span>
+                        </label>
                         <select
                           name="district"
+                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
                           value={selected.amphure_id || ''}
                           onChange={(e) => handleAddressChange(e, 'amphure')}
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
+                          required
                         >
-                          <option value="">เลือกอำเภอ</option>
+                          <option value="" disabled>เลือกอำเภอ</option>
                           {amphures.map(amphure => (
                             <option key={amphure.id} value={amphure.id}>
                               {amphure.name_th}
@@ -695,18 +763,19 @@ export default function AddUserDialog({
                           ))}
                         </select>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">ตำบล</label>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
+                          ตำบล <span className="text-red-500 ml-1">*</span>
+                        </label>
                         <select
                           name="parish"
+                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
                           value={selected.tambon_id || ''}
                           onChange={(e) => handleAddressChange(e, 'tambon')}
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
+                          required
                         >
-                          <option value="">เลือกตำบล</option>
+                          <option value="" disabled>เลือกตำบล</option>
                           {tambons.map(tambon => (
                             <option key={tambon.id} value={tambon.id}>
                               {tambon.name_th}
@@ -714,24 +783,28 @@ export default function AddUserDialog({
                           ))}
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                        <input
-                          type="text"
-                          name="postal_no"
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
-                          value={formData.postal_no}
-                          onChange={handleChange}
-                          placeholder="10110"
-                          readOnly
-                        />
-                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                        <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
+                        รหัสไปรษณีย์
+                      </label>
+                      <input
+                        type="text"
+                        name="postal_no"
+                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
+                        value={formData.postal_no}
+                        onChange={handleChange}
+                        placeholder="รหัสไปรษณีย์"
+                        readOnly
+                        disabled
+                      />
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-4 pb-6">
+              <div className="flex justify-end gap-4 pb-2">
                 <button
                   type="button"
                   className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 hover:text-red-600 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 shadow-sm"

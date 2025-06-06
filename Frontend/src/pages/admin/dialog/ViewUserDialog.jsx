@@ -121,7 +121,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box relative w-full max-h-[90vh] max-w-6xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
+      <div className="modal-box relative w-full max-h-[90vh] max-w-8xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
         {/* Close button */}
         <button
           onClick={onClose}
