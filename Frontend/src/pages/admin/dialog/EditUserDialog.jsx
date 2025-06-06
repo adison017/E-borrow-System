@@ -1,3 +1,4 @@
+import { GiOfficeChair } from "react-icons/gi";
 // EditUserDialog.jsx
 import axios from 'axios';
 import { useEffect, useRef, useState } from "react";
@@ -12,6 +13,7 @@ import {
   FaUser
 } from "react-icons/fa";
 import { MdClose, MdCloudUpload } from "react-icons/md";
+import PinDialog from "../../../components/dialog/PinDialog";
 
 export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const [formData, setFormData] = useState({
@@ -50,6 +52,9 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const [previewImage, setPreviewImage] = useState("/logo_it.png");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPin, setShowPin] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -150,18 +155,16 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         amphure_id: undefined,
         tambon_id: undefined
       });
-      if (id) {
-        const province = provinces.find(p => p.id === id);
-        if (province) {
-          setAmphures(province.amphure);
-          setFormData(prev => ({
-            ...prev,
-            province: province.name_th,  // จังหวัด
-            district: '',  // อำเภอ
-            parish: '',    // ตำบล
-            postal_no: ''  // รหัสไปรษณีย์
-          }));
-        }
+      const provinceObj = provinces.find(p => p.id === id);
+      setFormData(prev => ({
+        ...prev,
+        province: provinceObj ? provinceObj.name_th : '',
+        district: '',
+        parish: '',
+        postal_no: ''
+      }));
+      if (provinceObj) {
+        setAmphures(provinceObj.amphure);
       }
     } else if (type === 'amphure') {
       setTambons([]);
@@ -170,33 +173,27 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         amphure_id: id,
         tambon_id: undefined
       }));
-      if (id) {
-        const amphure = amphures.find(a => a.id === id);
-        if (amphure) {
-          setTambons(amphure.tambon);
-          setFormData(prev => ({
-            ...prev,
-            district: amphure.name_th,  // อำเภอ
-            parish: '',    // ตำบล
-            postal_no: ''  // รหัสไปรษณีย์
-          }));
-        }
+      const amphureObj = amphures.find(a => a.id === id);
+      setFormData(prev => ({
+        ...prev,
+        district: amphureObj ? amphureObj.name_th : '',
+        parish: '',
+        postal_no: ''
+      }));
+      if (amphureObj) {
+        setTambons(amphureObj.tambon);
       }
     } else if (type === 'tambon') {
       setSelected(prev => ({
         ...prev,
         tambon_id: id
       }));
-      if (id) {
-        const tambon = tambons.find(t => t.id === id);
-        if (tambon) {
-          setFormData(prev => ({
-            ...prev,
-            parish: tambon.name_th,     // ตำบล
-            postal_no: tambon.zip_code  // รหัสไปรษณีย์
-          }));
-        }
-      }
+      const tambonObj = tambons.find(t => t.id === id);
+      setFormData(prev => ({
+        ...prev,
+        parish: tambonObj ? tambonObj.name_th : '',
+        postal_no: tambonObj ? tambonObj.zip_code : ''
+      }));
     }
   };
 
@@ -334,13 +331,25 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     return errors;
   };
 
-  const handleSubmit = async (e) => {
+  const handlePinSubmit = (e) => {
     e.preventDefault();
+    if (pin === "1234") {
+      setShowPin(false);
+      setPin("");
+      setPinError("");
+      handleSubmit(); // call the real submit
+    } else {
+      setPinError("PIN ไม่ถูกต้อง");
+    }
+  };
+
+  // ปรับ handleSubmit ให้ไม่รับ event ถ้ามาจาก PIN
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
       let avatarFilename = typeof formData.pic === 'string' ? formData.pic.replace(/^.*[\\/]/, '') : formData.user_code + '.jpg';
-      // 1. If a new image file is selected, upload it first
       if (formData.pic && typeof formData.pic !== 'string') {
         const formDataImage = new FormData();
         formDataImage.append('user_code', formData.user_code);
@@ -358,7 +367,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
           return;
         }
       }
-      // Prepare data for update
       const updateData = {
         user_id: formData.user_id,
         user_code: formData.user_code,
@@ -379,14 +387,12 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       if (formData.password) {
         updateData.password = formData.password;
       }
-      // Validate form
       const validationErrors = validateForm(updateData);
       if (Object.keys(validationErrors).length > 0) {
         setError('กรุณากรอกข้อมูลให้ครบถ้วน');
         setIsLoading(false);
         return;
       }
-      // Call API to update user
       const response = await axios.patch(
         `http://localhost:5000/users/id/${formData.user_id}`,
         updateData,
@@ -403,13 +409,22 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     }
   };
 
-  const isFormValid = formData.username && formData.Fullname && formData.email && formData.phone;
+  const isFormValid =
+    formData.username &&
+    formData.Fullname &&
+    formData.email &&
+    formData.phone &&
+    formData.province &&
+    formData.district &&
+    formData.parish &&
+    formData.street &&
+    formData.role_name;
 
   if (!open) return null;
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box relative w-full max-h-[90vh] max-w-6xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
+      <div className="modal-box relative w-full max-h-[95vh] max-w-8xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute right-5 top-5 text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-gray-50 z-10 transition-all duration-200 transform hover:rotate-90"
@@ -419,7 +434,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         </button>
 
         <div className="flex flex-col md:flex-row h-full">
-          <div className="flex flex-col items-center justify-start pt-16 px-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px]">
+          <div className="flex flex-col items-center justify-start pt-10 px-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px]">
             <div className="mb-8">
               <h2 className="text-xl font-bold text-blue-800 text-center mb-2">แก้ข้อมูลผู้ใช้งาน</h2>
               <h3 className="text-lg font-bold text-blue-800 text-center mb-2">รูปโปรไฟล์</h3>
@@ -451,16 +466,42 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
             {formData.pic && typeof formData.pic !== 'string' && (
               <span className="text-xs text-gray-500 max-w-full truncate px-3 bg-white/70 py-1.5 rounded-full mt-4 shadow-sm border border-gray-100">{formData.pic.name}</span>
             )}
+            <div>
+                      <label className="mt-5 text-sm font-medium text-gray-700 mb-1 flex justify-center items-center">
+                        <GiOfficeChair className="w-5 h-5 mr-2 text-center text-blue-500" />
+                        บทบาท<span className="text-red-500 ml-1">*</span>
+                      </label>
+                      <select
+                        name="role_name"
+                        className="w-35 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
+                        value={formData.role_name}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="" disabled>เลือกบทบาท</option>
+                        {roles.map(role => (
+                          <option key={role.role_id} value={role.role_name}>
+                            {role.role_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
           </div>
 
           <div className="flex-1 flex flex-col justify-start px-8 md:px-10 bg-gradient-to-br from-white to-gray-50">
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent mb-2">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
                 แก้ไขข้อมูลผู้ใช้งาน
               </h2>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                setShowPin(true);
+              }}
+              className="space-y-8"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-5 bg-white p-1 rounded-2xl transition-all duration-300 border border-gray-50">
                   <div className="flex items-center space-x-2 pb-3 mb-1 border-b border-gray-100">
@@ -615,27 +656,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                         />
                       </div>
                     </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaUser className="w-4 h-4 mr-2 text-blue-500" />
-                        บทบาท <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <select
-                        name="role_name"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
-                        value={formData.role_name}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="" disabled>เลือกบทบาท</option>
-                        {roles.map(role => (
-                          <option key={role.role_id} value={role.role_name}>
-                            {role.role_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
                 </div>
 
@@ -647,7 +667,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ปัจจุบัน</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ปัจจุบัน <span className="text-red-500 ml-1">*</span></label>
                       <textarea
                         name="street"
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
@@ -668,10 +688,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                           name="province"
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
                           value={selected.province_id || ''}
-                          onChange={(e) => {
-                            handleAddressChange(e, 'province');
-                            handleChange(e);
-                          }}
+                          onChange={(e) => { handleAddressChange(e, 'province'); }}
                           required
                         >
                           <option value="" disabled>เลือกจังหวัด</option>
@@ -691,10 +708,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                           name="district"
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
                           value={selected.amphure_id || ''}
-                          onChange={(e) => {
-                            handleAddressChange(e, 'amphure');
-                            handleChange(e);
-                          }}
+                          onChange={(e) => { handleAddressChange(e, 'amphure'); }}
                           required
                         >
                           <option value="" disabled>เลือกอำเภอ</option>
@@ -714,10 +728,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                           name="parish"
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
                           value={selected.tambon_id || ''}
-                          onChange={(e) => {
-                            handleAddressChange(e, 'tambon');
-                            handleChange(e);
-                          }}
+                          onChange={(e) => { handleAddressChange(e, 'tambon'); }}
                           required
                         >
                           <option value="" disabled>เลือกตำบล</option>
@@ -749,7 +760,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end gap-4 pb-6">
+              <div className="flex justify-end gap-4 pb-2">
                 <button
                   type="button"
                   className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 hover:text-red-600 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 shadow-sm"
@@ -780,6 +791,19 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                 </button>
               </div>
             </form>
+            {/* PIN Dialog */}
+            <PinDialog
+              open={showPin}
+              pin={pin}
+              setPin={setPin}
+              pinError={pinError}
+              onCancel={() => {
+                setShowPin(false);
+                setPin("");
+                setPinError("");
+              }}
+              onSubmit={handlePinSubmit}
+            />
           </div>
         </div>
       </div>
