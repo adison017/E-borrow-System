@@ -93,7 +93,15 @@ function ManageUser() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewUser, setViewUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
+  const itemsPerPage = 5;
+
+  // State for filter dropdowns
+  const [roleFilter, setRoleFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
+  const [positionFilter, setPositionFilter] = useState('');
+  const [roles, setRoles] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [positions, setPositions] = useState([]);
 
   // Function to fetch users
   const fetchUsers = async () => {
@@ -133,6 +141,25 @@ function ManageUser() {
     return () => {
       window.removeEventListener('userDataUpdated', handleUserDataUpdate);
     };
+  }, []);
+
+  // Fetch filter data (roles, branches, positions)
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const [rolesRes, branchesRes, positionsRes] = await Promise.all([
+          fetch('http://localhost:5000/users/roles'),
+          fetch('http://localhost:5000/users/branches'),
+          fetch('http://localhost:5000/users/positions'),
+        ]);
+        setRoles(await rolesRes.json());
+        setBranches(await branchesRes.json());
+        setPositions(await positionsRes.json());
+      } catch (err) {
+        // fallback: do nothing
+      }
+    };
+    fetchFilters();
   }, []);
 
   // ฟังก์ชั่นแสดง Alert
@@ -265,16 +292,21 @@ function ManageUser() {
     }
   };
 
-  const filteredUsers = userList.filter(
-    user =>
+  // Filtering logic
+  const filteredUsers = userList.filter(user => {
+    const matchesSearch =
       user.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.department?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      user.position_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.branch_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = !roleFilter || user.role_name === roleFilter;
+    const matchesBranch = !branchFilter || user.branch_name === branchFilter;
+    const matchesPosition = !positionFilter || user.position_name === positionFilter;
+    return matchesSearch && matchesRole && matchesBranch && matchesPosition;
+  });
 
   const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -289,8 +321,8 @@ function ManageUser() {
           type={alertType}
           onClose={() => setShowAlert(false)}
         />
-        <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-6">
-          <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-2">
+          <div className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
               <Typography variant="h5" className="text-gray-900 font-semibold tracking-tight">
                 รายการผู้ใช้งาน
@@ -301,20 +333,22 @@ function ManageUser() {
             </div>
           </div>
           <div className="flex flex-col md:flex-row items-center justify-between gap-y-4 md:gap-x-4">
-            <div className="w-full md:flex-grow relative">
-              <label htmlFor="search" className="sr-only">ค้นหาผู้ใช้งาน</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            <div className="w-full md:flex-grow relative flex flex-col md:flex-row gap-2 md:gap-4">
+              <div className="flex-1 relative">
+                <label htmlFor="search" className="sr-only">ค้นหาผู้ใช้งาน</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="search"
+                    type="text"
+                    className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-2xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
+                    placeholder="ค้นหารหัสนิสิต, ชื่อ, อีเมล, ตำแหน่ง หรือสาขา..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
-                <input
-                  id="search"
-                  type="text"
-                  className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-2xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
-                  placeholder="ค้นหารหัสนิสิต, ชื่อ, อีเมล, ตำแหน่ง หรือสาขา..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
               </div>
             </div>
             <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
@@ -325,6 +359,39 @@ function ManageUser() {
                 ส่งออก Excel
               </Button>
             </div>
+          </div>
+          <div className="mt-4 flex flex-wrap  items-center gap-2 justify-center">
+             {/* Filter Dropdowns */}
+              <select
+                className="w-40 h-10 px-3 border border-gray-300 rounded-xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                value={roleFilter}
+                onChange={e => setRoleFilter(e.target.value)}
+              >
+                <option value="">บทบาททั้งหมด</option>
+                {roles.map(role => (
+                  <option key={role.role_id} value={role.role_name}>{role.role_name}</option>
+                ))}
+              </select>
+              <select
+                className="w-50 h-10 px-3 border border-gray-300 rounded-xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                value={branchFilter}
+                onChange={e => setBranchFilter(e.target.value)}
+              >
+                <option value="">สาขาทั้งหมด</option>
+                {branches.map(branch => (
+                  <option key={branch.branch_id} value={branch.branch_name}>{branch.branch_name}</option>
+                ))}
+              </select>
+              <select
+                className="w-40 h-10 px-3 border border-gray-300 rounded-xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                value={positionFilter}
+                onChange={e => setPositionFilter(e.target.value)}
+              >
+                <option value="">ตำแหน่งทั้งหมด</option>
+                {positions.map(position => (
+                  <option key={position.position_id} value={position.position_name}>{position.position_name}</option>
+                ))}
+              </select>
           </div>
         </CardHeader>
         <CardBody className="overflow-x-auto px-0">
