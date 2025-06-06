@@ -188,8 +188,8 @@ const User = {
 
   create: async (userData) => {
     try {
-      // If avatar is provided, ensure it's just the filename
-      if (userData.avatar) {
+      // If avatar is provided, only strip path if not a URL or not a root-relative path
+      if (userData.avatar && !/^https?:\/\//.test(userData.avatar) && !userData.avatar.startsWith('/')) {
         userData.avatar = userData.avatar.split('/').pop();
       }
 
@@ -280,6 +280,7 @@ const User = {
         street,
         province,
         district,
+        parish,
         postal_no,
         avatar,
         Fullname
