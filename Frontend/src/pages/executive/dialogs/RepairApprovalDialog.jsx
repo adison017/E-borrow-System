@@ -13,6 +13,7 @@ import {
 } from 'react-icons/fa';
 import { MdAssignment, MdClose, MdFullscreen, MdGridView } from "react-icons/md";
 import { RiCoinsFill } from "react-icons/ri";
+import axios from 'axios';
 
 export default function RepairApprovalDialog({
   open,
@@ -22,6 +23,18 @@ export default function RepairApprovalDialog({
   onReject,
   technicians = [] // Default empty array if not provided
 }) {
+  console.log('Repair Request Data:', repairRequest);
+  console.log('Equipment Data:', repairRequest?.equipment);
+  console.log('Requester Data:', repairRequest?.requester);
+  console.log('Status:', repairRequest?.status);
+  console.log('Request Date:', repairRequest?.request_date);
+  console.log('Equipment Name:', repairRequest?.equipment_name);
+  console.log('Equipment Code:', repairRequest?.equipment_code);
+  console.log('Equipment Category:', repairRequest?.equipment_category);
+  console.log('Problem Description:', repairRequest?.problem_description);
+  console.log('Estimated Cost:', repairRequest?.estimated_cost);
+  console.log('Equipment Pic:', repairRequest?.equipment_pic);
+
   const [notes, setNotes] = useState('')
   const [budgetApproved, setBudgetApproved] = useState(repairRequest?.estimatedCost || 0)
   const [assignedTo, setAssignedTo] = useState('')
@@ -47,16 +60,208 @@ export default function RepairApprovalDialog({
     "อื่นๆ (โปรดระบุในหมายเหตุ)"
   ];
 
-  const handleApprove = () => {
-    onApprove({
-      ...repairRequest,
-      approvalNotes: notes,
-      budgetApproved: Number(budgetApproved),
-      assignedTo,
-      approvalDate: new Date().toISOString().split('T')[0]
-    })
-    setNotes('')
-    onClose()
+  const handleApprove = async () => {
+    console.log('Starting handleApprove function');
+    console.log('repairRequest:', repairRequest);
+    console.log('assignedTo:', assignedTo);
+
+    // Validate required fields
+    if (!assignedTo) {
+      console.log('Validation failed: assignedTo is empty');
+      setFormError("โปรดเลือกผู้รับผิดชอบ");
+      return;
+    }
+
+    // Validate repair request ID and equipment code
+    if (!repairRequest?.requestId) {
+      console.log('Validation failed: requestId is missing');
+      setFormError("ไม่พบรหัสคำขอซ่อม กรุณาลองใหม่อีกครั้ง");
+      return;
+    }
+
+    if (!repairRequest?.equipment_code) {
+      console.log('Validation failed: equipment_code is missing');
+      setFormError("ไม่พบรหัสครุภัณฑ์ กรุณาลองใหม่อีกครั้ง");
+      return;
+    }
+
+    try {
+      // Log the full repair request object for debugging
+      console.log('Full Repair Request Object:', JSON.stringify(repairRequest, null, 2));
+
+      const updateData = {
+        problem_description: repairRequest.problem_description,
+        request_date: repairRequest.request_date,
+        estimated_cost: repairRequest.estimated_cost,
+        status: "อนุมัติ",
+        pic_filename: repairRequest.equipment_pic_filename,
+        note: notes,
+        budget: Number(budgetApproved),
+        responsible_person: assignedTo,
+        approval_date: new Date().toISOString().split('T')[0]
+      };
+
+      // Log the update data for debugging
+      console.log('Sending update data:', updateData);
+
+      // Make the API request to update repair request
+      console.log('Making API request to update repair request...');
+      const response = await axios.put(
+        `http://localhost:5000/api/repair-requests/${repairRequest.requestId}`,
+        updateData
+      );
+      console.log('Repair request update response:', response.data);
+
+      // Check if the response contains data
+      if (response.data) {
+        // Update equipment status to "กำลังซ่อม"
+        try {
+          console.log('Updating equipment status for code:', repairRequest.equipment_code);
+          const equipmentUpdateData = {
+            status: "กำลังซ่อม",
+            last_updated: new Date().toISOString().split('T')[0]
+          };
+          console.log('Equipment update data:', equipmentUpdateData);
+
+          // First get equipment by code to get the item_id
+          const equipmentResponse = await axios.get(
+            `http://localhost:5000/api/equipment/code/${repairRequest.equipment_code}`
+          );
+          console.log('Equipment data:', equipmentResponse.data);
+
+          if (equipmentResponse.data && equipmentResponse.data.item_id) {
+            // Then update the equipment status using the ID
+            const updateResponse = await axios.put(
+              `http://localhost:5000/api/equipment/${equipmentResponse.data.item_id}/status`,
+              equipmentUpdateData
+            );
+            console.log('Equipment status update response:', updateResponse.data);
+          } else {
+            throw new Error('Equipment not found');
+          }
+        } catch (equipmentError) {
+          console.error('Error updating equipment status:', equipmentError);
+          console.error('Error details:', {
+            message: equipmentError.message,
+            response: equipmentError.response?.data,
+            status: equipmentError.response?.status,
+            url: `http://localhost:5000/api/equipment/code/${repairRequest.equipment_code}`
+          });
+          setFormError("อัพเดทสถานะครุภัณฑ์ไม่สำเร็จ แต่การอนุมัติสำเร็จ");
+        }
+
+        // Reset form state
+        setNotes('');
+        setBudgetApproved(0);
+        setAssignedTo('');
+        setFormError('');
+
+        // Notify parent component of successful approval
+        console.log('Notifying parent component of successful approval');
+        onApprove({
+          repair_id: repairRequest.requestId,
+          note: notes,
+          budget: Number(budgetApproved),
+          responsible_person: assignedTo,
+          approval_date: new Date().toISOString().split('T')[0],
+          status: "อนุมัติ"
+        });
+
+        // Close dialog after successful update
+        console.log('Closing dialog');
+        onClose();
+      } else {
+        console.error('No response data received');
+        throw new Error('No response data received');
+      }
+    } catch (error) {
+      console.error('Error in handleApprove:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack
+      });
+
+      // Check if the request was actually successful despite the error
+      if (error.response?.status === 200 || error.response?.data) {
+        console.log('Request was successful despite error, updating equipment status');
+        // Try to update equipment status
+        try {
+          console.log('Updating equipment status for code:', repairRequest.equipment_code);
+          const equipmentUpdateData = {
+            status: "กำลังซ่อม",
+            last_updated: new Date().toISOString().split('T')[0]
+          };
+          console.log('Equipment update data:', equipmentUpdateData);
+
+          // First get equipment by code to get the item_id
+          const equipmentResponse = await axios.get(
+            `http://localhost:5000/api/equipment/code/${repairRequest.equipment_code}`
+          );
+          console.log('Equipment data:', equipmentResponse.data);
+
+          if (equipmentResponse.data && equipmentResponse.data.item_id) {
+            // Then update the equipment status using the ID
+            const updateResponse = await axios.put(
+              `http://localhost:5000/api/equipment/${equipmentResponse.data.item_id}/status`,
+              equipmentUpdateData
+            );
+            console.log('Equipment status update response:', updateResponse.data);
+          } else {
+            throw new Error('Equipment not found');
+          }
+        } catch (equipmentError) {
+          console.error('Error updating equipment status:', equipmentError);
+          console.error('Equipment error details:', {
+            message: equipmentError.message,
+            response: equipmentError.response?.data,
+            status: equipmentError.response?.status,
+            url: `http://localhost:5000/api/equipment/code/${repairRequest.equipment_code}`
+          });
+          setFormError("อัพเดทสถานะครุภัณฑ์ไม่สำเร็จ แต่การอนุมัติสำเร็จ");
+        }
+
+        // Reset form state
+        setNotes('');
+        setBudgetApproved(0);
+        setAssignedTo('');
+        setFormError('');
+
+        // Notify parent component of successful approval
+        console.log('Notifying parent component of successful approval');
+        onApprove({
+          repair_id: repairRequest.requestId,
+          note: notes,
+          budget: Number(budgetApproved),
+          responsible_person: assignedTo,
+          approval_date: new Date().toISOString().split('T')[0],
+          status: "อนุมัติ"
+        });
+
+        // Close dialog after successful update
+        console.log('Closing dialog');
+        onClose();
+        return;
+      }
+
+      // Handle specific error cases
+      if (error.response) {
+        console.log('Handling specific error cases');
+        switch (error.response.status) {
+          case 404:
+            setFormError("ไม่พบคำขอซ่อมที่ต้องการอัพเดท");
+            break;
+          case 500:
+            setFormError("เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง");
+            break;
+          default:
+            setFormError("เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม");
+        }
+      } else {
+        setFormError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
+      }
+    }
   }
 
   const handleRejectClick = () => {
@@ -84,7 +289,7 @@ export default function RepairApprovalDialog({
       ? notes
       : `${rejectReason}${notes ? `. ${notes}` : ''}`.trim();
     onReject({
-      ...repairRequest,
+      requestId: repairRequest.requestId,
       approvalNotes: finalNotes,
       rejectionDate: new Date().toISOString().split('T')[0]
     });
@@ -116,13 +321,19 @@ export default function RepairApprovalDialog({
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
           <h3 className="text-lg font-bold flex items-center gap-2">
-            {repairRequest.status === 'pending' ? (
+            {repairRequest.status === 'รอการอนุมัติซ่อม' ? (
               <>
                 <span className="text-primary">พิจารณาคำขอแจ้งซ่อมครุภัณฑ์</span>
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold border border-blue-200">
+                  รหัสคำขอซ่อม: {repairRequest.repair_code || '-'}
+                </span>
               </>
             ) : (
               <>
                 <span className="text-primary">รายละเอียดการแจ้งซ่อม</span>
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold border border-blue-200">
+                รหัสคำขอซ่อม: {repairRequest.repair_code || '-'}
+                </span>
               </>
             )}
           </h3>
@@ -143,13 +354,13 @@ export default function RepairApprovalDialog({
               <div>
                 <h4 className="font-medium text-blue-800">ผู้แจ้งซ่อม</h4>
                 <p className="text-sm font-semibold mt-1">
-                  {repairRequest.requester.name}
+                  {repairRequest.requester_name || '-'}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
-                  {repairRequest.requester.department}
+                  {repairRequest.branch_name || '-'}
                 </p>
                 <p className="text-xs text-gray-500 mt-2 flex items-center">
-                  <BsFillCalendarDateFill className="mr-1" /> วันที่แจ้ง: {repairRequest.requestDate}
+                  <BsFillCalendarDateFill className="mr-1" /> วันที่แจ้ง: {new Date(repairRequest.request_date).toLocaleDateString('th-TH')}
                 </p>
               </div>
             </div>
@@ -161,144 +372,45 @@ export default function RepairApprovalDialog({
                 ข้อมูลครุภัณฑ์
               </h4>
               <div className="space-y-1 text-sm">
+
                 <div className="grid grid-cols-4">
-                  <span className="font-medium">ชื่อ:</span> 
-                  <span className="col-span-3">{repairRequest.equipment.name}</span>
+                  <span className="font-medium">ชื่อ:</span>
+                  <span className="col-span-3">{repairRequest.equipment_name || '-'}</span>
                 </div>
                 <div className="grid grid-cols-4">
-                  <span className="font-medium">รหัส:</span> 
-                  <span className="col-span-3">{repairRequest.equipment.code}</span>
+                  <span className="font-medium">รหัส:</span>
+                  <span className="col-span-3">{repairRequest.equipment_code || '-'}</span>
                 </div>
                 <div className="grid grid-cols-4">
-                  <span className="font-medium">ประเภท:</span> 
-                  <span className="col-span-3">{repairRequest.equipment.category}</span>
+                  <span className="font-medium">ประเภท:</span>
+                  <span className="col-span-3">{repairRequest.equipment_category || '-'}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* รูปภาพ */}
-          {repairRequest.images?.length > 0 ? (
+          {repairRequest.equipment_pic_filename ? (
             <div className="bg-white p-3 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-medium flex items-center gap-2">
                   <FaImage className="text-gray-600" />
-                  รูปภาพประกอบ ({repairRequest.images.length} รูป)
+                  รูปภาพอุปกรณ์
                 </h4>
-                
-                {/* ปุ่มสลับโหมดการแสดงผล */}
-                {repairRequest.images.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={toggleViewMode}
-                      className="btn btn-xs btn-ghost hover:bg-primary/10"
-                      title={viewMode === 'single' ? "ดูแบบตาราง" : "ดูทีละรูป"}
-                    >
-                      {viewMode === 'single' ? <MdGridView /> : <FaImage />}
-                    </button>
-                  </div>
-                )}
               </div>
-
-              {/* แสดงรูปแบบเดียว (Single View) */}
-              {viewMode === 'single' && (
-                <div className="space-y-2">
-                  {/* Main Image */}
-                  <div className="relative rounded-lg flex items-center justify-center bg-gray-100 overflow-hidden" style={{height: repairRequest.images.length > 1 ? '250px' : '200px'}}>
-                    <img
-                      src={repairRequest.images[activeImageIndex]}
-                      alt={`รูปภาพ ${activeImageIndex + 1}`}
-                      className={`object-contain max-h-full max-w-full transition-transform duration-300 ${isZoomed ? 'scale-150' : ''}`}
-                      onClick={() => setIsZoomed(!isZoomed)}
-                    />
-                    
-                    {/* ปุ่มควบคุม */}
-                    {repairRequest.images.length > 1 && (
-                      <>
-                        <button 
-                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors"
-                          onClick={prevImage}
-                        >
-                          <FaChevronLeft />
-                        </button>
-                        <button 
-                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors"
-                          onClick={nextImage}
-                        >
-                          <FaChevronRight />
-                        </button>
-                        <button 
-                          className="absolute top-2 right-2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors"
-                          onClick={() => setIsZoomed(!isZoomed)}
-                        >
-                          <MdFullscreen />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  
-                  {/* Thumbnails */}
-                  {repairRequest.images.length > 1 && (
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      {repairRequest.images.map((img, index) => (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            setActiveImageIndex(index);
-                            setIsZoomed(false);
-                          }}
-                          className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden ${
-                            activeImageIndex === index 
-                              ? 'ring-2 ring-primary' 
-                              : 'opacity-70 hover:opacity-100'
-                          }`}
-                        >
-                          <img
-                            src={img}
-                            alt={`รูปภาพ ${index + 1}`}
-                            className="object-cover w-full h-full"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Image Info */}
-                  {repairRequest.images.length > 1 && (
-                    <div className="text-center text-xs text-gray-500">
-                      รูปภาพ {activeImageIndex + 1} จาก {repairRequest.images.length} รูป
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* แสดงแบบตาราง (Grid View) */}
-              {viewMode === 'grid' && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {repairRequest.images.map((img, index) => (
-                    <div 
-                      key={index} 
-                      className="aspect-square rounded-md overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => {
-                        setActiveImageIndex(index);
-                        setViewMode('single');
-                      }}
-                    >
-                      <img
-                        src={img}
-                        alt={`รูปภาพ ${index + 1}`}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="relative rounded-lg flex items-center justify-center bg-gray-100 overflow-hidden" style={{height: '200px'}}>
+                <img
+                  src={`http://localhost:5000/uploads/${repairRequest.equipment_pic_filename}`}
+                  alt="รูปภาพอุปกรณ์"
+                  className="object-contain max-h-full max-w-full"
+                />
+              </div>
             </div>
           ) : (
             <div className="bg-white p-3 rounded-lg shadow-sm">
               <h4 className="font-medium mb-3 flex items-center gap-2">
                 <FaImage className="text-gray-600" />
-                รูปภาพประกอบ
+                รูปภาพอุปกรณ์
               </h4>
               <div className="bg-gray-100 p-8 rounded-lg flex flex-col items-center justify-center">
                 <FaImage className="text-gray-400 text-3xl mb-2" />
@@ -315,7 +427,7 @@ export default function RepairApprovalDialog({
             </h4>
             <div className="bg-gray-50 p-3 rounded-lg whitespace-pre-line text-sm">
               <div className="pl-2 border-l-4 border-amber-500">
-                {repairRequest.description}
+                {repairRequest.problem_description || '-'}
               </div>
             </div>
 
@@ -327,7 +439,7 @@ export default function RepairApprovalDialog({
                   <span className="px-2 text-sm"> วันที่แจ้ง </span>
                 </div>
                 <span className="text-sm font-bold">
-                  {repairRequest.requestDate}
+                  {new Date(repairRequest.request_date).toLocaleDateString('th-TH')}
                 </span>
               </div>
               <div className="bg-amber-50 p-3 rounded-lg hover:bg-amber-100 transition-colors">
@@ -336,14 +448,14 @@ export default function RepairApprovalDialog({
                   <span className="px-2 text-sm"> ค่าใช้จ่ายประมาณ </span>
                 </div>
                 <span className="text-sm font-bold">
-                  {repairRequest.estimatedCost?.toLocaleString()} บาท
+                  {Number(repairRequest.estimated_cost).toLocaleString()} บาท
                 </span>
               </div>
             </div>
           </div>
 
           {/* การดำเนินการ */}
-          {repairRequest.status === 'pending' && (
+          {repairRequest.status === 'รอการอนุมัติซ่อม' && (
             <div className="bg-white p-4">
               <h4 className="font-medium mb-3 flex items-center gap-2 text-primary">
                 <MdAssignment />
@@ -446,7 +558,7 @@ export default function RepairApprovalDialog({
 
         {/* Footer actions */}
         <div className="modal-action mt-6 pt-3">
-          {repairRequest.status === 'pending' && (
+          {repairRequest.status === 'รอการอนุมัติซ่อม' && (
             <>
               <button onClick={handleRejectClick} className="btn btn-error hover:opacity-90 text-white rounded-2xl">
                 <FaTimesCircle className="mr-1" />

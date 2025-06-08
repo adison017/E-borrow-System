@@ -24,14 +24,16 @@ export const addEquipment = (data) => {
     body: JSON.stringify(data),
   }).then(res => res.json());
 };
-export const updateEquipment = (id, data) => {
-  return fetch(`${API_BASE}/equipment/${id}`, {
+
+export const updateEquipment = (item_id, data) => {
+  return fetch(`${API_BASE}/equipment/${item_id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   }).then(res => res.json());
 };
-export const deleteEquipment = (id) => fetch(`${API_BASE}/equipment/${id}`, { method: "DELETE" }).then(res => res.json());
+
+export const deleteEquipment = (item_id) => fetch(`${API_BASE}/equipment/${item_id}`, { method: "DELETE" }).then(res => res.json());
 
 // Category
 export const getCategories = () => fetch(`${API_BASE}/category`).then(res => res.json());
