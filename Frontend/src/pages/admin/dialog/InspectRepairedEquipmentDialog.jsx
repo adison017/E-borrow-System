@@ -54,7 +54,7 @@ export default function InspectRepairedEquipmentDialog({
                 <span className="font-medium">ชื่อ:</span> {equipment.name}
               </p>
               <p>
-                <span className="font-medium">รหัส:</span> {equipment.id}
+                <span className="font-medium">รหัส:</span> {equipment.item_code}
               </p>
             </div>
           </div>
