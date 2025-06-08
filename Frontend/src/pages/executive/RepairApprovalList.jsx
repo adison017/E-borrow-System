@@ -1,6 +1,7 @@
 import { CheckCircleIcon, MagnifyingGlassIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
+import axios from 'axios';
 
 export default function RepairApprovalList() {
   const [repairRequests, setRepairRequests] = useState([]);
@@ -18,7 +19,7 @@ export default function RepairApprovalList() {
   // สถานะของคำขอซ่อม
   const statusOptions = [
     { value: "all", label: "ทั้งหมด", count: 0 },
-    { value: "pending", label: "รอการอนุมัติ", count: 0 },
+    { value: "pending", label: "รอการอนุมัติซ่อม", count: 0 },
     { value: "approved", label: "อนุมัติแล้ว", count: 0 },
     { value: "rejected", label: "ปฏิเสธ", count: 0 },
     { value: "inprogress", label: "กำลังซ่อม", count: 0 },
@@ -30,7 +31,8 @@ export default function RepairApprovalList() {
     approved: "bg-green-50 text-green-800 border-green-200",
     rejected: "bg-red-50 text-red-800 border-red-200",
     inprogress: "bg-blue-50 text-blue-800 border-blue-200",
-    completed: "bg-purple-50 text-purple-800 border-purple-200"
+    completed: "bg-purple-50 text-purple-800 border-purple-200",
+    "รอการอนุมัติซ่อม": "bg-yellow-50 text-yellow-800 border-yellow-200"
   };
 
   const statusIconStyle = {
@@ -42,200 +44,105 @@ export default function RepairApprovalList() {
   };
 
   const statusTranslation = {
-    pending: "รอการอนุมัติ",
+    pending: "รอการอนุมัติซ่อม",
     approved: "อนุมัติแล้ว",
     rejected: "ปฏิเสธ",
     inprogress: "กำลังซ่อม",
-    completed: "เสร็จสิ้น"
+    completed: "เสร็จสิ้น",
+    "รอการอนุมัติซ่อม": "รอการอนุมัติซ่อม"
   };
 
   useEffect(() => {
-    // ข้อมูลตัวอย่าง - ในโปรเจ็กต์จริงควรดึงจาก API
-    const mockData = [
-      {
-        requestId: "REP-2025-0001",
-        equipment: {
-          id: "EQP-001",
-          code: "MN-001",
-          name: "เครื่องคอมพิวเตอร์ Dell",
-          category: "อุปกรณ์คอมพิวเตอร์",
-          image: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
-        },
-        requester: {
-          id: "USR-001",
-          name: "ชัยวัฒน์ มีสุข",
-          department: "แผนกไอที",
-          avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-        },
-        description: "เครื่องคอมพิวเตอร์เปิดไม่ติด หน้าจอขึ้นข้อความ Error Code 0x0000098",
-        status: "pending",
-        requestDate: "2025-05-01",
-        estimatedCost: 2500,
-        priority: "medium",
-        images: [
-          "https://media.istockphoto.com/id/1458149697/photo/pc-error-on-blue-screen-hardware-problem-during-windows-installation-close-up.jpg?s=1024x1024&w=is&k=20&c=1Uc7-VHUo8G4Q08XJjvIlWCYCDI9NMlwK1wn2QAEhak="
-        ]
-      },
-      {
-        requestId: "REP-2025-0002",
-        equipment: {
-          id: "EQP-002",
-          code: "PR-005",
-          name: "เครื่องพิมพ์ HP LaserJet",
-          category: "อุปกรณ์สำนักงาน",
-          image: "https://cdn-icons-png.flaticon.com/512/4299/4299443.png"
-        },
-        requester: {
-          id: "USR-002",
-          name: "สุดารัตน์ แสงทอง",
-          department: "แผนกบัญชี",
-          avatar: "https://randomuser.me/api/portraits/women/44.jpg"
-        },
-        description: "เครื่องพิมพ์มีเสียงดังผิดปกติเวลาพิมพ์งาน และกระดาษติดบ่อยมาก",
-        status: "pending",
-        requestDate: "2025-05-03",
-        estimatedCost: 1200,
-        priority: "low",
-        images: [
-          "https://media.istockphoto.com/id/1340549421/photo/multifunction-printer-or-copy-machine-with-paper-jam-error-in-office.jpg?s=1024x1024&w=is&k=20&c=5AZ5MXRNGrVDv8rGSUKbkfmFiYQcxk8zNIZGXkVHuQA="
-        ]
-      },
-      {
-        requestId: "REP-2025-0003",
-        equipment: {
-          id: "EQP-003",
-          code: "AC-010",
-          name: "เครื่องปรับอากาศ Mitsubishi",
-          category: "เครื่องใช้ไฟฟ้า",
-          image: "https://cdn-icons-png.flaticon.com/512/1530/1530297.png"
-        },
-        requester: {
-          id: "USR-003",
-          name: "วิชัย รักเรียน",
-          department: "แผนกทรัพยากรบุคคล",
-          avatar: "https://randomuser.me/api/portraits/men/67.jpg"
-        },
-        description: "แอร์ไม่เย็น มีน้ำหยดจากเครื่อง และมีกลิ่นอับชื้นเวลาเปิดเครื่อง",
-        status: "approved",
-        requestDate: "2025-04-28",
-        estimatedCost: 4500,
-        approvalDate: "2025-04-29",
-        assignedTo: "ช่างวิชัย",
-        budgetApproved: 5000,
-        priority: "high",
-        images: [
-          "https://media.istockphoto.com/id/521811168/photo/air-conditioner-with-water-leaking.jpg?s=1024x1024&w=is&k=20&c=vZPBSxeB4x9lsEhAQUjVVVw2HEOKiEw_vPzzzq73k0k="
-        ]
-      },
-      {
-        requestId: "REP-2025-0004",
-        equipment: {
-          id: "EQP-004",
-          code: "NET-007",
-          name: "อุปกรณ์กระจายสัญญาณ",
-          category: "อุปกรณ์เครือข่าย",
-          image: "https://cdn-icons-png.flaticon.com/512/2329/2329087.png"
-        },
-        requester: {
-          id: "USR-001",
-          name: "ชัยวัฒน์ มีสุข",
-          department: "แผนกไอที",
-          avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-        },
-        description: "อุปกรณ์กระจายสัญญาณ Switch ชั้น 2 ทำงานไม่เสถียร สัญญาณขาดหายเป็นช่วงๆ",
-        status: "inprogress",
-        requestDate: "2025-04-25",
-        estimatedCost: 8500,
-        approvalDate: "2025-04-26",
-        assignedTo: "ทีมเน็ตเวิร์ค",
-        budgetApproved: 9000,
-        priority: "urgent",
-        estimatedCompletionDate: "2025-05-10",
-        images: [
-          "https://media.istockphoto.com/id/1333772625/photo/internet-router-with-ethernet-cables-connected-networking-equipment-with-blinking-lights.jpg?s=1024x1024&w=is&k=20&c=UNkRMrm0HkiBHXRZSEiYwdxufTM5Bkz5ftGXwQqxh2E="
-        ]
-      },
-      {
-        requestId: "REP-2025-0005",
-        equipment: {
-          id: "EQP-005",
-          code: "FUR-023",
-          name: "โต๊ะประชุม",
-          category: "เฟอร์นิเจอร์",
-          image: "https://cdn-icons-png.flaticon.com/512/7798/7798347.png"
-        },
-        requester: {
-          id: "USR-004",
-          name: "มานะ ใจดี",
-          department: "แผนกบริหาร",
-          avatar: "https://randomuser.me/api/portraits/men/45.jpg"
-        },
-        description: "โต๊ะประชุมห้องประชุมใหญ่มีรอยแตกที่ขอบโต๊ะ และขาโต๊ะไม่มั่นคง",
-        status: "rejected",
-        requestDate: "2025-04-30",
-        estimatedCost: 12000,
-        approvalDate: "2025-05-02",
-        approvalNotes: "งบประมาณจำกัด ให้ใช้โต๊ะสำรองไปก่อน",
-        priority: "low",
-        images: [
-          "https://media.istockphoto.com/id/1213066789/photo/broken-wooden-table-with-cracks.jpg?s=1024x1024&w=is&k=20&c=d5-I4W5Sfk9BRoFBlPyP7XU9O79oNgkKLbgrxMGZzSE="
-        ]
-      }
-    ];
-
-    // Calculate counts for each status
-    const counts = mockData.reduce((acc, request) => {
-      acc[request.status] = (acc[request.status] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Update status options with counts
-    const updatedOptions = statusOptions.map(option => ({
-      ...option,
-      count: counts[option.value] || 0
-    }));
-
-    setRepairRequests(mockData);
-    setLoading(false);
+    fetchRepairRequests();
   }, []);
+
+  const fetchRepairRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('http://localhost:5000/api/repair-requests');
+      console.log('Repair requests data:', response.data);
+
+      // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component
+      const formattedData = response.data.map(request => ({
+        requestId: request.repair_id.toString(),
+        requester_name: request.requester_name,
+        branch_name: request.branch_name,
+        equipment_name: request.equipment_name,
+        equipment_code: request.equipment_code,
+        equipment_category: request.equipment_category,
+        problem_description: request.problem_description,
+        request_date: request.request_date,
+        estimated_cost: request.estimated_cost,
+        equipment_pic: request.equipment_pic,
+        status: request.status,
+        repair_code: request.repair_code,
+        avatar: request.avatar
+      }));
+
+      console.log('Formatted data:', formattedData);
+      setRepairRequests(formattedData);
+
+      // Calculate counts for each status
+      const counts = formattedData.reduce((acc, request) => {
+        acc[request.status] = (acc[request.status] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Update status options with counts
+      const updatedOptions = statusOptions.map(option => ({
+        ...option,
+        count: counts[option.value] || 0
+      }));
+
+    } catch (error) {
+      console.error('Error fetching repair requests:', error);
+      showNotification("เกิดข้อผิดพลาดในการดึงข้อมูลคำขอซ่อม", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenDialog = (request) => {
     setSelectedRequest(request);
     setIsDialogOpen(true);
   };
 
-  const handleApproveRequest = (approvedData) => {
-    // ในโปรเจ็กต์จริงควรส่งข้อมูลไปยัง API
-    console.log("อนุมัติคำขอซ่อม:", approvedData);
+  const handleApproveRequest = async (approvedData) => {
+    try {
+      // อัพเดทสถานะใน API
+      await axios.put(`http://localhost:5000/api/repair-requests/${approvedData.repair_id}`, {
+        status: "อนุมัติ",
+        ...approvedData
+      });
 
-    // อัปเดตสถานะในรายการ
-    setRepairRequests(prevRequests =>
-      prevRequests.map(req =>
-        req.requestId === approvedData.requestId
-          ? { ...req, ...approvedData, status: "approved" }
-          : req
-      )
-    );
+      // รีเฟรชข้อมูลใหม่
+      await fetchRepairRequests();
 
-    // แสดงการแจ้งเตือน
-    showNotification("อนุมัติคำขอซ่อมเรียบร้อยแล้ว", "success");
+      // แสดงการแจ้งเตือน
+      showNotification("อนุมัติคำขอซ่อมเรียบร้อยแล้ว", "success");
+    } catch (error) {
+      console.error('Error approving request:', error);
+      showNotification("เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม", "error");
+    }
   };
 
-  const handleRejectRequest = (rejectedData) => {
-    // ในโปรเจ็กต์จริงควรส่งข้อมูลไปยัง API
-    console.log("ปฏิเสธคำขอซ่อม:", rejectedData);
+  const handleRejectRequest = async (rejectedData) => {
+    try {
+      // อัพเดทสถานะใน API
+      await axios.put(`http://localhost:5000/api/repair-requests/${rejectedData.requestId}`, {
+        status: "ปฏิเสธ",
+        ...rejectedData
+      });
 
-    // อัปเดตสถานะในรายการ
-    setRepairRequests(prevRequests =>
-      prevRequests.map(req =>
-        req.requestId === rejectedData.requestId
-          ? { ...req, ...rejectedData, status: "rejected" }
-          : req
-      )
-    );
+      // รีเฟรชข้อมูลใหม่
+      await fetchRepairRequests();
 
-    // แสดงการแจ้งเตือน
-    showNotification("ปฏิเสธคำขอซ่อมเรียบร้อยแล้ว", "error");
+      // แสดงการแจ้งเตือน
+      showNotification("ปฏิเสธคำขอซ่อมเรียบร้อยแล้ว", "error");
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      showNotification("เกิดข้อผิดพลาดในการปฏิเสธคำขอซ่อม", "error");
+    }
   };
 
   // แสดงการแจ้งเตือน
@@ -255,8 +162,8 @@ export default function RepairApprovalList() {
   const filteredRequests = repairRequests.filter(request => {
     const matchSearch =
       request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requester.name.toLowerCase().includes(searchTerm.toLowerCase());
+      request.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.requester_name.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchStatus = statusFilter === "all" || request.status === statusFilter;
 
@@ -285,7 +192,7 @@ export default function RepairApprovalList() {
             <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
           </div>
-        ) : filteredRequests.length === 0 ? (
+        ) : repairRequests.length === 0 ? (
           <div className="p-8 text-center">
             <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
               <MagnifyingGlassIcon className="w-10 h-10 text-gray-400" />
@@ -322,23 +229,23 @@ export default function RepairApprovalList() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.map((request) => (
+                {repairRequests.map((request) => (
                   <tr key={request.requestId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{request.requestId}</div>
+                      <div className="text-sm font-medium text-gray-900">{request.repair_code}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
                           <img
                             className="h-10 w-10 object-contain p-1 bg-gray-100 rounded"
-                            src={request.equipment?.image || "/placeholder-equipment.png"}
-                            alt={request.equipment?.name}
+                            src={request.equipment_pic || "/placeholder-equipment.png"}
+                            alt={request.equipment_name}
                           />
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{request.equipment?.name}</div>
-                          <div className="text-xs text-gray-500">{request.equipment?.category}</div>
+                          <div className="text-sm font-medium text-gray-900">{request.equipment_name}</div>
+                          <div className="text-xs text-gray-500">{request.equipment_category}</div>
                         </div>
                       </div>
                     </td>
@@ -346,32 +253,32 @@ export default function RepairApprovalList() {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8">
                           <img
-                            className="h-8 w-8 rounded-full"
-                            src={request.requester?.avatar || "/placeholder-user.png"}
-                            alt={request.requester?.name}
+                            className="h-8 w-8 rounded-full object-cover"
+                            src={request.avatar ? `http://localhost:5000/uploads/${request.avatar}` : "/placeholder-user.png"}
+                            alt={request.requester_name}
                           />
                         </div>
                         <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{request.requester?.name}</div>
-                          <div className="text-xs text-gray-500">{request.requester?.department}</div>
+                          <div className="text-sm font-medium text-gray-900">{request.requester_name}</div>
+                          <div className="text-xs text-gray-500">{request.branch_name}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.requestDate}</div>
+                      <div className="text-sm text-gray-900">{request.request_date}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {request.estimatedCost?.toLocaleString()}
+                        {request.estimated_cost?.toLocaleString()}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
-                        {statusTranslation[request.status]}
+                      <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+                        {statusTranslation[request.status] || request.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      {request.status === "pending" ? (
+                      {request.status === "รอการอนุมัติซ่อม" ? (
                         <button
                           onClick={() => handleOpenDialog(request)}
                           className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
