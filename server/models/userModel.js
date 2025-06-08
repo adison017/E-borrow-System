@@ -504,6 +504,19 @@ const User = {
       console.error('Error in delete:', error);
       throw error;
     }
+  },
+
+  // Get users by role
+  getUsersByRole: async (role) => {
+    try {
+      const [rows] = await db.query(
+        'SELECT u.*, r.role_name FROM users u JOIN roles r ON u.role_id = r.role_id WHERE u.role_id = ?',
+        [role]
+      );
+      return rows;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

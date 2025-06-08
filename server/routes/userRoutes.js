@@ -322,6 +322,7 @@ router.post('/', userController.createUser);
 router.put('/id/:id', userController.updateUser);
 router.patch('/id/:id', userController.updateUser);
 router.delete('/id/:id', userController.deleteUser);
+router.get('/role/:role', userController.getUsersByRole);
 
 // Debug route to test server
 router.get('/test', (req, res) => {
