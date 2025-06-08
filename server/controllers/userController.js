@@ -1,8 +1,8 @@
-import User from '../models/userModel.js';
+import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
+import User from '../models/userModel.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -159,34 +159,55 @@ const userController = {
 
   updateUser: async (req, res) => {
     try {
-      const userId = req.params.id;
+      const userId = parseInt(req.params.id, 10);
       console.log('Updating user with ID:', userId);
-      console.log('Update data:', req.body);
-      console.log('Parish value:', req.body.parish); // เพิ่ม log สำหรับ parish
+      console.log('Request body:', req.body);
 
-      const result = await User.updateById(userId, req.body);
-
-      if (result.affectedRows === 0) {
-        return res.status(404).json({
-          message: 'User not found',
-          error: 'No user found with the provided ID'
+      // ตรวจสอบว่ามี ID หรือไม่
+      if (!userId) {
+        return res.status(400).json({
+          message: 'Invalid user ID',
+          error: 'User ID is required'
         });
       }
 
-      // Get the updated user data
+      // ตรวจสอบว่ามีข้อมูลที่จะอัพเดทหรือไม่
+      if (Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          message: 'No data provided for update',
+          error: 'Request body is empty'
+        });
+      }
+
+      const result = await User.updateById(userId, req.body);
+      console.log('Update result:', result);
+
+      if (!result || result.affectedRows === 0) {
+        return res.status(404).json({
+          message: 'User not found or no changes made',
+          error: 'Update operation did not affect any rows'
+        });
+      }
+
+      // ดึงข้อมูลผู้ใช้ที่อัพเดทแล้ว
       const updatedUser = await User.findById(userId);
-      console.log('Updated user data:', updatedUser);
-      console.log('Updated parish value:', updatedUser.parish); // เพิ่ม log สำหรับ updated parish
+      if (!updatedUser) {
+        return res.status(404).json({
+          message: 'Failed to fetch updated user data',
+          error: 'User not found after update'
+        });
+      }
 
       res.json({
         message: 'User updated successfully',
         user: updatedUser
       });
+
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error('Error in updateUser:', error);
       res.status(500).json({
-        message: 'เกิดข้อผิดพลาดในการอัพเดทข้อมูลผู้ใช้',
-        error: error.message
+        message: 'Error updating user',
+        error: error.message || 'Unknown error occurred'
       });
     }
   },

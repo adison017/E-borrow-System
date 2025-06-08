@@ -253,7 +253,7 @@ function ManageEquipment() {
         />
 
 
-        <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-6">
+        <CardHeader floated={false} shadow={false} className="rounded-2xl bg-white px-8 py-6">
           <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
               <Typography variant="h5" className="text-gray-900 font-semibold tracking-tight">
@@ -328,9 +328,9 @@ function ManageEquipment() {
           </div>
         </div>
         </CardHeader>
-        <CardBody className="overflow-x-auto px-0">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+        <CardBody className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-2xl">
+            <table className="min-w-full divide-y divide-gray-200 rounded-2xl">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>{TABLE_HEAD.map((head, index) => (
                   <th
@@ -358,7 +358,7 @@ function ManageEquipment() {
                         <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
                             <img
-                              className="h-10 w-10 object-contain bg-gray-100 rounded"
+                              className="h-16 w-20 object-contain rounded"
                               src={pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"}
                               alt={name}
                               onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}

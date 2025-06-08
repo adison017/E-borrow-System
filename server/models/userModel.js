@@ -188,8 +188,8 @@ const User = {
 
   create: async (userData) => {
     try {
-      // If avatar is provided, ensure it's just the filename
-      if (userData.avatar) {
+      // If avatar is provided, only strip path if not a URL or not a root-relative path
+      if (userData.avatar && !/^https?:\/\//.test(userData.avatar) && !userData.avatar.startsWith('/')) {
         userData.avatar = userData.avatar.split('/').pop();
       }
 
@@ -280,139 +280,11 @@ const User = {
         street,
         province,
         district,
-        postal_no,
-        avatar,
-        Fullname
-      } = userData;
-
-      const updates = [];
-      const values = [];
-
-      if (user_code !== undefined) {
-        updates.push('user_code = ?');
-        values.push(user_code);
-      }
-      if (username !== undefined) {
-        updates.push('username = ?');
-        values.push(username);
-      }
-      if (email !== undefined) {
-        updates.push('email = ?');
-        values.push(email);
-      }
-      if (phone !== undefined) {
-        updates.push('phone = ?');
-        values.push(phone);
-      }
-      if (position_id !== undefined) {
-        updates.push('position_id = ?');
-        values.push(position_id);
-      }
-      if (branch_id !== undefined) {
-        updates.push('branch_id = ?');
-        values.push(branch_id);
-      }
-      if (role_id !== undefined) {
-        updates.push('role_id = ?');
-        values.push(role_id);
-      }
-      if (password !== undefined) {
-        updates.push('password = ?');
-        values.push(password);
-      }
-      if (street !== undefined) {
-        updates.push('street = ?');
-        values.push(street);
-      }
-      if (province !== undefined) {
-        updates.push('province = ?');
-        values.push(province);
-      }
-      if (district !== undefined) {
-        updates.push('district = ?');
-        values.push(district);
-      }
-      if (postal_no !== undefined) {
-        updates.push('postal_no = ?');
-        values.push(postal_no);
-      }
-      if (avatar !== undefined) {
-        updates.push('avatar = ?');
-        values.push(avatar);
-      }
-      if (Fullname !== undefined) {
-        updates.push('Fullname = ?');
-        values.push(Fullname);
-      }
-
-      if (updates.length === 0) {
-        return { affectedRows: 0 };
-      }
-
-      values.push(id);
-      const [result] = await db.query(
-        `UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`,
-        values
-      );
-      return result;
-    } catch (error) {
-      console.error('Error in update:', error);
-      throw error;
-    }
-  },
-
-  updateByUserCode: async (userCode, userData) => {
-    try {
-      const {
-        avatar
-      } = userData;
-
-      const updates = [];
-      const values = [];
-
-      if (avatar !== undefined) {
-        updates.push('avatar = ?');
-        values.push(avatar);
-      }
-
-      if (updates.length === 0) {
-        return { affectedRows: 0 };
-      }
-
-      values.push(userCode);
-      const [result] = await db.query(
-        `UPDATE users SET ${updates.join(', ')} WHERE user_code = ?`,
-        values
-      );
-      return result;
-    } catch (error) {
-      console.error('Error in updateByUserCode:', error);
-      throw error;
-    }
-  },
-
-  updateById: async (id, userData) => {
-    try {
-      const {
-        user_code,
-        username,
-        email,
-        phone,
-        position_id,
-        branch_id,
-        role_id,
-        password,
-        street,
-        province,
-        district,
         parish,
         postal_no,
         avatar,
         Fullname
       } = userData;
-
-      console.log('Updating user with data:', userData);
-      console.log('Parish value in updateById:', parish);
 
       const updates = [];
       const values = [];
@@ -462,7 +334,6 @@ const User = {
         values.push(district);
       }
       if (parish !== undefined) {
-        console.log('Adding parish to updates:', parish);
         updates.push('parish = ?');
         values.push(parish);
       }
@@ -484,11 +355,84 @@ const User = {
       }
 
       values.push(id);
+      const [result] = await db.query(
+        `UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`,
+        values
+      );
+      console.log('SQL:', `UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`);
+      console.log('VALUES:', values);
+      console.log('Update result:', result);
+      return result;
+    } catch (error) {
+      console.error('Error in update:', error);
+      throw error;
+    }
+  },
+
+  updateByUserCode: async (userCode, userData) => {
+    try {
+      const {
+        avatar
+      } = userData;
+
+      const updates = [];
+      const values = [];
+
+      if (avatar !== undefined) {
+        updates.push('avatar = ?');
+        values.push(avatar);
+      }
+
+      if (updates.length === 0) {
+        return { affectedRows: 0 };
+      }
+
+      values.push(userCode);
+      const [result] = await db.query(
+        `UPDATE users SET ${updates.join(', ')} WHERE user_code = ?`,
+        values
+      );
+      return result;
+    } catch (error) {
+      console.error('Error in updateByUserCode:', error);
+      throw error;
+    }
+  },
+
+  updateById: async (id, userData) => {
+    try {
+      console.log('Starting updateById:', { id, userData });
+      
+      if (!id) {
+        throw new Error('User ID is required');
+      }
+
+      // Validate data before update
+      const updates = [];
+      const values = [];
+
+      Object.entries(userData).forEach(([key, value]) => {
+        if (value !== undefined && key !== 'user_id') {
+          updates.push(`${key} = ?`);
+          values.push(value);
+          console.log(`Adding update for ${key}:`, value);
+        }
+      });
+
+      if (updates.length === 0) {
+        console.log('No fields to update');
+        return { affectedRows: 0 };
+      }
+
+      values.push(id);
       const query = `UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`;
-      console.log('Update query:', query);
-      console.log('Update values:', values);
+      
+      console.log('Executing query:', query);
+      console.log('Query values:', values);
 
       const [result] = await db.query(query, values);
+      console.log('Update result:', result);
+
       return result;
     } catch (error) {
       console.error('Error in updateById:', error);

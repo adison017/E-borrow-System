@@ -1,18 +1,19 @@
+import { GiOfficeChair } from "react-icons/gi";
 // EditUserDialog.jsx
+import axios from 'axios';
 import { useEffect, useRef, useState } from "react";
 import {
-    FaBook,
-    FaBuilding,
-    FaEnvelope,
-    FaIdCard,
-    FaLock,
-    FaMapMarkerAlt,
-    FaPhone,
-    FaUser
+  FaBook,
+  FaBuilding,
+  FaEnvelope,
+  FaIdCard,
+  FaLock,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaUser
 } from "react-icons/fa";
 import { MdClose, MdCloudUpload } from "react-icons/md";
-import axios from 'axios';
-import Swal from 'sweetalert2';
+import PinDialog from "../../../components/dialog/PinDialog";
 
 export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const [formData, setFormData] = useState({
@@ -50,6 +51,10 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const fileInputRef = useRef(null);
   const [previewImage, setPreviewImage] = useState("/logo_it.png");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showPin, setShowPin] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -150,18 +155,16 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         amphure_id: undefined,
         tambon_id: undefined
       });
-      if (id) {
-        const province = provinces.find(p => p.id === id);
-        if (province) {
-          setAmphures(province.amphure);
-          setFormData(prev => ({
-            ...prev,
-            province: province.name_th,  // จังหวัด
-            district: '',  // อำเภอ
-            parish: '',    // ตำบล
-            postal_no: ''  // รหัสไปรษณีย์
-          }));
-        }
+      const provinceObj = provinces.find(p => p.id === id);
+      setFormData(prev => ({
+        ...prev,
+        province: provinceObj ? provinceObj.name_th : '',
+        district: '',
+        parish: '',
+        postal_no: ''
+      }));
+      if (provinceObj) {
+        setAmphures(provinceObj.amphure);
       }
     } else if (type === 'amphure') {
       setTambons([]);
@@ -170,33 +173,27 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         amphure_id: id,
         tambon_id: undefined
       }));
-      if (id) {
-        const amphure = amphures.find(a => a.id === id);
-        if (amphure) {
-          setTambons(amphure.tambon);
-          setFormData(prev => ({
-            ...prev,
-            district: amphure.name_th,  // อำเภอ
-            parish: '',    // ตำบล
-            postal_no: ''  // รหัสไปรษณีย์
-          }));
-        }
+      const amphureObj = amphures.find(a => a.id === id);
+      setFormData(prev => ({
+        ...prev,
+        district: amphureObj ? amphureObj.name_th : '',
+        parish: '',
+        postal_no: ''
+      }));
+      if (amphureObj) {
+        setTambons(amphureObj.tambon);
       }
     } else if (type === 'tambon') {
       setSelected(prev => ({
         ...prev,
         tambon_id: id
       }));
-      if (id) {
-        const tambon = tambons.find(t => t.id === id);
-        if (tambon) {
-          setFormData(prev => ({
-            ...prev,
-            parish: tambon.name_th,     // ตำบล
-            postal_no: tambon.zip_code  // รหัสไปรษณีย์
-          }));
-        }
-      }
+      const tambonObj = tambons.find(t => t.id === id);
+      setFormData(prev => ({
+        ...prev,
+        parish: tambonObj ? tambonObj.name_th : '',
+        postal_no: tambonObj ? tambonObj.zip_code : ''
+      }));
     }
   };
 
@@ -310,219 +307,124 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      let newAvatarPath = formData.pic;
+  const validateForm = (data) => {
+    const errors = {};
+    
+    if (!data.username?.trim()) {
+      errors.username = 'Username is required';
+    }
+    
+    if (!data.Fullname?.trim()) {
+      errors.Fullname = 'Full name is required';
+    }
+    
+    if (!data.email?.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(data.email)) {
+      errors.email = 'Invalid email format';
+    }
+    
+    if (!data.phone?.trim()) {
+      errors.phone = 'Phone number is required';
+    }
+    
+    return errors;
+  };
 
-      // 1. อัพโหลดรูปก่อน (ถ้ามีการเลือกไฟล์ใหม่)
-      if (formData.pic instanceof File) {
+  const handlePinSubmit = (e) => {
+    e.preventDefault();
+    if (pin === "1234") {
+      setShowPin(false);
+      setPin("");
+      setPinError("");
+      handleSubmit(); // call the real submit
+    } else {
+      setPinError("PIN ไม่ถูกต้อง");
+    }
+  };
+
+  // ปรับ handleSubmit ให้ไม่รับ event ถ้ามาจาก PIN
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      let avatarFilename = typeof formData.pic === 'string' ? formData.pic.replace(/^.*[\\/]/, '') : formData.user_code + '.jpg';
+      if (formData.pic && typeof formData.pic !== 'string') {
         const formDataImage = new FormData();
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
-
         try {
-          console.log('=== Uploading new image ===');
-          console.log('User code:', formData.user_code);
-          console.log('File:', formData.pic.name);
-
           const uploadResponse = await axios.post('http://localhost:5000/users/upload-image', formDataImage, {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            }
+            headers: { 'Content-Type': 'multipart/form-data' }
           });
-
-          console.log('Upload response:', uploadResponse.data);
-          // ใช้ชื่อไฟล์เป็น user_code.jpg
-          newAvatarPath = `${formData.user_code}.jpg`;
-          console.log('New avatar path:', newAvatarPath);
-
-          // 2. ดึงข้อมูลผู้ใช้ล่าสุดจากฐานข้อมูล
-          const userResponse = await axios.get(`http://localhost:5000/users/id/${formData.user_id}`);
-          const currentUserData = userResponse.data;
-          console.log('Current user data:', currentUserData);
-
-          // 3. อัพเดทข้อมูลผู้ใช้ด้วย PATCH
-          const position = positions.find(p => p.position_name === formData.position_name);
-          const branch = branches.find(b => b.branch_name === formData.branch_name);
-          const role = roles.find(r => r.role_name === formData.role_name);
-
-          const userDataToUpdate = {
-            user_code: formData.user_code,
-            username: formData.username,
-            Fullname: formData.Fullname,
-            email: formData.email,
-            phone: formData.phone,
-            position_id: position?.position_id || null,
-            branch_id: branch?.branch_id || null,
-            role_id: role?.role_id || null,
-            street: formData.street || '',
-            parish: formData.parish || '',     // ตำบล
-            district: formData.district || '',  // อำเภอ
-            province: formData.province || '',  // จังหวัด
-            postal_no: formData.postal_no || '', // รหัสไปรษณีย์
-            avatar: newAvatarPath
-          };
-
-          if (formData.password) {
-            userDataToUpdate.password = formData.password;
-          }
-
-          console.log('=== EditUserDialog: Sending Data ===');
-          console.log('Complete Data:', userDataToUpdate);
-          console.log('Parish value:', formData.parish);
-          console.log('Selected tambon:', selected.tambon_id);
-
-          const response = await axios.patch(`http://localhost:5000/users/id/${formData.user_id}`, userDataToUpdate, {
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.data) {
-            // Dispatch event to notify about updated user
-            const event = new CustomEvent('userDataUpdated', {
-              detail: response.data
-            });
-            window.dispatchEvent(event);
-
-            Swal.fire({
-              icon: 'success',
-              title: 'อัพเดทข้อมูลสำเร็จ',
-              text: 'ข้อมูลผู้ใช้งานถูกอัพเดทเรียบร้อยแล้ว',
-              confirmButtonText: 'ตกลง',
-              confirmButtonColor: '#3085d6'
-            });
-            onSave(response.data);
-            onClose();
-          } else {
-            throw new Error('ไม่ได้รับข้อมูลการตอบกลับจาก server');
+          if (uploadResponse.data && uploadResponse.data.filename) {
+            avatarFilename = uploadResponse.data.filename;
           }
         } catch (uploadError) {
-          console.error('Error uploading image:', uploadError);
-          Swal.fire({
-            icon: 'error',
-            title: 'อัพโหลดรูปภาพไม่สำเร็จ',
-            text: uploadError.response?.data?.message || 'เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ',
-            confirmButtonText: 'ตกลง',
-            confirmButtonColor: '#3085d6'
-          });
+          setError(uploadError.response?.data?.message || 'เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ');
           setIsLoading(false);
           return;
         }
-      } else {
-        // ถ้าไม่มีการอัพโหลดรูปใหม่ ให้อัพเดทข้อมูลแบบปกติ
-        const position = positions.find(p => p.position_name === formData.position_name);
-        const branch = branches.find(b => b.branch_name === formData.branch_name);
-        const role = roles.find(r => r.role_name === formData.role_name);
-
-        const userDataToUpdate = {
-          user_code: formData.user_code,
-          username: formData.username,
-          Fullname: formData.Fullname,
-          email: formData.email,
-          phone: formData.phone,
-          position_id: position?.position_id || null,
-          branch_id: branch?.branch_id || null,
-          role_id: role?.role_id || null,
-          street: formData.street || '',
-          parish: formData.parish || '',     // ตำบล
-          district: formData.district || '',  // อำเภอ
-          province: formData.province || '',  // จังหวัด
-          postal_no: formData.postal_no || '', // รหัสไปรษณีย์
-          avatar: newAvatarPath
-        };
-
-        if (formData.password) {
-          userDataToUpdate.password = formData.password;
-        }
-
-        console.log('=== EditUserDialog: Sending Data ===');
-        console.log('Complete Data:', userDataToUpdate);
-        console.log('Parish value:', formData.parish);
-        console.log('Selected tambon:', selected.tambon_id);
-
-        const response = await axios.patch(`http://localhost:5000/users/id/${formData.user_id}`, userDataToUpdate, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.data) {
-          // Dispatch event to notify about updated user
-          const event = new CustomEvent('userDataUpdated', {
-            detail: response.data
-          });
-          window.dispatchEvent(event);
-
-          Swal.fire({
-            icon: 'success',
-            title: 'อัพเดทข้อมูลสำเร็จ',
-            text: 'ข้อมูลผู้ใช้งานถูกอัพเดทเรียบร้อยแล้ว',
-            confirmButtonText: 'ตกลง',
-            confirmButtonColor: '#3085d6'
-          });
-          onSave(response.data);
-          onClose();
-        } else {
-          throw new Error('ไม่ได้รับข้อมูลการตอบกลับจาก server');
-        }
+      }
+      const updateData = {
+        user_id: formData.user_id,
+        user_code: formData.user_code,
+        username: formData.username,
+        Fullname: formData.Fullname,
+        email: formData.email,
+        phone: formData.phone,
+        position_id: formData.position_id,
+        branch_id: formData.branch_id,
+        role_id: formData.role_id,
+        street: formData.street,
+        province: formData.province,
+        district: formData.district,
+        parish: formData.parish,
+        postal_no: formData.postal_no,
+        avatar: avatarFilename
+      };
+      if (formData.password) {
+        updateData.password = formData.password;
+      }
+      const validationErrors = validateForm(updateData);
+      if (Object.keys(validationErrors).length > 0) {
+        setError('กรุณากรอกข้อมูลให้ครบถ้วน');
+        setIsLoading(false);
+        return;
+      }
+      const response = await axios.patch(
+        `http://localhost:5000/users/id/${formData.user_id}`,
+        updateData,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      if (response.data?.user) {
+        onSave(response.data.user);
+        onClose();
       }
     } catch (error) {
-      console.error('Error updating user:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-
-      // Handle specific error cases
-      if (error.response?.data?.field) {
-        // Handle field-specific errors
-        const fieldMessages = {
-          user_code: 'รหัสนิสิตนี้ถูกใช้งานแล้ว',
-          username: 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว',
-          email: 'อีเมลนี้ถูกใช้งานแล้ว'
-        };
-        Swal.fire({
-          icon: 'error',
-          title: 'ไม่สามารถอัพเดทข้อมูลได้',
-          text: fieldMessages[error.response.data.field] || error.response.data.message,
-          confirmButtonText: 'ตกลง',
-          confirmButtonColor: '#3085d6'
-        });
-      } else if (error.response?.data?.fields) {
-        // Handle missing fields
-        const missingFields = error.response.data.fields.join(', ');
-        Swal.fire({
-          icon: 'warning',
-          title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
-          text: `กรุณากรอกข้อมูลในฟิลด์ต่อไปนี้: ${missingFields}`,
-          confirmButtonText: 'ตกลง',
-          confirmButtonColor: '#3085d6'
-        });
-      } else {
-        // Handle other errors
-        Swal.fire({
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาด',
-          text: error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการอัพเดทข้อมูล',
-          confirmButtonText: 'ตกลง',
-          confirmButtonColor: '#3085d6'
-        });
-      }
+      setError(error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัพเดทข้อมูล');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isFormValid = formData.username && formData.Fullname && formData.email && formData.phone;
+  const isFormValid =
+    formData.username &&
+    formData.Fullname &&
+    formData.email &&
+    formData.phone &&
+    formData.province &&
+    formData.district &&
+    formData.parish &&
+    formData.street &&
+    formData.role_name;
 
   if (!open) return null;
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box relative w-full max-h-[90vh] max-w-6xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
+      <div className="modal-box relative w-full max-h-[95vh] max-w-8xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute right-5 top-5 text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-gray-50 z-10 transition-all duration-200 transform hover:rotate-90"
@@ -532,7 +434,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         </button>
 
         <div className="flex flex-col md:flex-row h-full">
-          <div className="flex flex-col items-center justify-start pt-16 px-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px]">
+          <div className="flex flex-col items-center justify-start pt-10 px-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px]">
             <div className="mb-8">
               <h2 className="text-xl font-bold text-blue-800 text-center mb-2">แก้ข้อมูลผู้ใช้งาน</h2>
               <h3 className="text-lg font-bold text-blue-800 text-center mb-2">รูปโปรไฟล์</h3>
@@ -564,16 +466,42 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
             {formData.pic && typeof formData.pic !== 'string' && (
               <span className="text-xs text-gray-500 max-w-full truncate px-3 bg-white/70 py-1.5 rounded-full mt-4 shadow-sm border border-gray-100">{formData.pic.name}</span>
             )}
+            <div>
+                      <label className="mt-5 text-sm font-medium text-gray-700 mb-1 flex justify-center items-center">
+                        <GiOfficeChair className="w-5 h-5 mr-2 text-center text-blue-500" />
+                        บทบาท<span className="text-red-500 ml-1">*</span>
+                      </label>
+                      <select
+                        name="role_name"
+                        className="w-35 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
+                        value={formData.role_name}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="" disabled>เลือกบทบาท</option>
+                        {roles.map(role => (
+                          <option key={role.role_id} value={role.role_name}>
+                            {role.role_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
           </div>
 
           <div className="flex-1 flex flex-col justify-start px-8 md:px-10 bg-gradient-to-br from-white to-gray-50">
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent mb-2">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
                 แก้ไขข้อมูลผู้ใช้งาน
               </h2>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                setShowPin(true);
+              }}
+              className="space-y-8"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-5 bg-white p-1 rounded-2xl transition-all duration-300 border border-gray-50">
                   <div className="flex items-center space-x-2 pb-3 mb-1 border-b border-gray-100">
@@ -583,23 +511,25 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaIdCard className="w-4 h-4 mr-2 text-blue-500" />
                         รหัสนิสิต <span className="text-red-500 ml-1">*</span>
                       </label>
                       <input
                         type="text"
                         name="user_code"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
+                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
                         value={formData.user_code}
                         onChange={handleChange}
                         placeholder="เช่น 64010123"
                         required
+                        readOnly
+                        disabled
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaUser className="w-4 h-4 mr-2 text-blue-500" />
                         ชื่อ-นามสกุล <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -616,7 +546,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                           <FaBuilding className="w-4 h-4 mr-2 text-blue-500" />
                           ตำแหน่ง <span className="text-red-500 ml-1">*</span>
                         </label>
@@ -636,7 +566,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                           <FaBook className="w-4 h-4 mr-2 text-blue-500" />
                           สาขา <span className="text-red-500 ml-1">*</span>
                         </label>
@@ -658,23 +588,25 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaUser className="w-4 h-4 mr-2 text-blue-500" />
                         ชื่อผู้ใช้งาน <span className="text-red-500 ml-1">*</span>
                       </label>
                       <input
                         type="text"
                         name="username"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
+                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
                         value={formData.username}
                         onChange={handleChange}
                         placeholder="ระบุชื่อผู้ใช้งาน"
                         required
+                        readOnly
+                        disabled
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaLock className="w-4 h-4 mr-2 text-blue-500" />
                         รหัสผ่าน
                       </label>
@@ -690,7 +622,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaEnvelope className="w-4 h-4 mr-2 text-blue-500" />
                         อีเมล <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -706,7 +638,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaPhone className="w-4 h-4 mr-2 text-blue-500" />
                         เบอร์โทรศัพท์ <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -724,39 +656,18 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                         />
                       </div>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaUser className="w-4 h-4 mr-2 text-blue-500" />
-                        บทบาท <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <select
-                        name="role_name"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
-                        value={formData.role_name}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="" disabled>เลือกบทบาท</option>
-                        {roles.map(role => (
-                          <option key={role.role_id} value={role.role_name}>
-                            {role.role_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
                 </div>
 
-            <div className="space-y-5 bg-white p-2 rounded-2xl transition-all duration-300 border border-gray-50">
-                  <div className="flex items-center space-x-2 pb-3 mb-1">
+                <div className="space-y-5 bg-white p-2 rounded-2xl transition-all duration-300 border border-gray-50">
+                  <div className="flex items-center space-x-2 pb-3 mb-1 border-b border-gray-100">
                     <FaMapMarkerAlt className="w-5 h-5 text-blue-600" />
                     <h3 className="text-lg font-semibold text-gray-800">ที่อยู่</h3>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ปัจจุบัน</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ปัจจุบัน <span className="text-red-500 ml-1">*</span></label>
                       <textarea
                         name="street"
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
@@ -767,16 +678,20 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
+                          จังหวัด <span className="text-red-500 ml-1">*</span>
+                        </label>
                         <select
                           name="province"
-                          value={selected.province_id || ''}
-                          onChange={(e) => handleAddressChange(e, 'province')}
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
+                          value={selected.province_id || ''}
+                          onChange={(e) => { handleAddressChange(e, 'province'); }}
+                          required
                         >
-                          <option value="">เลือกจังหวัด</option>
+                          <option value="" disabled>เลือกจังหวัด</option>
                           {provinces.map(province => (
                             <option key={province.id} value={province.id}>
                               {province.name_th}
@@ -785,14 +700,18 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">อำเภอ</label>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
+                          อำเภอ <span className="text-red-500 ml-1">*</span>
+                        </label>
                         <select
                           name="district"
-                          value={selected.amphure_id || ''}
-                          onChange={(e) => handleAddressChange(e, 'amphure')}
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
+                          value={selected.amphure_id || ''}
+                          onChange={(e) => { handleAddressChange(e, 'amphure'); }}
+                          required
                         >
-                          <option value="">เลือกอำเภอ</option>
+                          <option value="" disabled>เลือกอำเภอ</option>
                           {amphures.map(amphure => (
                             <option key={amphure.id} value={amphure.id}>
                               {amphure.name_th}
@@ -800,18 +719,19 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                           ))}
                         </select>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">ตำบล</label>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
+                          ตำบล <span className="text-red-500 ml-1">*</span>
+                        </label>
                         <select
                           name="parish"
-                          value={selected.tambon_id || ''}
-                          onChange={(e) => handleAddressChange(e, 'tambon')}
                           className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
+                          value={selected.tambon_id || ''}
+                          onChange={(e) => { handleAddressChange(e, 'tambon'); }}
+                          required
                         >
-                          <option value="">เลือกตำบล</option>
+                          <option value="" disabled>เลือกตำบล</option>
                           {tambons.map(tambon => (
                             <option key={tambon.id} value={tambon.id}>
                               {tambon.name_th}
@@ -819,24 +739,28 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                           ))}
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                        <input
-                          type="text"
-                          name="postal_no"
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
-                          value={formData.postal_no}
-                          onChange={handleChange}
-                          placeholder="10110"
-                          readOnly
-                        />
-                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                        <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
+                        รหัสไปรษณีย์
+                      </label>
+                      <input
+                        type="text"
+                        name="postal_no"
+                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
+                        value={formData.postal_no}
+                        onChange={handleChange}
+                        placeholder="รหัสไปรษณีย์"
+                        readOnly
+                        disabled
+                      />
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-4 pb-6">
+              <div className="flex justify-end gap-4 pb-2">
                 <button
                   type="button"
                   className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 hover:text-red-600 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 shadow-sm"
@@ -867,6 +791,19 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                 </button>
               </div>
             </form>
+            {/* PIN Dialog */}
+            <PinDialog
+              open={showPin}
+              pin={pin}
+              setPin={setPin}
+              pinError={pinError}
+              onCancel={() => {
+                setShowPin(false);
+                setPin("");
+                setPinError("");
+              }}
+              onSubmit={handlePinSubmit}
+            />
           </div>
         </div>
       </div>
