@@ -270,6 +270,24 @@ const userController = {
         });
       }
     });
+  },
+
+  // Get users by role
+  getUsersByRole: async (req, res) => {
+    try {
+      const results = await User.getUsersByRole(req.params.role);
+
+      // Return empty array instead of 404 if no results found
+      const mapped = results.map(user => ({
+        ...user,
+        avatar: user.avatar ? `http://localhost:5000/uploads/${user.avatar}` : null
+      }));
+
+      res.json(mapped);
+    } catch (err) {
+      console.error('Error in getUsersByRole:', err);
+      res.status(500).json({ error: err.message });
+    }
   }
 };
 
