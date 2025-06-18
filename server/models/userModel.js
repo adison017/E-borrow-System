@@ -402,7 +402,7 @@ const User = {
   updateById: async (id, userData) => {
     try {
       console.log('Starting updateById:', { id, userData });
-      
+
       if (!id) {
         throw new Error('User ID is required');
       }
@@ -426,7 +426,7 @@ const User = {
 
       values.push(id);
       const query = `UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`;
-      
+
       console.log('Executing query:', query);
       console.log('Query values:', values);
 
@@ -454,7 +454,7 @@ const User = {
   getUsersByRole: async (role) => {
     try {
       const [rows] = await db.query(
-        'SELECT u.*, r.role_name FROM users u JOIN roles r ON u.role_id = r.role_id WHERE u.role_id = ?',
+        'SELECT u.*, r.role_name FROM users u JOIN roles r ON u.role_id = r.role_id WHERE r.role_name = ?',
         [role]
       );
       return rows;
