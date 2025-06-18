@@ -60,26 +60,40 @@ export default function RepairApprovalList() {
     try {
       setLoading(true);
       const response = await axios.get('http://localhost:5000/api/repair-requests');
-      console.log('Repair requests data:', response.data);
+      console.log('=== API Response Debug ===');
+      console.log('Raw API response:', response.data);
+      console.log('First item sample:', response.data[0]);
 
       // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component
-      const formattedData = response.data.map(request => ({
-        requestId: request.repair_id.toString(),
-        requester_name: request.requester_name,
-        branch_name: request.branch_name,
-        equipment_name: request.equipment_name,
-        equipment_code: request.equipment_code,
-        equipment_category: request.equipment_category,
-        problem_description: request.problem_description,
-        request_date: request.request_date,
-        estimated_cost: request.estimated_cost,
-        equipment_pic: request.equipment_pic,
-        status: request.status,
-        repair_code: request.repair_code,
-        avatar: request.avatar
-      }));
+      const formattedData = response.data.map(request => {
+        console.log('Processing request:', request);
+        console.log('repair_pic value:', request.repair_pic);
+        console.log('repair_pic type:', typeof request.repair_pic);
+        console.log('repair_pic_raw:', request.repair_pic_raw);
 
+        return {
+          requestId: request.repair_id.toString(),
+          requester_name: request.requester_name,
+          branch_name: request.branch_name,
+          equipment_name: request.equipment_name,
+          equipment_code: request.equipment_code,
+          equipment_category: request.equipment_category,
+          problem_description: request.problem_description,
+          request_date: request.request_date,
+          estimated_cost: request.estimated_cost,
+          equipment_pic: request.equipment_pic,
+          equipment_pic_filename: request.equipment_pic_filename,
+          pic_filename: request.repair_pic, // รูปภาพความเสียหาย (array ที่ถูก parse แล้ว)
+          pic_filename_raw: request.repair_pic_raw, // ข้อมูลดิบสำหรับ debug
+          status: request.status,
+          repair_code: request.repair_code,
+          avatar: request.avatar
+        };
+      });
+
+      console.log('=== Formatted Data Debug ===');
       console.log('Formatted data:', formattedData);
+      console.log('First formatted item:', formattedData[0]);
       setRepairRequests(formattedData);
 
       // Calculate counts for each status
@@ -109,11 +123,8 @@ export default function RepairApprovalList() {
 
   const handleApproveRequest = async (approvedData) => {
     try {
-      // อัพเดทสถานะใน API
-      await axios.put(`http://localhost:5000/api/repair-requests/${approvedData.repair_id}`, {
-        status: "อนุมัติ",
-        ...approvedData
-      });
+      // The dialog already makes the API call with all necessary data
+      // No need to make another API call here as it would overwrite the data
 
       // รีเฟรชข้อมูลใหม่
       await fetchRepairRequests();
@@ -128,11 +139,8 @@ export default function RepairApprovalList() {
 
   const handleRejectRequest = async (rejectedData) => {
     try {
-      // อัพเดทสถานะใน API
-      await axios.put(`http://localhost:5000/api/repair-requests/${rejectedData.requestId}`, {
-        status: "ปฏิเสธ",
-        ...rejectedData
-      });
+      // The dialog should handle the API call for rejection
+      // No need to make another API call here as it would overwrite the data
 
       // รีเฟรชข้อมูลใหม่
       await fetchRepairRequests();
@@ -239,8 +247,11 @@ export default function RepairApprovalList() {
                         <div className="flex-shrink-0 h-10 w-10">
                           <img
                             className="h-10 w-10 object-contain p-1 bg-gray-100 rounded"
-                            src={request.equipment_pic || "/placeholder-equipment.png"}
+                            src={request.equipment_pic || (request.equipment_pic_filename ? `http://localhost:5000/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
                             alt={request.equipment_name}
+                            onError={(e) => {
+                              e.target.src = "/placeholder-equipment.png";
+                            }}
                           />
                         </div>
                         <div className="ml-4">
