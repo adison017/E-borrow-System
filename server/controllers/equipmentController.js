@@ -1,15 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import * as Equipment from '../models/equipmentModel.js';
-
-const getPicUrl = (pic) => {
-  if (!pic) return 'https://cdn-icons-png.flaticon.com/512/3474/3474360.png';
-  // ถ้าเป็น URL เต็มหรือ /uploads แล้ว ให้คืนเลย
-  if (pic.startsWith('http')) return pic;
-  if (pic.startsWith('/uploads')) return `http://localhost:5000${pic}`;
-  // ถ้าเป็นชื่อไฟล์ ให้เติม URL เต็ม
-  return `http://localhost:5000/uploads/${pic}`;
-};
+import { getPicUrl } from '../utils/imageUtils.js';
 
 export const getAllEquipment = async (req, res) => {
   try {
@@ -26,7 +18,22 @@ export const getAllEquipment = async (req, res) => {
 
 export const getEquipmentById = async (req, res) => {
   try {
-    const results = await Equipment.getEquipmentById(req.params.id);
+    const results = await Equipment.getEquipmentById(req.params.item_id);
+    if (results.length === 0) return res.status(404).json({ error: 'Not found' });
+    const item = results[0];
+    const mapped = {
+      ...item,
+      pic: getPicUrl(item.pic)
+    };
+    res.json(mapped);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getEquipmentByCode = async (req, res) => {
+  try {
+    const results = await Equipment.getEquipmentByCode(req.params.item_code);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
     const item = results[0];
     const mapped = {
@@ -53,7 +60,7 @@ export const addEquipment = async (req, res) => {
     data.price = data.price || null;
     data.location = data.location || null;
     await Equipment.addEquipment(data);
-    res.status(201).json({ message: 'Equipment added', id: data.id });
+    res.status(201).json({ message: 'Equipment added', item_id: data.item_id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -72,7 +79,7 @@ export const updateEquipment = async (req, res) => {
     data.price = data.price || null;
     data.location = data.location || null;
     // ดึงข้อมูลเดิมก่อนอัปเดต
-    const results = await Equipment.getEquipmentById(req.params.id);
+    const results = await Equipment.getEquipmentById(req.params.item_id);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
 
     const oldPic = results[0].pic;
@@ -93,8 +100,29 @@ export const updateEquipment = async (req, res) => {
     }
 
     // อัปเดตข้อมูล
-    await Equipment.updateEquipment(req.params.id, data);
+    await Equipment.updateEquipment(req.params.item_id, data);
     res.json({ message: 'Equipment updated' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateEquipmentStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+
+    // ดึงข้อมูลเดิมก่อนอัปเดต
+    const results = await Equipment.getEquipmentById(req.params.item_id);
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Equipment not found' });
+    }
+
+    // อัปเดตเฉพาะสถานะ
+    await Equipment.updateEquipmentStatus(req.params.item_id, status);
+    res.json({ message: 'Equipment status updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -103,7 +131,7 @@ export const updateEquipment = async (req, res) => {
 export const deleteEquipment = async (req, res) => {
   try {
     // ดึงข้อมูลก่อนลบ เพื่อรู้ชื่อไฟล์
-    const results = await Equipment.getEquipmentById(req.params.id);
+    const results = await Equipment.getEquipmentById(req.params.item_id);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
 
     const picUrl = results[0].pic;
@@ -148,7 +176,7 @@ export const deleteEquipment = async (req, res) => {
     }
 
     // ลบข้อมูลใน DB
-    await Equipment.deleteEquipment(req.params.id);
+    await Equipment.deleteEquipment(req.params.item_id);
     res.json({ message: 'Equipment deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });

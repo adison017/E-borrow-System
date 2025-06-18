@@ -65,13 +65,13 @@ const statusConfig = {
     backgroundColor: "bg-red-50",
     borderColor: "border-red-100"
   },
-  "รออนุมัติซ่อม": {
+  "กำลังซ่อม": {
     color: "amber",
     icon: ClockIcon,
     backgroundColor: "bg-amber-50",
     borderColor: "border-amber-100"
   },
-  "ระหว่างซ่อม": {
+  "รออนุมัติซ่อม": {
     color: "blue",
     icon: ClockIcon,
     backgroundColor: "bg-blue-50",
@@ -131,7 +131,7 @@ function ManageEquipment() {
   };
 
   const confirmDelete = () => {
-    deleteEquipment(selectedEquipment.id).then(() => getEquipment().then(setEquipmentList));
+    deleteEquipment(selectedEquipment.item_id).then(() => getEquipment().then(setEquipmentList));
     setDeleteDialogOpen(false);
     showAlertMessage(`ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "success");
     setSelectedEquipment(null);
@@ -167,13 +167,13 @@ function ManageEquipment() {
       item =>
         (item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (statusFilter === "ทั้งหมด" || item.status === statusFilter) &&
-        (categoryFilter === "ทั้งหมด" || item.category === categoryFilter)
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (statusFilter === "ทั้งหมด" || item.status === statusFilter)
     )
     .sort((a, b) => {
       if (a.status === "ชำรุด" && b.status !== "ชำรุด") return -1;
       if (b.status === "ชำรุด" && a.status !== "ชำรุด") return 1;
+      // ถ้าไม่ใช่ทั้งคู่ ให้เรียงตาม id
       return a.id.localeCompare(b.id);
     });
 
@@ -217,8 +217,8 @@ function ManageEquipment() {
 
   const handleRepairSubmit = async (repairData) => {
     // Update equipment status to 'รออนุมัติซ่อม' ใน database
-    const equipmentId = repairData.equipment.code;
-    const equipmentToUpdate = equipmentList.find(item => item.id === equipmentId);
+    const equipmentId = repairData.equipment.item_id;
+    const equipmentToUpdate = equipmentList.find(item => item.item_id === equipmentId);
     if (equipmentToUpdate) {
       await updateEquipment(equipmentId, { ...equipmentToUpdate, status: 'รออนุมัติซ่อม' });
       getEquipment().then(setEquipmentList);
@@ -235,7 +235,7 @@ function ManageEquipment() {
   const handleInspectSubmit = (inspectionData) => {
     // Update equipment status to 'พร้อมใช้งาน'
     const updatedEquipment = equipmentList.map(item => {
-      if (item.id === inspectionData.equipment.code) {
+      if (item.item_id === inspectionData.equipment.item_id) {
         return { ...item, status: 'พร้อมใช้งาน' };
       }
       return item;
@@ -417,11 +417,11 @@ function ManageEquipment() {
                 ))}</tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedEquipment.length > 0 ? (
-                  paginatedEquipment.map((item, index) => {
+                {filteredEquipment.length > 0 ? (
+                  filteredEquipment.map((item, index) => {
                     const { pic, id, name, category, quantity, status, created_at } = item;
                     return (
-                      <tr key={id} className="hover:bg-gray-50">
+                      <tr key={item_id} className="hover:bg-gray-50">
                         <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
                             <img
@@ -432,7 +432,7 @@ function ManageEquipment() {
                             />
                           </div>
                         </td>
-                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{id}</td>
+                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{item_id}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
                         <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}{item.unit ? ` ${item.unit}` : ''}</td>
@@ -450,7 +450,7 @@ function ManageEquipment() {
                                 </IconButton>
                               </Tooltip>
                             )}
-                            {status === 'ระหว่างซ่อม' && (
+                            {status === 'กำลังซ่อม' && (
                               <Tooltip content="ตรวจรับครุภัณฑ์" placement="top">
                                 <IconButton variant="text" color="teal" className="bg-teal-50 hover:bg-teal-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleInspectEquipment(item)}>
                                   <CheckCircleIcon className="h-5 w-5" />
@@ -536,7 +536,7 @@ function ManageEquipment() {
             if (dataToSave.pic instanceof File) {
               dataToSave.pic = await uploadImage(dataToSave.pic);
             }
-            await updateEquipment(dataToSave.id, dataToSave);
+            await updateEquipment(dataToSave.item_id, dataToSave);
             getEquipment().then(setEquipmentList);
             showAlertMessage(`แก้ไขครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "success");
           }}
@@ -547,7 +547,7 @@ function ManageEquipment() {
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
           initialFormData={{
-            id: `EQ-${String(equipmentList.length + 1).padStart(3, '0')}`,
+            item_id: `EQ-${String(equipmentList.length + 1).padStart(3, '0')}`,
             name: "",
             category: "",
             description: "",
