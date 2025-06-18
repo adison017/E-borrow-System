@@ -14,7 +14,7 @@ export default function EditEquipmentDialog({
     category: "",
     description: "",
     quantity: "",
-    unit: "", // <-- ต้องเป็นค่าว่าง
+    unit: "",
     status: "พร้อมใช้งาน",
     pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
   });
@@ -28,43 +28,60 @@ export default function EditEquipmentDialog({
     "ระหว่างซ่อม": { color: "amber", icon: "ClockIcon" },
     "ถูกยืม": { color: "blue", icon: "ExclamationCircleIcon" }
   };
-  
-  useEffect(() => {
-  if (open) {
-    getCategories().then(data => setCategories(data));
-  }
-  setFormData(equipmentData || {
-    id: "",
-    name: "",
-    category: "",
-    description: "",
-    quantity: "",
-    unit: "", // <-- ต้องเป็นค่าว่าง
-    status: "พร้อมใช้งาน",
-    pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
-  });
 
-  // ตั้งค่า previewImage ใหม่ทุกครั้งที่เปิด dialog
-  if (equipmentData?.pic) {
-    if (typeof equipmentData.pic === 'string') {
-      setPreviewImage(
-        equipmentData.pic.startsWith('http') || equipmentData.pic.startsWith('/uploads')
-          ? equipmentData.pic
-          : `/uploads/${equipmentData.pic}`
-      );
+  useEffect(() => {
+    if (open) {
+      getCategories().then(data => setCategories(data));
+    }
+
+    // Ensure all values are strings, never undefined
+    const defaultData = {
+      id: "",
+      name: "",
+      category: "",
+      description: "",
+      quantity: "",
+      unit: "",
+      status: "พร้อมใช้งาน",
+      pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
+    };
+
+    if (equipmentData) {
+      setFormData({
+        id: equipmentData.item_id || equipmentData.id || "",
+        name: equipmentData.name || "",
+        category: equipmentData.category || "",
+        description: equipmentData.description || "",
+        quantity: equipmentData.quantity || "",
+        unit: equipmentData.unit || "",
+        status: equipmentData.status || "พร้อมใช้งาน",
+        pic: equipmentData.pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
+      });
+    } else {
+      setFormData(defaultData);
+    }
+
+    // ตั้งค่า previewImage ใหม่ทุกครั้งที่เปิด dialog
+    if (equipmentData?.pic) {
+      if (typeof equipmentData.pic === 'string') {
+        setPreviewImage(
+          equipmentData.pic.startsWith('http') || equipmentData.pic.startsWith('/uploads')
+            ? equipmentData.pic
+            : `/uploads/${equipmentData.pic}`
+        );
+      } else {
+        setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
+      }
     } else {
       setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
     }
-  } else {
-    setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
-  }
-}, [equipmentData, open]);
+  }, [equipmentData, open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value || "" // Ensure value is never undefined
     }));
   };
 
@@ -88,11 +105,14 @@ export default function EditEquipmentDialog({
     if (dataToSave.pic instanceof File) {
       dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.id); // ส่ง id ไปด้วย
     }
+    // แปลง id เป็น item_id เพื่อให้ตรงกับโครงสร้างข้อมูลที่คาดหวัง
+    dataToSave.item_id = dataToSave.id;
+    delete dataToSave.id;
     // ไม่ต้องตัด path แล้ว เพราะ backend รับได้เลย
     onSave(dataToSave);
     onClose();
   };
-  
+
   const isFormValid = formData.name && formData.quantity && formData.category && formData.unit;
 
   const StatusDisplay = ({ status }) => {
@@ -132,12 +152,12 @@ export default function EditEquipmentDialog({
             <MdClose className="w-5 h-5" />
           </button>
         </div>
-        
+
         {/* Form Content */}
         <div className="space-y-5">
           {/* Prominent Image Upload */}
           <div className="flex flex-col items-center mb-5">
-            <div 
+            <div
               className="w-40 h-40 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer relative overflow-hidden group shadow-sm"
               onClick={() => fileInputRef.current.click()}
             >
@@ -289,8 +309,8 @@ export default function EditEquipmentDialog({
           </button>
           <button
             className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm ${
-              isFormValid 
-                ? "bg-blue-600 hover:bg-blue-700" 
+              isFormValid
+                ? "bg-blue-600 hover:bg-blue-700"
                 : "bg-blue-300 cursor-not-allowed"
             }`}
             onClick={handleSubmit}
