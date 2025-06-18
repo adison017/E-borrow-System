@@ -1,4 +1,6 @@
+import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
+import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import { getCategories, uploadImage } from "../../../utils/api";
 
@@ -14,7 +16,7 @@ export default function EditEquipmentDialog({
     category: "",
     description: "",
     quantity: "",
-    unit: "", // <-- ต้องเป็นค่าว่าง
+    unit: "",
     status: "พร้อมใช้งาน",
     pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
   });
@@ -83,6 +85,13 @@ export default function EditEquipmentDialog({
     }
   };
 
+  const handleDateChange = (date) => {
+    setFormData(prev => ({
+      ...prev,
+      purchaseDate: date ? dayjs(date).format('YYYY-MM-DD') : ''
+    }));
+  };
+
   const handleSubmit = async () => {
     let dataToSave = { ...formData };
     if (dataToSave.pic instanceof File) {
@@ -114,7 +123,7 @@ export default function EditEquipmentDialog({
 
   return (
     <div className="modal modal-open">
-      <div className="modal-box relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-200 w-full p-5 z-50 overflow-y-auto max-h-[100vh]">
+      <div className="modal-box relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-[150vh] w-full p-5 z-50 overflow-y-auto max-h-[90vh]">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-100">
           <h3 className="text-2xl font-bold text-gray-800 flex items-center tracking-tight">
@@ -276,6 +285,57 @@ export default function EditEquipmentDialog({
                 ))}
               </select>
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">วันที่จัดซื้อ</label>
+              <div className="relative">
+                <input
+                  type="date"
+                  name="purchaseDate"
+                  value={dayjs(formData.purchaseDate).isValid() ? dayjs(formData.purchaseDate).format('YYYY-MM-DD') : ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
+                  placeholder="เลือกวันที่"
+                  onClick={() => document.querySelector('input[name="purchaseDate"]').showPicker()}
+                />
+                <button 
+                  type="button" 
+                  className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  onClick={() => document.querySelector('input[name="purchaseDate"]').showPicker()}
+                >
+                  <FaCalendarAlt />
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">ราคา (บาท)</label>
+              <input
+                type="text"
+                name="price"
+                value={formData.price ? Number(formData.price).toLocaleString('th-TH') : ''}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setFormData(prev => ({
+                    ...prev,
+                    price: value
+                  }));
+                }}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
+                placeholder="ระบุราคา"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">สถานที่จัดเก็บ</label>
+            <input
+              type="text"
+              name="location"
+              value={formData.location || ''}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 transition-shadow"
+              placeholder="ระบุสถานที่จัดเก็บ"
+            />
           </div>
         </div>
         {/* Footer */}
