@@ -168,7 +168,8 @@ function ManageEquipment() {
         (item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (statusFilter === "ทั้งหมด" || item.status === statusFilter)
+        (statusFilter === "ทั้งหมด" || item.status === statusFilter) &&
+        (categoryFilter === "ทั้งหมด" || item.category === categoryFilter)
     )
     .sort((a, b) => {
       if (a.status === "ชำรุด" && b.status !== "ชำรุด") return -1;
