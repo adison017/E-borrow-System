@@ -1,5 +1,5 @@
 import { XCircleIcon } from "@heroicons/react/24/outline";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import {
   FaCheckCircle,
@@ -20,8 +20,7 @@ export default function RepairApprovalDialog({
   onClose,
   repairRequest,
   onApprove,
-  onReject,
-  technicians = [] // Default empty array if not provided
+  onReject
 }) {
   console.log('Repair Request Data:', repairRequest);
   console.log('Equipment Data:', repairRequest?.equipment);
@@ -36,22 +35,112 @@ export default function RepairApprovalDialog({
   console.log('Equipment Pic:', repairRequest?.equipment_pic);
 
   const [notes, setNotes] = useState('')
-  const [budgetApproved, setBudgetApproved] = useState(repairRequest?.estimatedCost || 0)
+  const [budgetApproved, setBudgetApproved] = useState(repairRequest?.estimated_cost || 0)
   const [assignedTo, setAssignedTo] = useState('')
+  const [assignedToName, setAssignedToName] = useState('')
   const [isZoomed, setIsZoomed] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const [viewMode, setViewMode] = useState('single') // 'single' or 'grid'
+  const [viewMode, setViewMode] = useState('grid') // 'single' or 'grid'
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [formError, setFormError] = useState("");
+  const [repairImages, setRepairImages] = useState([]);
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [loadingAdmins, setLoadingAdmins] = useState(false);
 
-  // Sample technicians data if none provided
-  const availableTechnicians = technicians.length > 0 ? technicians : [
-    { id: 1, name: "นายช่างคนที่ 1" },
-    { id: 2, name: "นายช่างคนที่ 2" },
-    { id: 3, name: "นายช่างคนที่ 3" },
-    { id: 4, name: "แผนกซ่อมบำรุง" },
-  ]
+  // Parse repair images from pic_filename field
+  useEffect(() => {
+    console.log('=== Repair Images Debug ===');
+    console.log('repairRequest:', repairRequest);
+    console.log('pic_filename:', repairRequest?.pic_filename);
+    console.log('pic_filename type:', typeof repairRequest?.pic_filename);
+    console.log('pic_filename_raw:', repairRequest?.pic_filename_raw);
+    console.log('repair_code:', repairRequest?.repair_code);
+
+    if (repairRequest?.pic_filename) {
+      // Check if it's already an array (parsed by backend)
+      if (Array.isArray(repairRequest.pic_filename)) {
+        console.log('✅ Already parsed array:', repairRequest.pic_filename);
+        setRepairImages(repairRequest.pic_filename);
+      } else if (typeof repairRequest.pic_filename === 'string') {
+        try {
+          console.log('pic_filename type:', typeof repairRequest.pic_filename);
+          console.log('pic_filename starts with [:', repairRequest.pic_filename.startsWith('['));
+          console.log('pic_filename starts with {:', repairRequest.pic_filename.startsWith('{'));
+
+          // Check if it's a JSON string (multiple images)
+          if (repairRequest.pic_filename.startsWith('[') || repairRequest.pic_filename.startsWith('{')) {
+            const images = JSON.parse(repairRequest.pic_filename);
+            console.log('Parsed JSON images:', images);
+            setRepairImages(images);
+          } else {
+            // Single image - convert to array format
+            console.log('Single image filename:', repairRequest.pic_filename);
+            const singleImage = {
+              filename: repairRequest.pic_filename,
+              original_name: repairRequest.pic_filename,
+              file_path: `uploads/repair/${repairRequest.pic_filename}`,
+              url: `http://localhost:5000/uploads/repair/${repairRequest.pic_filename}`,
+              repair_code: repairRequest.repair_code,
+              index: 0
+            };
+            console.log('Created single image object:', singleImage);
+            setRepairImages([singleImage]);
+          }
+        } catch (error) {
+          console.error('Error parsing repair images:', error);
+          setRepairImages([]);
+        }
+      } else {
+        console.log('Unexpected pic_filename type:', typeof repairRequest.pic_filename);
+        setRepairImages([]);
+      }
+    } else {
+      console.log('No pic_filename found');
+      setRepairImages([]);
+    }
+
+    console.log('Final repairImages state:', repairImages);
+  }, [repairRequest?.pic_filename, repairRequest?.repair_code]);
+
+  // Reset active image index when images change
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [repairImages]);
+
+  // Fetch admin users when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchAdminUsers();
+    }
+  }, [open]);
+
+  const fetchAdminUsers = async () => {
+    try {
+      setLoadingAdmins(true);
+      const response = await axios.get('http://localhost:5000/users/role/admin');
+      console.log('Admin users response:', response.data);
+      setAdminUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching admin users:', error);
+      setAdminUsers([]);
+    } finally {
+      setLoadingAdmins(false);
+    }
+  };
+
+  // Helper function to get admin name by ID
+  const getAdminNameById = (userId) => {
+    const admin = adminUsers.find(user => user.user_id == userId);
+    return admin ? admin.Fullname : 'ไม่ระบุ';
+  };
+
+  // Handle dropdown change to store both ID and name
+  const handleAssignedToChange = (userId) => {
+    setAssignedTo(userId);
+    const selectedAdmin = adminUsers.find(user => user.user_id == userId);
+    setAssignedToName(selectedAdmin ? selectedAdmin.Fullname : '');
+  };
 
   const rejectReasonOptions = [
     "งบประมาณไม่ผ่านการอนุมัติ",
@@ -66,8 +155,8 @@ export default function RepairApprovalDialog({
     console.log('assignedTo:', assignedTo);
 
     // Validate required fields
-    if (!assignedTo) {
-      console.log('Validation failed: assignedTo is empty');
+    if (!assignedToName) {
+      console.log('Validation failed: assignedToName is empty');
       setFormError("โปรดเลือกผู้รับผิดชอบ");
       return;
     }
@@ -97,7 +186,7 @@ export default function RepairApprovalDialog({
         pic_filename: repairRequest.equipment_pic_filename,
         note: notes,
         budget: Number(budgetApproved),
-        responsible_person: assignedTo,
+        responsible_person: assignedToName,
         approval_date: new Date().toISOString().split('T')[0]
       };
 
@@ -154,6 +243,7 @@ export default function RepairApprovalDialog({
         setNotes('');
         setBudgetApproved(0);
         setAssignedTo('');
+        setAssignedToName('');
         setFormError('');
 
         // Notify parent component of successful approval
@@ -162,7 +252,7 @@ export default function RepairApprovalDialog({
           repair_id: repairRequest.requestId,
           note: notes,
           budget: Number(budgetApproved),
-          responsible_person: assignedTo,
+          responsible_person: assignedToName,
           approval_date: new Date().toISOString().split('T')[0],
           status: "อนุมัติ"
         });
@@ -226,6 +316,7 @@ export default function RepairApprovalDialog({
         setNotes('');
         setBudgetApproved(0);
         setAssignedTo('');
+        setAssignedToName('');
         setFormError('');
 
         // Notify parent component of successful approval
@@ -234,7 +325,7 @@ export default function RepairApprovalDialog({
           repair_id: repairRequest.requestId,
           note: notes,
           budget: Number(budgetApproved),
-          responsible_person: assignedTo,
+          responsible_person: assignedToName,
           approval_date: new Date().toISOString().split('T')[0],
           status: "อนุมัติ"
         });
@@ -276,7 +367,7 @@ export default function RepairApprovalDialog({
     setFormError("");
   };
 
-  const handleConfirmReject = () => {
+  const handleConfirmReject = async () => {
     if (!rejectReason) {
       setFormError("โปรดเลือกเหตุผลในการปฏิเสธ");
       return;
@@ -285,26 +376,55 @@ export default function RepairApprovalDialog({
       setFormError("โปรดระบุเหตุผลเพิ่มเติม");
       return;
     }
+
     const finalNotes = rejectReason.includes("อื่นๆ")
       ? notes
       : `${rejectReason}${notes ? `. ${notes}` : ''}`.trim();
-    onReject({
-      requestId: repairRequest.requestId,
-      approvalNotes: finalNotes,
-      rejectionDate: new Date().toISOString().split('T')[0]
-    });
-    setNotes("");
-    setShowRejectDialog(false);
-    onClose();
+
+    try {
+      // Make the API request to update repair request status to rejected
+      const updateData = {
+        problem_description: repairRequest.problem_description,
+        request_date: repairRequest.request_date,
+        estimated_cost: repairRequest.estimated_cost,
+        status: "ปฏิเสธ",
+        pic_filename: repairRequest.equipment_pic_filename,
+        note: finalNotes,
+        approval_date: new Date().toISOString().split('T')[0]
+      };
+
+      console.log('Sending rejection update data:', updateData);
+
+      const response = await axios.put(
+        `http://localhost:5000/api/repair-requests/${repairRequest.requestId}`,
+        updateData
+      );
+
+      console.log('Rejection update response:', response.data);
+
+      // Notify parent component of successful rejection
+      onReject({
+        requestId: repairRequest.requestId,
+        approvalNotes: finalNotes,
+        rejectionDate: new Date().toISOString().split('T')[0]
+      });
+
+      setNotes("");
+      setShowRejectDialog(false);
+      onClose();
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      setFormError("เกิดข้อผิดพลาดในการปฏิเสธคำขอซ่อม");
+    }
   };
 
   const nextImage = () => {
-    setActiveImageIndex(prev => (prev + 1) % repairRequest.images.length);
+    setActiveImageIndex(prev => (prev + 1) % repairImages.length);
     setIsZoomed(false);
   }
 
   const prevImage = () => {
-    setActiveImageIndex(prev => (prev - 1 + repairRequest.images.length) % repairRequest.images.length);
+    setActiveImageIndex(prev => (prev - 1 + repairImages.length) % repairImages.length);
     setIsZoomed(false);
   }
 
@@ -389,9 +509,95 @@ export default function RepairApprovalDialog({
             </div>
           </div>
 
-          {/* รูปภาพ */}
-          {repairRequest.equipment_pic_filename ? (
-            <div className="bg-white p-3 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+          {/* รูปภาพความเสียหาย */}
+          {repairImages.length > 0 ? (
+            <div className="bg-white p-4 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="font-medium flex items-center gap-2">
+                  <FaImage className="text-gray-600" />
+                  รูปภาพความเสียหาย ({repairImages.length} รูป)
+                  {repairRequest.repair_code && (
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      รหัส: {repairRequest.repair_code}
+                    </span>
+                  )}
+                </h4>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleViewMode}
+                    className="btn btn-sm btn-ghost"
+                    title={viewMode === 'grid' ? 'ดูแบบรายการ' : 'ดูแบบตาราง'}
+                  >
+                    {viewMode === 'grid' ? '📋' : '🖼️'}
+                  </button>
+                </div>
+              </div>
+
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {repairImages.map((image, index) => (
+                    <div key={image.filename || index} className="relative group cursor-pointer">
+                      <img
+                        src={image.url || `http://localhost:5000/${image.file_path}`}
+                        alt={`รูปภาพความเสียหาย ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
+                        onClick={() => {
+                          setActiveImageIndex(index);
+                          setIsZoomed(true);
+                        }}
+                      />
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        รูปที่ {index + 1}
+                      </div>
+                      {image.repair_code && (
+                        <div className="absolute top-2 left-2 bg-blue-600 bg-opacity-75 text-white text-xs px-2 py-1 rounded">
+                          {image.repair_code}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {repairImages.map((image, index) => (
+                    <div key={image.filename || index} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                      <img
+                        src={image.url || `http://localhost:5000/${image.file_path}`}
+                        alt={`รูปภาพความเสียหาย ${index + 1}`}
+                        className="w-16 h-16 object-cover rounded border border-gray-200"
+                        onClick={() => {
+                          setActiveImageIndex(index);
+                          setIsZoomed(true);
+                        }}
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">รูปภาพความเสียหาย {index + 1}</p>
+                        <p className="text-xs text-gray-500">คลิกเพื่อดูขนาดใหญ่</p>
+                        {image.repair_code && (
+                          <p className="text-xs text-blue-600 font-medium">รหัส: {image.repair_code}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <FaImage className="text-gray-600" />
+                รูปภาพความเสียหาย
+              </h4>
+              <div className="bg-gray-100 p-8 rounded-lg flex flex-col items-center justify-center">
+                <FaImage className="text-gray-400 text-3xl mb-2" />
+                <p className="text-gray-500">ไม่มีรูปภาพความเสียหาย</p>
+              </div>
+            </div>
+          )}
+
+          {/* รูปภาพอุปกรณ์ */}
+          {repairRequest.equipment_pic || repairRequest.equipment_pic_filename ? (
+            <div className="bg-white p-4 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-medium flex items-center gap-2">
                   <FaImage className="text-gray-600" />
@@ -400,21 +606,24 @@ export default function RepairApprovalDialog({
               </div>
               <div className="relative rounded-lg flex items-center justify-center bg-gray-100 overflow-hidden" style={{height: '200px'}}>
                 <img
-                  src={`http://localhost:5000/uploads/${repairRequest.equipment_pic_filename}`}
+                  src={repairRequest.equipment_pic || `http://localhost:5000/uploads/${repairRequest.equipment_pic_filename}`}
                   alt="รูปภาพอุปกรณ์"
                   className="object-contain max-h-full max-w-full"
+                  onError={(e) => {
+                    e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+                  }}
                 />
               </div>
             </div>
           ) : (
-            <div className="bg-white p-3 rounded-lg shadow-sm">
+            <div className="bg-white p-4 rounded-lg shadow-sm">
               <h4 className="font-medium mb-3 flex items-center gap-2">
                 <FaImage className="text-gray-600" />
                 รูปภาพอุปกรณ์
               </h4>
               <div className="bg-gray-100 p-8 rounded-lg flex flex-col items-center justify-center">
                 <FaImage className="text-gray-400 text-3xl mb-2" />
-                <p className="text-gray-500">ไม่มีรูปภาพประกอบ</p>
+                <p className="text-gray-500">ไม่มีรูปภาพอุปกรณ์</p>
               </div>
             </div>
           )}
@@ -495,15 +704,21 @@ export default function RepairApprovalDialog({
                     <select
                       className="select w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl"
                       value={assignedTo}
-                      onChange={(e) => setAssignedTo(e.target.value)}
+                      onChange={(e) => handleAssignedToChange(e.target.value)}
+                      disabled={loadingAdmins}
                     >
-                      <option value="" disabled>-- เลือกผู้รับผิดชอบ --</option>
-                      {availableTechnicians.map(tech => (
-                        <option key={tech.id} value={tech.name}>
-                          {tech.name}
+                      <option value="" disabled>
+                        {loadingAdmins ? 'กำลังโหลด...' : '-- เลือกผู้รับผิดชอบ --'}
+                      </option>
+                      {adminUsers.map(user => (
+                        <option key={user.user_id} value={user.user_id}>
+                          {user.Fullname} ({user.role_name || 'Admin'})
                         </option>
                       ))}
                     </select>
+                    {adminUsers.length === 0 && !loadingAdmins && (
+                      <p className="text-xs text-gray-500 mt-1">ไม่พบผู้ดูแลระบบ</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -518,7 +733,7 @@ export default function RepairApprovalDialog({
                 <div>
                   <h4 className="font-bold">อนุมัติแล้ว</h4>
                   <p className="text-sm">
-                    โดย {repairRequest.assignedTo || 'ไม่ระบุผู้รับผิดชอบ'}
+                    โดย {repairRequest.responsible_person || 'ไม่ระบุผู้รับผิดชอบ'}
                   </p>
                   <p className="text-xs mt-1">
                     วันที่อนุมัติ: {repairRequest.approvalDate}
@@ -663,6 +878,95 @@ export default function RepairApprovalDialog({
           </div>
         </div>
       )}
+
+      {/* Image Zoom Modal */}
+      {isZoomed && repairImages.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]">
+          <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-lg overflow-hidden">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 bg-gray-100">
+              <div>
+                <h3 className="font-medium">
+                  รูปภาพความเสียหาย {activeImageIndex + 1} จาก {repairImages.length}
+                </h3>
+                {repairImages[activeImageIndex]?.repair_code && (
+                  <p className="text-sm text-blue-600 font-medium">
+                    รหัส: {repairImages[activeImageIndex].repair_code}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setIsZoomed(false)}
+                className="btn btn-sm btn-circle btn-ghost"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Image */}
+            <div className="relative">
+              <img
+                src={repairImages[activeImageIndex]?.url || `http://localhost:5000/${repairImages[activeImageIndex]?.file_path}`}
+                alt={`รูปภาพความเสียหาย ${activeImageIndex + 1}`}
+                className="max-w-full max-h-[70vh] object-contain"
+              />
+
+              {/* Navigation buttons */}
+              {repairImages.length > 1 && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75 transition-opacity"
+                  >
+                    <FaChevronLeft />
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75 transition-opacity"
+                  >
+                    <FaChevronRight />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Thumbnails */}
+            {repairImages.length > 1 && (
+              <div className="p-4 bg-gray-100">
+                <div className="flex gap-2 overflow-x-auto">
+                  {repairImages.map((image, index) => (
+                    <button
+                      key={image.filename || index}
+                      onClick={() => setActiveImageIndex(index)}
+                      className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-colors ${
+                        index === activeImageIndex
+                          ? 'border-blue-500'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <img
+                        src={image.url || `http://localhost:5000/${image.file_path}`}
+                        alt={`รูปภาพ ${index + 1}`}
+                        className="w-full h-full object-cover rounded"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .animate-fade-in {
+          animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(40px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   )
 }

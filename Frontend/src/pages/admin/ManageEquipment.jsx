@@ -219,16 +219,33 @@ function ManageEquipment() {
     setShowInspectDialog(true);
   };
 
-  const handleInspectSubmit = (inspectionData) => {
-    // Update equipment status to 'พร้อมใช้งาน'
-    const updatedEquipment = equipmentList.map(item => {
-      if (item.item_id === inspectionData.equipment.item_id) {
-        return { ...item, status: 'พร้อมใช้งาน' };
-      }
-      return item;
-    });
-    setEquipmentList(updatedEquipment);
-    setShowInspectDialog(false);
+  const handleInspectSubmit = async (inspectionData) => {
+    try {
+      console.log('Inspection data received:', inspectionData);
+
+      // Update equipment status in the local state
+      const updatedEquipment = equipmentList.map(item => {
+        if (item.item_id === inspectionData.equipment.item_id) {
+          return {
+            ...item,
+            status: inspectionData.status,
+            last_updated: inspectionData.inspectionDate
+          };
+        }
+        return item;
+      });
+
+      setEquipmentList(updatedEquipment);
+      setShowInspectDialog(false);
+
+      // Show success message
+      const statusText = inspectionData.status === 'พร้อมใช้งาน' ? 'พร้อมใช้งาน' : 'ชำรุด';
+      showAlertMessage(`อัพเดทสถานะครุภัณฑ์ ${inspectionData.equipment.name} เป็น "${statusText}" เรียบร้อยแล้ว`, "success");
+
+    } catch (error) {
+      console.error('Error handling inspection submit:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการอัพเดทสถานะครุภัณฑ์', "error");
+    }
   };
 
   const handleStatusFilter = (status) => {
