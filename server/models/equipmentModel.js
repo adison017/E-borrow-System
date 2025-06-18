@@ -2,7 +2,7 @@ import connection from '../db.js';
 
 export const getAllEquipment = async () => {
   try {
-    const [rows] = await connection.query('SELECT * FROM equipment');
+    const [rows] = await connection.query('SELECT *, purchaseDate, price, location FROM equipment');
     return rows;
   } catch (error) {
     throw error;
@@ -11,7 +11,7 @@ export const getAllEquipment = async () => {
 
 export const getEquipmentById = async (id) => {
   try {
-    const [rows] = await connection.query('SELECT * FROM equipment WHERE id = ?', [id]);
+    const [rows] = await connection.query('SELECT *, purchaseDate, price, location FROM equipment WHERE id = ?', [id]);
     return rows;
   } catch (error) {
     throw error;
@@ -20,10 +20,10 @@ export const getEquipmentById = async (id) => {
 
 export const addEquipment = async (equipment) => {
   try {
-    const { id, name, category, description, quantity, unit, status, pic, created_at } = equipment;
+    const { id, name, category, description, quantity, unit, status, pic, purchaseDate, price, location } = equipment;
     const [result] = await connection.query(
-      'INSERT INTO equipment (id, name, category, description, quantity, unit, status, pic, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, name, category, description, quantity, unit, status, pic, created_at]
+      'INSERT INTO equipment (id, name, category, description, quantity, unit, status, pic, purchaseDate, price, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, name, category, description, quantity, unit, status, pic, purchaseDate, price, location]
     );
     return result;
   } catch (error) {
@@ -33,10 +33,10 @@ export const addEquipment = async (equipment) => {
 
 export const updateEquipment = async (id, equipment) => {
   try {
-    const { name, category, description, quantity, unit, status, pic } = equipment;
+    const { name, category, description, quantity, unit, status, pic, purchaseDate, price, location } = equipment;
     const [result] = await connection.query(
-      'UPDATE equipment SET name=?, category=?, description=?, quantity=?, unit=?, status=?, pic=? WHERE id=?',
-      [name, category, description, quantity, unit, status, pic, id]
+      'UPDATE equipment SET name=?, category=?, description=?, quantity=?, unit=?, status=?, pic=?, purchaseDate=?, price=?, location=? WHERE id=?',
+      [name, category, description, quantity, unit, status, pic, purchaseDate, price, location, id]
     );
     return result;
   } catch (error) {
