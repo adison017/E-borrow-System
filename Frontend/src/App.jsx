@@ -39,7 +39,7 @@ import Homes from './pages/users/Product';
 import Return from './pages/users/Return';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState(''); // Default role, can be changed based on login);
+  const [userRole, setUserRole] = useState('admin'); // Default role, can be changed based on login);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
