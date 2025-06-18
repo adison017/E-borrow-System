@@ -55,6 +55,10 @@ export const addEquipment = async (req, res) => {
         data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
       }
     }
+    // รองรับ field ใหม่
+    data.purchaseDate = data.purchaseDate || null;
+    data.price = data.price || null;
+    data.location = data.location || null;
     await Equipment.addEquipment(data);
     res.status(201).json({ message: 'Equipment added', item_id: data.item_id });
   } catch (err) {
@@ -70,7 +74,10 @@ export const updateEquipment = async (req, res) => {
         data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
       }
     }
-
+    // รองรับ field ใหม่
+    data.purchaseDate = data.purchaseDate || null;
+    data.price = data.price || null;
+    data.location = data.location || null;
     // ดึงข้อมูลเดิมก่อนอัปเดต
     const results = await Equipment.getEquipmentById(req.params.item_id);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });

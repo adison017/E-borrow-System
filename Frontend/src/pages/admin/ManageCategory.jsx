@@ -210,7 +210,7 @@ function ManageCategory() {
                 {filteredCategories.length > 0 ? (
                   filteredCategories.map(({ category_id, category_code, name, created_at }, index) => (
                     <tr key={category_id} className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="px-5 w-32 px-3 py-3 whitespace-nowrap  font-bold  text-left">{category_code}</td>
+                      <td className="w-32 px-3 py-3 whitespace-nowrap  font-bold  text-left">{category_code}</td>
                       <td className="w-48 px-3 py-3 whitespace-nowrap text-gray-700 text-left">{name}</td>
                       <td className="w-32 px-3 py-3 whitespace-nowrap text-center">
                         <div className="flex gap-2 justify-center">
