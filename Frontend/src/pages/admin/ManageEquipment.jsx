@@ -417,11 +417,11 @@ function ManageEquipment() {
                 ))}</tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEquipment.length > 0 ? (
-                  filteredEquipment.map((item, index) => {
-                    const { pic, id, name, category, quantity, status, created_at } = item;
+                {paginatedEquipment.length > 0 ? (
+                  paginatedEquipment.map((item, index) => {
+                    const { pic, id, name, category, quantity, status, created_at, unit } = item;
                     return (
-                      <tr key={item_id} className="hover:bg-gray-50">
+                      <tr key={id} className="hover:bg-gray-50">
                         <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
                             <img
@@ -432,10 +432,10 @@ function ManageEquipment() {
                             />
                           </div>
                         </td>
-                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{item_id}</td>
+                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{id}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
-                        <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}{item.unit ? ` ${item.unit}` : ''}</td>
+                        <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}{unit ? ` ${unit}` : ''}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-center text-gray-700">
                           <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-sm ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
                             {status}

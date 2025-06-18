@@ -539,7 +539,7 @@ function ManageUser() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-center">
                             <Avatar
-                              src={avatar ? `http://localhost:5000/uploads/${avatar}?t=${Date.now()}` : "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
+                              src={avatar ? `http://localhost:5000/uploads/${avatar}?t=${Date.now()}` : "/public/profile.png"}
                               alt={Fullname}
                               size="md"
                               className="rounded-full w-16 h-16 object-cover"
