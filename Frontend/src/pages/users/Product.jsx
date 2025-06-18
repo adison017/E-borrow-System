@@ -1,3 +1,4 @@
+import { Button, Menu, MenuHandler, MenuItem, MenuList } from "@material-tailwind/react";
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { MdAdd, MdRemove, MdSearch, MdShoppingCart } from "react-icons/md";
@@ -96,9 +97,9 @@ const Home = () => {
           image: item.pic, // ใช้ pic จาก db
           available: item.quantity, // ใช้ quantity เป็น available
           specifications: item.description, // ใช้ description เป็น specifications
-          location: '', // ไม่มีใน db, ใส่ค่าว่าง
-          purchaseDate: '', // ไม่มีใน db, ใส่ค่าว่าง
-          price: '', // ไม่มีใน db, ใส่ค่าว่าง
+          location: item.location || '', // ดึงจาก db ถ้ามี
+          purchaseDate: item.purchaseDate || '', // ดึงจาก db ถ้ามี
+          price: item.price || '', // ดึงจาก db ถ้ามี
           unit: item.unit // เพิ่ม unit ถ้าต้องใช้
         }));
         setEquipmentData(mapped);
@@ -342,14 +343,13 @@ const Home = () => {
               <motion.div 
                 className="bg-white p-6 mb-6 bg-gradient-to-r from-indigo-950 to-blue-700 rounded-2xl"
                 variants={itemVariants}
-                whileHover={{ scale: 1.01 }}
               >
                 <div className="flex flex-col px-6 md:flex-row md:items-center md:justify-between gap-4">
                   {/* Status Filters */}
                   <div>
                     <h3 className="text-sm font-medium text-white mb-2">สถานะ</h3>
                     <div className="flex flex-wrap gap-2">
-                      {['ทั้งหมด', 'พร้อมยืม', 'ถูกยืม', 'กำลังซ่อม'].map((status) => (
+                      {['ทั้งหมด', 'พร้อมใช้งาน', 'ถูกยืม', 'กำลังซ่อม'].map((status) => (
                         <button
                           key={status}
                           onClick={() => handleStatusFilter(status)}
@@ -368,17 +368,45 @@ const Home = () => {
                   {/* Category Filter */}
                   <div>
                     <h3 className="text-sm font-medium text-white mb-2">หมวดหมู่</h3>
-                    <select
-                      className="block w-full pl-3 pr-10 py-2 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 text-sm rounded-xl"
-                      value={selectedCategory}
-                      onChange={(e) => handleCategoryFilter(e.target.value)}
-                    >
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
+                    <Menu>
+                      <MenuHandler>
+                        <Button
+                          variant="outlined"
+                          className={`w-70 border-white shadow-sm rounded-xl flex items-center px-4 py-2 text-sm font-medium normal-case justify-between transition-colors duration-200 bg-white ${selectedCategory !== 'ทั้งหมด' ? 'bg-blue-50 border border-blue-200 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <MdSearch className="w-4 h-4" />
+                            หมวดหมู่
+                            {selectedCategory !== 'ทั้งหมด' && (
+                              <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-2">{selectedCategory}</span>
+                            )}
+                          </span>
+                          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </Button>
+                      </MenuHandler>
+                      <MenuList className="min-w-[200px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
+                        <MenuItem
+                          className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${selectedCategory === 'ทั้งหมด' ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                          onClick={() => handleCategoryFilter('ทั้งหมด')}
+                        >
+                          <span>ทั้งหมด</span>
+                          <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{equipmentData.length}</span>
+                        </MenuItem>
+                        {categories.filter(cat => cat !== 'ทั้งหมด').map(category => {
+                          const count = equipmentData.filter(item => item.category === category).length;
+                          return (
+                            <MenuItem
+                              key={category}
+                              className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${selectedCategory === category ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                              onClick={() => handleCategoryFilter(category)}
+                            >
+                              <span>{category}</span>
+                              <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{count}</span>
+                            </MenuItem>
+                          );
+                        })}
+                      </MenuList>
+                    </Menu>
                   </div>
                 </div>
               </motion.div>
@@ -396,19 +424,26 @@ const Home = () => {
                   {filteredEquipment.map((equipment, index) => (
                     <motion.div 
                       key={equipment.id} 
-                      className="card rounded-2xl shadow-md hover:shadow-xl bg-white"
+                      className="card rounded-2xl shadow-md hover:shadow-xl bg-white cursor-pointer transition-all duration-300 ease-in-out group border border-transparent hover:border-blue-200 relative overflow-hidden"
                       variants={itemVariants}
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ 
+                        scale: 1.02,
+                        y: -5
+                      }}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
+                      transition={{ delay: index * 0.1, duration: 0.2 }}
+                      onClick={() => showEquipmentDetail(equipment)}>
+                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-0"></div>
                       <figure className="px-4 pt-4 relative">
                         <img 
                           src={equipment.image} 
                           alt={equipment.name} 
                           className="rounded-xl h-40 w-full object-contain cursor-pointer" 
-                          onClick={() => showImageModal(equipment.image)}
+                          // onClick={(e) => {
+                          //   e.stopPropagation();
+                          //   showImageModal(equipment.image);
+                          // }}
                         />
                         <div className="absolute top-6 right-6">
                           {getStatusBadge(equipment.status)}
@@ -420,10 +455,9 @@ const Home = () => {
                           <p className="text-sm">{equipment.code}</p>
                         </div>
                         
-                        <div className="flex flex-col items-center w-full mt-4">
-                          {/* เพิ่มข้อความจำนวนคงเหลือ */}
-                          <p className="text-sm font-medium text-gray-700">
-                            จำนวนคงเหลือ {equipment.available} {equipment.unit || ''}
+                        <div className="flex flex-col items-center w-full mt-2">
+                          <p className="text-sm font-medium text-white bg-blue-700 px-4 py-2 rounded-full">
+                            จำนวน {equipment.available} {equipment.unit || ''}
                           </p>
                           {equipment.status === 'พร้อมยืม' && (
                             <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
@@ -433,55 +467,55 @@ const Home = () => {
                           )}
                         </div>
 
-                        <div className="card-actions justify-center">
+                        <div className="card-actions flex-col items-center justify-center mt-2 ">
                           {(equipment.status === 'พร้อมยืม' || equipment.status === 'พร้อมใช้งาน') ? (
                             quantities[equipment.id] ? (
-                              <div className="join gap-2">
-                                <motion.button 
-                                  className={`join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${quantities[equipment.id] >= equipment.available ? 'btn-disabled' : 'btn-ghost'}`}
-                                  onClick={() => handleIncrease(equipment.id)}
+                              <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                                <motion.button
+                                  className={`flex items-center justify-center w-9 h-9 rounded-full  border border-blue-500 bg-white shadow-sm transition-colors duration-150 text-blue-700 hover:bg-blue-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed ${quantities[equipment.id] >= equipment.available ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleIncrease(equipment.id);
+                                  }}
                                   disabled={quantities[equipment.id] >= equipment.available}
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.95 }}
+                                  aria-label="เพิ่มจำนวน"
                                 >
-                                  <MdAdd className="w-4 h-4" />
+                                  <MdAdd className="w-5 h-5" />
                                 </motion.button>
-                                <span className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700">
+                                <span className="inline-flex items-center justify-center w-10 h-9 rounded-lg bg-blue-700 text-base font-semibold text-white border border-gray-200">
                                   {quantities[equipment.id]}
                                 </span>
-                                <motion.button 
-                                  className="join-item btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700" 
-                                  onClick={() => handleDecrease(equipment.id)}
+                                <motion.button
+                                  className="flex items-center justify-center w-9 h-9 rounded-full border border-blue-500 bg-white shadow-sm transition-colors duration-150 text-blue-700 hover:bg-blue-600 hover:text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDecrease(equipment.id);
+                                  }}
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.95 }}
+                                  aria-label="ลดจำนวน"
                                 >
-                                  <MdRemove className="w-4 h-4" />
+                                  <MdRemove className="w-5 h-5" />
                                 </motion.button>
                               </div>
                             ) : (
-                              <motion.button 
-                                className={`btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 ${equipment.available <= 0 ? 'btn-disabled' : 'btn-ghost'}`}
-                                onClick={() => handleIncrease(equipment.id)}
+                              <motion.button
+                                className={`flex items-center justify-center w-10 h-10 rounded-full mt-2 border border-blue-500  shadow-sm text-blue-700 font-medium gap-2 hover:bg-blue-600 hover:text-white transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${equipment.available <= 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleIncrease(equipment.id);
+                                }}
                                 disabled={equipment.available <= 0}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.07 }}
+                                whileTap={{ scale: 0.97 }}
+                                aria-label="เลือก"
                               >
-                                {equipment.available > 0 ? (
-                                  <MdAdd className="w-4 h-4" />
-                                ) : 'ไม่พร้อมให้ยืม'}
+                                <MdAdd className="w-5 h-5" />
                               </motion.button>
                             )
-                          ) : (
-                            <motion.button 
-                              className="btn btn-sm btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700"
-                              onClick={() => showEquipmentDetail(equipment)}
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <MdSearch className="w-4 h-4" />
-                              รายละเอียด
-                            </motion.button>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     </motion.div>

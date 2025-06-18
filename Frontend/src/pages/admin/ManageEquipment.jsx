@@ -1,4 +1,7 @@
 import {
+  AdjustmentsHorizontalIcon,
+  ArrowDownTrayIcon,
+  ChevronDownIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
   TrashIcon,
@@ -100,8 +103,11 @@ function ManageEquipment() {
   const [repairDialogOpen, setRepairDialogOpen] = useState(false);
   const [selectedEquipmentForRepair, setSelectedEquipmentForRepair] = useState(null);
   const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
+  const [categoryFilter, setCategoryFilter] = useState("ทั้งหมด");
   const [showInspectDialog, setShowInspectDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     getEquipment().then(setEquipmentList);
@@ -155,26 +161,33 @@ function ManageEquipment() {
     addEquipment(data).then(() => getEquipment().then(setEquipmentList));
   };
 
-  // ฟังก์ชั่นสำหรับกรองข้อมูลตามคำค้นหาและสถานะ
+  // ฟังก์ชั่นสำหรับกรองข้อมูลตามคำค้นหา, สถานะ และหมวดหมู่
   const filteredEquipment = equipmentList
-    .filter(item => {
-      if (!item) return false; // เพิ่มการตรวจสอบ item object
-
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        (item.item_id?.toString() || '').toLowerCase().includes(searchLower) ||
-        (item.name || '').toLowerCase().includes(searchLower) ||
-        (item.description || '').toLowerCase().includes(searchLower)
-      ) && (statusFilter === "ทั้งหมด" || item.status === statusFilter);
-    })
+    .filter(
+      item =>
+        (item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (statusFilter === "ทั้งหมด" || item.status === statusFilter)
+    )
     .sort((a, b) => {
-      // ถ้า a เป็น "ชำรุด" ให้ขึ้นก่อน
       if (a.status === "ชำรุด" && b.status !== "ชำรุด") return -1;
-      // ถ้า b เป็น "ชำรุด" ให้ขึ้นก่อน
       if (b.status === "ชำรุด" && a.status !== "ชำรุด") return 1;
-      // ถ้าไม่ใช่ทั้งคู่ ให้เรียงตาม item_id
-      return String(a.item_id || '').localeCompare(String(b.item_id || ''));
+      // ถ้าไม่ใช่ทั้งคู่ ให้เรียงตาม id
+      return a.id.localeCompare(b.id);
     });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredEquipment.length / itemsPerPage);
+  const paginatedEquipment = filteredEquipment.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset page when filter/search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, categoryFilter]);
 
   // สร้าง component แสดงสถานะที่สวยงาม
   const StatusDisplay = ({ status }) => {
@@ -235,11 +248,18 @@ function ManageEquipment() {
     setStatusFilter(status);
   };
 
+  const handleCategoryFilter = (category) => {
+    setCategoryFilter(category);
+  };
+
   // นับจำนวนครุภัณฑ์ตามสถานะ
   const countByStatus = equipmentList.reduce((acc, item) => {
     acc[item.status] = (acc[item.status] || 0) + 1;
     return acc;
   }, {});
+
+  // สร้างรายการหมวดหมู่ที่ไม่ซ้ำ
+  const categories = Array.from(new Set(equipmentList.map(item => item.category)));
 
   return (
     <ThemeProvider value={theme}>
@@ -253,7 +273,7 @@ function ManageEquipment() {
         />
 
 
-        <CardHeader floated={false} shadow={false} className="rounded-2xl bg-white px-8 py-6">
+        <CardHeader floated={false} shadow={false} className="rounded-2xl bg-white px-8 py-3">
           <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
               <Typography variant="h5" className="text-gray-900 font-semibold tracking-tight">
@@ -285,48 +305,95 @@ function ManageEquipment() {
            </div>
            <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
             <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm7.586 2.586L14.5 7H12V4.5h.086ZM11 10a.75.75 0 0 1 .75.75v1.5h1.5a.75.75 0 0 1 0 1.5h-1.5v1.5a.75.75 0 0 1-1.5 0v-1.5h-1.5a.75.75 0 0 1 0-1.5h1.5v-1.5A.75.75 0 0 1 11 10Z" clipRule="evenodd" />
-              </svg>
+              <ArrowDownTrayIcon className="w-4 h-4" />
               ส่งออก Excel
             </Button>
-            <Menu>
+          </div>
+        </div>
+        <div className="flex flex-row items-center gap-2 justify-center mt-5">
+              <Menu>
               <MenuHandler>
-                <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
-                  <FunnelIcon className="h-4 w-4" />
-                  ตัวกรอง
-                  {statusFilter !== "ทั้งหมด" && (
-                    <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-1.5">
-                      {statusFilter} ({countByStatus[statusFilter] || 0})
-                    </span>
-                  )}
+                <Button variant="outlined" className="w-80 border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center px-4 py-2 text-sm font-medium normal-case justify-between">
+                  <span className="flex items-center gap-2">
+                    <FunnelIcon className="w-4 h-4" />
+                    หมวดหมู่
+                    {categoryFilter !== "ทั้งหมด" && (
+                      <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full text-center ml-2">
+                        {categoryFilter}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDownIcon className="w-4 h-4 text-gray-400" />
                 </Button>
               </MenuHandler>
               <MenuList className="min-w-[240px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
                 <MenuItem
-                  className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-gray-100 transition-colors duration-200 ${statusFilter === "ทั้งหมด" ? "bg-blue-50 text-blue-700 font-semibold" : "font-normal"}`}
-                  onClick={() => handleStatusFilter("ทั้งหมด")}
+                  className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${categoryFilter === "ทั้งหมด" ? "bg-blue-50 text-blue-700 font-semibold" : "font-normal"}`}
+                  onClick={() => setCategoryFilter("ทั้งหมด")}
                 >
                   <span>ทั้งหมด</span>
+                  <span className=" text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{equipmentList.length}</span>
+                </MenuItem>
+                {Array.from(new Set(equipmentList.map(item => item.category))).map(cat => (
+                  <MenuItem
+                    key={cat}
+                    className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-gray-100 transition-colors duration-200 ${categoryFilter === cat ? "bg-blue-50 text-blue-700 font-semibold" : "font-normal"}`}
+                    onClick={() => setCategoryFilter(cat)}
+                  >
+                    <span>{cat}</span>
+                    <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+                      {equipmentList.filter(item => item.category === cat).length}
+                    </span>
+                  </MenuItem>
+                ))}
+              </MenuList>
+            </Menu>
+            <Menu>
+              <MenuHandler>
+                <Button
+                  variant="outlined"
+                  className={`w-80 border-gray-300 shadow-sm rounded-xl flex items-center px-4 py-2 text-sm font-medium normal-case justify-between transition-colors duration-200
+                    ${statusFilter !== 'ทั้งหมด' && statusConfig[statusFilter] ? `${statusConfig[statusFilter].backgroundColor} border ${statusConfig[statusFilter].borderColor} text-${statusConfig[statusFilter].color}-700` : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <AdjustmentsHorizontalIcon className="w-4 h-4" />
+                    สถานะ
+                    {statusFilter !== "ทั้งหมด" && statusConfig[statusFilter] && (
+                      <span className={`text-xs px-2 py-1 rounded-full ml-1.5 bg-${statusConfig[statusFilter].color}-500 text-white`}>
+                        {statusFilter}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                </Button>
+              </MenuHandler>
+              <MenuList className="min-w-[240px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
+                <MenuItem
+                  className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-gray-100 transition-colors duration-200 ${statusFilter === "ทั้งหมด" ? "bg-gray-100 text-gray-700 font-semibold" : "font-normal"}`}
+                  onClick={() => handleStatusFilter("ทั้งหมด")}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-gray-400"></span>
+                    <span>ทั้งหมด</span>
+                  </span>
                   <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{equipmentList.length}</span>
                 </MenuItem>
                 {Object.keys(statusConfig).map(statusKey => (
                   <MenuItem
                     key={statusKey}
-                    className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-gray-100 transition-colors duration-200 ${statusFilter === statusKey ? "bg-blue-50 text-blue-700 font-semibold" : "font-normal"}`}
+                    className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-${statusConfig[statusKey].backgroundColor.replace('bg-', '')} hover:text-${statusConfig[statusKey].color}-700 transition-colors duration-200 ${statusFilter === statusKey ? `bg-${statusConfig[statusKey].backgroundColor.replace('bg-', '')} text-${statusConfig[statusKey].color}-700 font-semibold` : "font-normal"}`}
                     onClick={() => handleStatusFilter(statusKey)}
                   >
-                    <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full bg-${statusConfig[statusKey].color}-500`}></span>
                       <span>{statusKey}</span>
-                    </div>
+                    </span>
                     <span className={`text-xs bg-${statusConfig[statusKey].color}-100 text-${statusConfig[statusKey].color}-700 px-1.5 py-0.5 rounded-full`}>{countByStatus[statusKey] || 0}</span>
                   </MenuItem>
                 ))}
               </MenuList>
             </Menu>
-          </div>
-        </div>
+            </div>
         </CardHeader>
         <CardBody className="overflow-x-auto">
           <div className="overflow-x-auto rounded-2xl">
@@ -352,7 +419,7 @@ function ManageEquipment() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredEquipment.length > 0 ? (
                   filteredEquipment.map((item, index) => {
-                    const { pic, item_id, name, category, quantity, status, created_at } = item;
+                    const { pic, id, name, category, quantity, status, created_at } = item;
                     return (
                       <tr key={item_id} className="hover:bg-gray-50">
                         <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
@@ -415,7 +482,7 @@ function ManageEquipment() {
                         ไม่พบข้อมูลครุภัณฑ์
                       </Typography>
                       <Typography color="gray" className="text-sm text-gray-500">
-                        ลองปรับคำค้นหาหรือตัวกรองสถานะของคุณ
+                        ลองปรับคำค้นหาหรือตัวกรองของคุณ
                       </Typography>
                     </td>
                   </tr>
@@ -426,13 +493,26 @@ function ManageEquipment() {
         </CardBody>
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
           <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
-            แสดง {filteredEquipment.length > 0 ? '1' : '0'} ถึง {filteredEquipment.length} จากทั้งหมด {equipmentList.length} รายการ
+            แสดง {filteredEquipment.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} ถึง {Math.min(currentPage * itemsPerPage, filteredEquipment.length)} จากทั้งหมด {equipmentList.length} รายการ
           </Typography>
-          <div className="flex gap-2">
-            <Button variant="outlined" size="sm" disabled={true /* Implement pagination logic */} className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+          <div className="flex gap-2 items-center">
+            <Button 
+              variant="outlined" 
+              size="sm" 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case disabled:opacity-50"
+            >
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm" disabled={true /* Implement pagination logic */} className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <span className="text-sm text-gray-700">{currentPage} / {totalPages}</span>
+            <Button 
+              variant="outlined" 
+              size="sm" 
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case disabled:opacity-50"
+            >
               ถัดไป
             </Button>
           </div>

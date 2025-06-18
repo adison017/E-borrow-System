@@ -17,6 +17,10 @@ import {
   CardFooter,
   CardHeader,
   IconButton,
+  Menu,
+  MenuHandler,
+  MenuItem,
+  MenuList,
   ThemeProvider,
   Tooltip,
   Typography
@@ -360,38 +364,127 @@ function ManageUser() {
               </Button>
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap  items-center gap-2 justify-center">
-             {/* Filter Dropdowns */}
-              <select
-                className="w-40 h-10 px-3 border border-gray-300 rounded-xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                value={roleFilter}
-                onChange={e => setRoleFilter(e.target.value)}
-              >
-                <option value="">บทบาททั้งหมด</option>
-                {roles.map(role => (
-                  <option key={role.role_id} value={role.role_name}>{role.role_name}</option>
-                ))}
-              </select>
-              <select
-                className="w-50 h-10 px-3 border border-gray-300 rounded-xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                value={branchFilter}
-                onChange={e => setBranchFilter(e.target.value)}
-              >
-                <option value="">สาขาทั้งหมด</option>
-                {branches.map(branch => (
-                  <option key={branch.branch_id} value={branch.branch_name}>{branch.branch_name}</option>
-                ))}
-              </select>
-              <select
-                className="w-40 h-10 px-3 border border-gray-300 rounded-xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                value={positionFilter}
-                onChange={e => setPositionFilter(e.target.value)}
-              >
-                <option value="">ตำแหน่งทั้งหมด</option>
-                {positions.map(position => (
-                  <option key={position.position_id} value={position.position_name}>{position.position_name}</option>
-                ))}
-              </select>
+          <div className="mt-4 flex flex-wrap items-center gap-2 justify-center">
+            {/* Filter Dropdowns */}
+            <Menu>
+              <MenuHandler>
+                <Button
+                  variant="outlined"
+                  className={`w-55 border-gray-300 shadow-sm rounded-xl flex items-center px-4 py-2 text-sm font-medium normal-case justify-between transition-colors duration-200 ${roleFilter ? 'bg-blue-50 border border-blue-200 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                    บทบาท
+                    {roleFilter && (
+                      <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-2">
+                        {roleFilter === 'user' ? 'ผู้ใช้งาน' : roleFilter === 'admin' ? 'ผู้ดูแลระบบ' : roleFilter}
+                      </span>
+                    )}
+                  </span>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </Button>
+              </MenuHandler>
+              <MenuList className="min-w-[160px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
+                <MenuItem
+                  className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${!roleFilter ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                  onClick={() => setRoleFilter("")}
+                >
+                  <span>บทบาททั้งหมด</span>
+                  <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{userList.length}</span>
+                </MenuItem>
+                {roles.map(role => {
+                  const count = userList.filter(u => u.role_name === role.role_name).length;
+                  return (
+                    <MenuItem
+                      key={role.role_id}
+                      className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${roleFilter === role.role_name ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                      onClick={() => setRoleFilter(role.role_name)}
+                    >
+                      <span>{role.role_name === 'user' ? 'ผู้ใช้งาน' : role.role_name === 'admin' ? 'ผู้ดูแลระบบ' : role.role_name}</span>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{count}</span>
+                    </MenuItem>
+                  );
+                })}
+              </MenuList>
+            </Menu>
+            <Menu>
+              <MenuHandler>
+                <Button
+                  variant="outlined"
+                  className={`w-65 border-gray-300 shadow-sm rounded-xl flex items-center px-4 py-2 text-sm font-medium normal-case justify-between transition-colors duration-200 ${branchFilter ? 'bg-blue-50 border border-blue-200 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                    สาขา
+                    {branchFilter && (
+                      <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-2">{branchFilter}</span>
+                    )}
+                  </span>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </Button>
+              </MenuHandler>
+              <MenuList className="min-w-[200px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
+                <MenuItem
+                  className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${!branchFilter ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                  onClick={() => setBranchFilter("")}
+                >
+                  <span>สาขาทั้งหมด</span>
+                  <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{userList.length}</span>
+                </MenuItem>
+                {branches.map(branch => {
+                  const count = userList.filter(u => u.branch_name === branch.branch_name).length;
+                  return (
+                    <MenuItem
+                      key={branch.branch_id}
+                      className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${branchFilter === branch.branch_name ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                      onClick={() => setBranchFilter(branch.branch_name)}
+                    >
+                      <span>{branch.branch_name}</span>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{count}</span>
+                    </MenuItem>
+                  );
+                })}
+              </MenuList>
+            </Menu>
+            <Menu>
+              <MenuHandler>
+                <Button
+                  variant="outlined"
+                  className={`w-55 border-gray-300 shadow-sm rounded-xl flex items-center px-4 py-2 text-sm font-medium normal-case justify-between transition-colors duration-200 ${positionFilter ? 'bg-blue-50 border border-blue-200 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                    ตำแหน่ง
+                    {positionFilter && (
+                      <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-2">{positionFilter}</span>
+                    )}
+                  </span>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </Button>
+              </MenuHandler>
+              <MenuList className="min-w-[180px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
+                <MenuItem
+                  className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${!positionFilter ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                  onClick={() => setPositionFilter("")}
+                >
+                  <span>ตำแหน่งทั้งหมด</span>
+                  <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{userList.length}</span>
+                </MenuItem>
+                {positions.map(position => {
+                  const count = userList.filter(u => u.position_name === position.position_name).length;
+                  return (
+                    <MenuItem
+                      key={position.position_id}
+                      className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${positionFilter === position.position_name ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                      onClick={() => setPositionFilter(position.position_name)}
+                    >
+                      <span>{position.position_name}</span>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{count}</span>
+                    </MenuItem>
+                  );
+                })}
+              </MenuList>
+            </Menu>
           </div>
         </CardHeader>
         <CardBody className="overflow-x-auto px-0">
@@ -449,7 +542,7 @@ function ManageUser() {
                               src={avatar ? `http://localhost:5000/uploads/${avatar}?t=${Date.now()}` : "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
                               alt={Fullname}
                               size="md"
-                              className="rounded-full w-14 h-14 object-cover border border-gray-200 shadow"
+                              className="rounded-full w-16 h-16 object-cover"
                             />
                           </div>
                         </td>
