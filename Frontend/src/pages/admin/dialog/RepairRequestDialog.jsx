@@ -16,14 +16,16 @@ export default function RepairRequestDialog({
   const [formData, setFormData] = useState({
     description: '',
     estimatedCost: '',
-    images: []
+    images: [],
+    imageFiles: [] // Store actual File objects
   });
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const fileInputRef = useRef(null);
   const [isZoomed, setIsZoomed] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [viewMode, setViewMode] = useState('single'); // 'single' or 'grid'
+  const [viewMode, setViewMode] = useState('grid'); // 'single' or 'grid'
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [notification, setNotification] = useState({
     show: false,
     message: '',
@@ -52,7 +54,8 @@ export default function RepairRequestDialog({
       setFormData({
         description: '',
         estimatedCost: '',
-        images: []
+        images: [],
+        imageFiles: []
       });
     }
     // Cleanup object URLs on component unmount
@@ -69,16 +72,27 @@ export default function RepairRequestDialog({
 
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...newImageUrls]
+      images: [...prev.images, ...newImageUrls],
+      imageFiles: [...prev.imageFiles, ...newImageFiles]
     }));
   };
 
   const handleRemoveImage = (indexToRemove) => {
-    URL.revokeObjectURL(formData.images[indexToRemove]); // Clean up memory
+    const imageToRemove = formData.images[indexToRemove];
+    if (imageToRemove.startsWith('blob:')) {
+      URL.revokeObjectURL(imageToRemove);
+    }
+
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove)
+      images: prev.images.filter((_, index) => index !== indexToRemove),
+      imageFiles: prev.imageFiles.filter((_, index) => index !== indexToRemove)
     }));
+
+    // Adjust active image index if needed
+    if (activeImageIndex >= indexToRemove && activeImageIndex > 0) {
+      setActiveImageIndex(prev => prev - 1);
+    }
   };
 
   // Function to show notification
@@ -95,12 +109,62 @@ export default function RepairRequestDialog({
     }, 5000);
   };
 
+  // Function to upload images to server
+  const uploadImagesToServer = async (files, repairCode) => {
+    if (!files || files.length === 0) return [];
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+
+      // Add repair code first
+      formData.append('repair_code', repairCode);
+
+      // Add images
+      files.forEach((file, index) => {
+        formData.append('images', file);
+      });
+
+      console.log('Uploading images with repair code:', repairCode);
+      console.log('Files to upload:', files.length);
+
+      const response = await axios.post(
+        'http://localhost:5000/api/repair-requests/upload-images',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      console.log('Upload response:', response.data);
+      return response.data.images;
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      throw new Error('Failed to upload images');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!equipment) return;
 
+    // Validate form
+    if (!formData.description.trim()) {
+      showNotification('โปรดกรอกรายละเอียดความเสียหาย', 'error');
+      return;
+    }
+
+    if (!formData.estimatedCost || formData.estimatedCost <= 0) {
+      showNotification('โปรดกรอกค่าใช้จ่ายประมาณการ', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Generate repair code
+      // Generate repair code first
       const repairCode = generateRepairCode();
 
       // Log all relevant data
@@ -115,12 +179,19 @@ export default function RepairRequestDialog({
       console.log('2. Form Data:', {
         description: formData.description,
         estimatedCost: formData.estimatedCost,
-        images: formData.images
+        images: formData.images,
+        imageFiles: formData.imageFiles
       });
       console.log('3. Requester Info:', requesterInfo);
       console.log('4. Request Date:', requestDate);
       console.log('5. Global User Data:', globalUserData);
       console.log('6. Generated Repair Code:', repairCode);
+
+      // Upload images to server if there are any (with repair code)
+      let uploadedImages = [];
+      if (formData.imageFiles.length > 0) {
+        uploadedImages = await uploadImagesToServer(formData.imageFiles, repairCode);
+      }
 
       // Prepare the repair request data
       const repairData = {
@@ -131,7 +202,8 @@ export default function RepairRequestDialog({
         request_date: requestDate,
         estimated_cost: Number(formData.estimatedCost) || 0,
         status: "รอการอนุมัติซ่อม",
-        pic_filename: formData.images.length > 0 ? formData.images[0] : null
+        pic_filename: uploadedImages.length > 0 ? uploadedImages[0].filename : null,
+        images: uploadedImages
       };
 
       console.log('7. Final Data Being Sent to Server:', repairData);
@@ -147,14 +219,18 @@ export default function RepairRequestDialog({
 
       // Update equipment status to "รอการอนุมัติซ่อม"
       try {
-        const equipmentId = equipment.item_id;
+        const equipmentId = equipment.item_id || equipment.id;
         console.log('Updating equipment status for ID:', equipmentId);
 
-        const response = await axios.put(`http://localhost:5000/api/equipment/${equipmentId}/status`, {
-          status: "รอการอนุมัติซ่อม"
-        });
+        if (equipmentId) {
+          const response = await axios.put(`http://localhost:5000/api/equipment/${equipmentId}/status`, {
+            status: "รอการอนุมัติซ่อม"
+          });
 
-        console.log('Equipment status update response:', response.data);
+          console.log('Equipment status update response:', response.data);
+        } else {
+          console.warn('No equipment ID available for status update');
+        }
       } catch (error) {
         console.error('Error updating equipment status:', error);
         console.error('Error details:', {
@@ -187,41 +263,11 @@ export default function RepairRequestDialog({
       // Show success notification
       showNotification('ส่งคำขอแจ้งซ่อมสำเร็จ', 'success');
 
-      // Show success alert using SweetAlert2
-      await Swal.fire({
-        title: 'ส่งคำขอแจ้งซ่อมสำเร็จ',
-        text: 'ระบบได้บันทึกคำขอแจ้งซ่อมของคุณแล้ว และอัพเดทสถานะครุภัณฑ์เป็น "รอการอนุมัติซ่อม"',
-        icon: 'success',
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#3085d6',
-        timer: 2000,
-        timerProgressBar: true,
-        showConfirmButton: false
-      });
-
-      // Close dialog after alert
+      // Close dialog
       onClose();
     } catch (error) {
-      console.error('=== Error Details ===');
-      console.error('Error object:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      console.error('Error message:', error.message);
-
-      // Show error notification
-      showNotification(
-        error.response?.data?.error || error.message || 'เกิดข้อผิดพลาดในการส่งคำขอแจ้งซ่อม',
-        'error'
-      );
-
-      // Show error alert using SweetAlert2
-      await Swal.fire({
-        title: 'เกิดข้อผิดพลาด',
-        text: error.response?.data?.error || error.message || 'เกิดข้อผิดพลาดในการส่งคำขอแจ้งซ่อม',
-        icon: 'error',
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#d33'
-      });
+      console.error('Error submitting repair request:', error);
+      showNotification('เกิดข้อผิดพลาดในการส่งคำขอแจ้งซ่อม', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -391,60 +437,106 @@ export default function RepairRequestDialog({
               </div>
             </div>
 
-            {/* อัพโหลดรูปภาพ & Preview */}
-            <div className="bg-white p-3 ">
-              <label className="label">
-                <span className="label-text font-medium mb-2">รูปภาพประกอบ (ถ้ามี)</span>
-              </label>
+            {/* อัพโหลดรูปภาพ */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <h4 className="font-medium mb-3 flex items-center gap-2 text-primary">
+                <FaImage />
+                รูปภาพความเสียหาย (อัพโหลดได้หลายรูป)
+              </h4>
+
+              {/* Drop Zone */}
               <div
-                className={`border-2 border-dashed rounded-xl p-6 text-center bg-gray-50 cursor-pointer transition-colors
-                  ${isDraggingOver ? 'border-primary bg-primary/10' : 'border-gray-300 hover:border-primary/50'}
-                `}
-                onClick={handleDropZoneClick}
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  isDraggingOver
+                    ? 'border-blue-400 bg-blue-50'
+                    : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
+                onClick={handleDropZoneClick}
               >
-                {formData.images.length === 0 ? (
-                  <>
-                    <FaImage className={`mx-auto text-4xl mb-2 ${isDraggingOver ? 'text-primary' : 'text-gray-400'}`} />
-                    <p className={`mt-1 text-sm ${isDraggingOver ? 'text-primary' : 'text-gray-600'}`}>
-                      ลากและวางรูปภาพที่นี่ หรือคลิกเพื่อเลือกไฟล์
-                    </p>
-                  </>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {formData.images.map((imageUrl, index) => (
-                      <div key={index} className="relative aspect-square group">
-                        <img
-                          src={imageUrl}
-                          alt={`preview ${index + 1}`}
-                          className="object-cover w-full h-full rounded-md border border-gray-200"
-                        />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveImage(index);
-                          }}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="ลบรูปภาพ"
-                        >
-                          <FaTimes />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <FaImage className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-sm text-gray-600 mb-2">
+                  ลากและวางรูปภาพที่นี่ หรือ <span className="text-blue-600 font-medium">คลิกเพื่อเลือกไฟล์</span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  รองรับไฟล์ JPG, PNG, GIF ขนาดไม่เกิน 5MB ต่อไฟล์ (สูงสุด 10 ไฟล์)
+                </p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  className="hidden"
                   multiple
                   accept="image/*"
                   onChange={(e) => processFilesAndUpdateState(e.target.files)}
-                  onClick={(event) => { event.target.value = null }} // Allow re-selecting the same file
+                  className="hidden"
                 />
               </div>
+
+              {/* Image Preview */}
+              {formData.images.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="font-medium text-gray-700">
+                      รูปภาพที่เลือก ({formData.images.length} รูป)
+                    </h5>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={toggleViewMode}
+                        className="btn btn-sm btn-ghost"
+                        title={viewMode === 'grid' ? 'ดูแบบรายการ' : 'ดูแบบตาราง'}
+                      >
+                        {viewMode === 'grid' ? '📋' : '🖼️'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {formData.images.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={image}
+                            alt={`รูปภาพ ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <FaTimes className="text-xs" />
+                          </button>
+                          <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                            รูปที่ {index + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {formData.images.map((image, index) => (
+                        <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                          <img
+                            src={image}
+                            alt={`รูปภาพ ${index + 1}`}
+                            className="w-16 h-16 object-cover rounded border border-gray-200"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">รูปภาพ {index + 1}</p>
+                            <p className="text-xs text-gray-500">คลิกเพื่อดูขนาดใหญ่</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveImage(index)}
+                            className="btn btn-sm btn-error"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -455,10 +547,20 @@ export default function RepairRequestDialog({
             </button>
             <button
               onClick={handleSubmit}
-              className="btn btn-primary rounded-full hover:opacity-90"
-              disabled={!formData.description || !formData.estimatedCost || isSubmitting}
+              className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition"
+              disabled={isSubmitting || isUploading}
             >
-              {isSubmitting ? 'กำลังส่ง...' : 'ส่งคำขอแจ้งซ่อม'}
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  กำลังส่ง...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <FaImage />
+                  ส่งคำขอแจ้งซ่อม
+                </div>
+              )}
             </button>
           </div>
         </div>

@@ -44,7 +44,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from uploads directory
 // Apply CORS before static serving
-app.use('/uploads', cors(), express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', cors(), express.static(path.join(__dirname, '../uploads')));
 
 // Create nested router for user-related routes
 const userRouter = express.Router();
