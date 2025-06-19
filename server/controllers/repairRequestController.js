@@ -13,7 +13,30 @@ export const getRepairRequestById = async (req, res) => {
   try {
     const results = await RepairRequest.getRepairRequestById(req.params.id);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
-    res.json(results[0]);
+
+    // Parse images from pic_filename field
+    const repairRequest = results[0];
+    const images = RepairRequest.parseRepairImages(repairRequest.pic_filename);
+
+    const responseData = {
+      ...repairRequest,
+      images: images
+    };
+
+    res.json(responseData);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Endpoint to get repair request images (parsed from pic_filename)
+export const getRepairRequestImages = async (req, res) => {
+  try {
+    const results = await RepairRequest.getRepairRequestById(req.params.id);
+    if (results.length === 0) return res.status(404).json({ error: 'Not found' });
+
+    const images = RepairRequest.parseRepairImages(results[0].pic_filename);
+    res.json(images);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -48,9 +71,29 @@ export const addRepairRequest = async (req, res) => {
     if (!data.request_date) {
       data.request_date = new Date().toISOString().split('T')[0];
     }
-    await RepairRequest.addRepairRequest(data);
-    res.status(201).json({ message: 'Repair request added successfully' });
+
+    // Handle images from request body
+    const images = data.images || [];
+
+    // Log the incoming data for debugging
+    console.log('=== Adding Repair Request ===');
+    console.log('Repair Code:', data.repair_code);
+    console.log('Images Count:', images.length);
+    console.log('Images Data:', images);
+
+    const result = await RepairRequest.addRepairRequest({
+      ...data,
+      images: images
+    });
+
+    res.status(201).json({
+      message: 'Repair request added successfully',
+      repair_id: result.repair_id,
+      repair_code: data.repair_code,
+      images_count: images.length
+    });
   } catch (err) {
+    console.error('Error adding repair request:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -67,7 +110,8 @@ export const updateRepairRequest = async (req, res) => {
       note,
       budget,
       responsible_person,
-      approval_date
+      approval_date,
+      images = []
     } = req.body;
 
     console.log('Updating repair request with data:', {
@@ -80,7 +124,8 @@ export const updateRepairRequest = async (req, res) => {
       note,
       budget,
       responsible_person,
-      approval_date
+      approval_date,
+      imagesCount: images.length
     });
 
     const results = await RepairRequest.getRepairRequestById(id);
@@ -95,7 +140,8 @@ export const updateRepairRequest = async (req, res) => {
       note,
       budget,
       responsible_person,
-      approval_date
+      approval_date,
+      images
     });
 
     res.json({ message: 'Repair request updated successfully' });
