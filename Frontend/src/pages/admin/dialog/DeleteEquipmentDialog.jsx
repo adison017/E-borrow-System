@@ -34,7 +34,7 @@ export default function DeleteEquipmentDialog({
           </div>
           <div className="mt-2 bg-gray-50 p-3 rounded-lg">
             <div className="font-medium text-lg text-gray-900">{selectedEquipment?.name}</div>
-            <div className="text-sm text-gray-500">รหัส: {selectedEquipment?.id}</div>
+            <div className="text-sm text-gray-500">รหัส: {selectedEquipment?.item_id}</div>
           </div>
         </div>
         {/* Footer */}
