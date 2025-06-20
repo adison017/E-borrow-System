@@ -10,53 +10,53 @@ import ImageModal from './dialogs/ImageModal';
 // Sample borrowing and repair history data
 const historyData = {
   1: [
-    { 
-      type: 'borrow', 
-      date: '10/05/2023', 
-      returnDate: '17/05/2023', 
-      borrower: 'นายสมชาย ใจดี', 
+    {
+      type: 'borrow',
+      date: '10/05/2023',
+      returnDate: '17/05/2023',
+      borrower: 'นายสมชาย ใจดี',
       status: 'คืนแล้ว',
       reason: 'ใช้ในการนำเสนอโครงการ'
     },
-    { 
-      type: 'borrow', 
-      date: '20/05/2023', 
-      returnDate: '27/05/2023', 
-      borrower: 'นางสาวสมหญิง ใจกว้าง', 
+    {
+      type: 'borrow',
+      date: '20/05/2023',
+      returnDate: '27/05/2023',
+      borrower: 'นางสาวสมหญิง ใจกว้าง',
       status: 'คืนแล้ว',
       reason: 'ใช้ในการประชุมวิชาการ'
     }
   ],
   2: [
-    { 
-      type: 'borrow', 
-      date: '01/06/2023', 
-      returnDate: '15/06/2023', 
-      borrower: 'นายทดสอบ ระบบ', 
+    {
+      type: 'borrow',
+      date: '01/06/2023',
+      returnDate: '15/06/2023',
+      borrower: 'นายทดสอบ ระบบ',
       status: 'กำลังยืม',
       reason: 'ใช้ในการสอนวิชาการโปรแกรมมิ่ง'
     },
-    { 
-      type: 'repair', 
-      date: '15/04/2023', 
-      description: 'เปลี่ยนหลอดไฟโปรเจคเตอร์', 
+    {
+      type: 'repair',
+      date: '15/04/2023',
+      description: 'เปลี่ยนหลอดไฟโปรเจคเตอร์',
       status: 'ซ่อมเสร็จแล้ว',
       cost: '2,500 บาท'
     }
   ],
   3: [
-    { 
-      type: 'repair', 
-      date: '10/06/2023', 
-      description: 'ตรวจสอบระบบเซ็นเซอร์กล้อง', 
+    {
+      type: 'repair',
+      date: '10/06/2023',
+      description: 'ตรวจสอบระบบเซ็นเซอร์กล้อง',
       status: 'กำลังซ่อม',
       cost: 'ประมาณ 1,800 บาท'
     },
-    { 
-      type: 'borrow', 
-      date: '01/05/2023', 
-      returnDate: '08/05/2023', 
-      borrower: 'นางสาวทดสอบ ระบบ', 
+    {
+      type: 'borrow',
+      date: '01/05/2023',
+      returnDate: '08/05/2023',
+      borrower: 'นางสาวทดสอบ ระบบ',
       status: 'คืนแล้ว',
       reason: 'ใช้ในการถ่ายภาพกิจกรรม'
     }
@@ -88,9 +88,9 @@ const Home = () => {
       .then(data => {
         // map field ให้ตรงกับ UI เดิม
         const mapped = data.map(item => ({
-          id: item.id,
+          id: item.item_id || item.id,
           name: item.name,
-          code: item.id, // ใช้ id เป็น code ถ้าไม่มี field code
+          code: item.item_id || item.id, // ใช้ item_id เป็น code ถ้าไม่มี field code
           category: item.category,
           status: item.status, // ต้องตรงกับค่าที่ใช้ในปุ่ม
           dueDate: '', // ไม่มีใน db, ใส่ค่าว่าง
@@ -152,7 +152,7 @@ const Home = () => {
   // Filter equipment based on search, status and category
   const filteredEquipment = equipmentData.filter(equipment => {
     const matchesSearch = equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         equipment.code.toLowerCase().includes(searchTerm.toLowerCase());
+                         (equipment.code && String(equipment.code).toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = selectedStatus === 'ทั้งหมด' || equipment.status === selectedStatus;
     const matchesCategory = selectedCategory === 'ทั้งหมด' || equipment.category === selectedCategory;
     return matchesSearch && matchesStatus && matchesCategory;
@@ -192,7 +192,7 @@ const Home = () => {
     const today = new Date();
     const returnDate = new Date();
     returnDate.setDate(today.getDate() + 7);
-    
+
     setBorrowData({
       reason: '',
       borrowDate: today.toISOString().split('T')[0],
@@ -215,12 +215,12 @@ const Home = () => {
     const borrowDate = new Date(borrowData.borrowDate);
     const maxReturnDate = new Date(borrowDate);
     maxReturnDate.setDate(borrowDate.getDate() + 7);
-    
+
     if (returnDate > maxReturnDate) {
       alert('วันที่คืนต้องไม่เกิน 7 วันนับจากวันที่ยืม');
       return;
     }
-    
+
     setBorrowData(prev => ({
       ...prev,
       returnDate: e.target.value
@@ -286,14 +286,14 @@ const Home = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="bg-white"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
       {/* Header Section */}
-      <motion.header 
+      <motion.header
         className="bg-white"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -314,14 +314,14 @@ const Home = () => {
         ) : (
           <>
             {/* Search and Filter Section */}
-            <motion.div 
+            <motion.div
               className="mb-8"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
               {/* Search Bar */}
-              <motion.div 
+              <motion.div
                 className="mb-6"
                 variants={itemVariants}
               >
@@ -340,7 +340,7 @@ const Home = () => {
               </motion.div>
 
               {/* Filter Controls */}
-              <motion.div 
+              <motion.div
                 className="bg-white p-6 mb-6 bg-gradient-to-r from-indigo-950 to-blue-700 rounded-2xl"
                 variants={itemVariants}
               >
@@ -413,7 +413,7 @@ const Home = () => {
             </motion.div>
 
             {/* Equipment Grid */}
-            <motion.div 
+            <motion.div
               className="mb-16"
               variants={containerVariants}
               initial="hidden"
@@ -422,11 +422,11 @@ const Home = () => {
               {filteredEquipment.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
                   {filteredEquipment.map((equipment, index) => (
-                    <motion.div 
-                      key={equipment.id} 
+                    <motion.div
+                      key={equipment.id}
                       className="card rounded-2xl shadow-md hover:shadow-xl bg-white cursor-pointer transition-all duration-300 ease-in-out group border border-transparent hover:border-blue-200 relative overflow-hidden"
                       variants={itemVariants}
-                      whileHover={{ 
+                      whileHover={{
                         scale: 1.02,
                         y: -5
                       }}
@@ -436,10 +436,10 @@ const Home = () => {
                       onClick={() => showEquipmentDetail(equipment)}>
                       <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-0"></div>
                       <figure className="px-4 pt-4 relative">
-                        <img 
-                          src={equipment.image} 
-                          alt={equipment.name} 
-                          className="rounded-xl h-40 w-full object-contain cursor-pointer" 
+                        <img
+                          src={equipment.image}
+                          alt={equipment.name}
+                          className="rounded-xl h-40 w-full object-contain cursor-pointer"
                           // onClick={(e) => {
                           //   e.stopPropagation();
                           //   showImageModal(equipment.image);
@@ -454,7 +454,7 @@ const Home = () => {
                           <h2 className="font-semibold line-clamp-1 text-lg md:text-xl">{equipment.name}</h2>
                           <p className="text-sm">{equipment.code}</p>
                         </div>
-                        
+
                         <div className="flex flex-col items-center w-full mt-2">
                           <p className="text-sm font-medium text-white bg-blue-700 px-4 py-2 rounded-full">
                             จำนวน {equipment.available} {equipment.unit || ''}
@@ -522,12 +522,12 @@ const Home = () => {
                   ))}
                 </div>
               ) : (
-                <motion.div 
+                <motion.div
                   className="text-center py-12 bg-white rounded-lg shadow-sm"
                   variants={itemVariants}
                 >
                   <p className="text-gray-500 text-lg">ไม่พบครุภัณฑ์ที่ตรงกับการค้นหา</p>
-                  <button 
+                  <button
                     onClick={() => {
                       setSearchTerm('');
                       setSelectedStatus('ทั้งหมด');
@@ -546,7 +546,7 @@ const Home = () => {
 
       {/* Floating Cart Summary */}
       {totalSelectedItems > 0 && (
-        <motion.div 
+        <motion.div
           className="fixed bottom-6 right-11 md:bottom-6 md:right-6 bg-white shadow-xl p-4 z-10 rounded-2xl"
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
