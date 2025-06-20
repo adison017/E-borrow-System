@@ -190,12 +190,12 @@ function Success() {
     .filter(borrow => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch =
-        borrow.borrow_code.toLowerCase().includes(searchTermLower) ||
-        borrow.borrower.name.toLowerCase().includes(searchTermLower) ||
-        borrow.borrower.department.toLowerCase().includes(searchTermLower) ||
+        (borrow.borrow_code && borrow.borrow_code.toLowerCase().includes(searchTermLower)) ||
+        (borrow.borrower?.name && borrow.borrower.name.toLowerCase().includes(searchTermLower)) ||
+        (borrow.borrower?.department && borrow.borrower.department.toLowerCase().includes(searchTermLower)) ||
         (Array.isArray(borrow.equipment) && borrow.equipment.some(
           eq => (eq.name && eq.name.toLowerCase().includes(searchTermLower)) ||
-                (eq.code && eq.code.toLowerCase().includes(searchTermLower))
+                (eq.code && String(eq.code).toLowerCase().includes(searchTermLower))
         ));
       return matchesSearch;
     });

@@ -165,17 +165,17 @@ function ManageEquipment() {
   const filteredEquipment = equipmentList
     .filter(
       item =>
-        (item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (((item.item_id && String(item.item_id).toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())))) &&
         (statusFilter === "ทั้งหมด" || item.status === statusFilter) &&
         (categoryFilter === "ทั้งหมด" || item.category === categoryFilter)
     )
     .sort((a, b) => {
       if (a.status === "ชำรุด" && b.status !== "ชำรุด") return -1;
       if (b.status === "ชำรุด" && a.status !== "ชำรุด") return 1;
-      // ถ้าไม่ใช่ทั้งคู่ ให้เรียงตาม id
-      return a.id.localeCompare(b.id);
+      // ถ้าไม่ใช่ทั้งคู่ ให้เรียงตาม item_id
+      return String(a.item_id || '').localeCompare(String(b.item_id || ''));
     });
 
   // Pagination logic
@@ -235,27 +235,22 @@ function ManageEquipment() {
 
   const handleInspectSubmit = async (inspectionData) => {
     try {
-      console.log('Inspection data received:', inspectionData);
-
-      // Update equipment status in the local state
-      const updatedEquipment = equipmentList.map(item => {
-        if (item.item_id === inspectionData.equipment.item_id) {
-          return {
-            ...item,
-            status: inspectionData.status,
-            last_updated: inspectionData.inspectionDate
-          };
-        }
-        return item;
-      });
-
-      setEquipmentList(updatedEquipment);
+      // เรียก API เพื่ออัพเดทสถานะใน backend
+      const equipmentId = inspectionData.equipment.item_id;
+      const equipmentToUpdate = equipmentList.find(item => item.item_id === equipmentId);
+      if (equipmentToUpdate) {
+        await updateEquipment(equipmentId, {
+          ...equipmentToUpdate,
+          status: inspectionData.status,
+          last_updated: inspectionData.inspectionDate,
+        });
+        // ดึงข้อมูลใหม่หลังอัพเดท
+        await getEquipment().then(setEquipmentList);
+      }
       setShowInspectDialog(false);
-
       // Show success message
       const statusText = inspectionData.status === 'พร้อมใช้งาน' ? 'พร้อมใช้งาน' : 'ชำรุด';
       showAlertMessage(`อัพเดทสถานะครุภัณฑ์ ${inspectionData.equipment.name} เป็น "${statusText}" เรียบร้อยแล้ว`, "success");
-
     } catch (error) {
       console.error('Error handling inspection submit:', error);
       showAlertMessage('เกิดข้อผิดพลาดในการอัพเดทสถานะครุภัณฑ์', "error");
@@ -437,9 +432,9 @@ function ManageEquipment() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedEquipment.length > 0 ? (
                   paginatedEquipment.map((item, index) => {
-                    const { pic, id, name, category, quantity, status, created_at, unit } = item;
+                    const { pic, item_id, name, category, quantity, status, created_at, unit } = item;
                     return (
-                      <tr key={id} className="hover:bg-gray-50">
+                      <tr key={item_id} className="hover:bg-gray-50">
                         <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
                             <img
@@ -450,7 +445,7 @@ function ManageEquipment() {
                             />
                           </div>
                         </td>
-                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{id}</td>
+                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{item_id}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
                         <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}{unit ? ` ${unit}` : ''}</td>
@@ -514,9 +509,9 @@ function ManageEquipment() {
             แสดง {filteredEquipment.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} ถึง {Math.min(currentPage * itemsPerPage, filteredEquipment.length)} จากทั้งหมด {equipmentList.length} รายการ
           </Typography>
           <div className="flex gap-2 items-center">
-            <Button 
-              variant="outlined" 
-              size="sm" 
+            <Button
+              variant="outlined"
+              size="sm"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case disabled:opacity-50"
@@ -524,9 +519,9 @@ function ManageEquipment() {
               ก่อนหน้า
             </Button>
             <span className="text-sm text-gray-700">{currentPage} / {totalPages}</span>
-            <Button 
-              variant="outlined" 
-              size="sm" 
+            <Button
+              variant="outlined"
+              size="sm"
               disabled={currentPage === totalPages || totalPages === 0}
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case disabled:opacity-50"

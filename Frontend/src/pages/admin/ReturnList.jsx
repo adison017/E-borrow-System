@@ -258,8 +258,8 @@ const ReturnList = () => {
 
     // Check if code matches a borrowed item
     const borrowedItem = borrowedItems.find(item =>
-      item.borrow_code.toLowerCase() === code.toLowerCase() ||
-      item.equipment.code.toLowerCase() === code.toLowerCase()
+      (item.borrow_code && item.borrow_code.toLowerCase() === code.toLowerCase()) ||
+      (item.equipment?.code && String(item.equipment.code).toLowerCase() === code.toLowerCase())
     );
 
     if (borrowedItem) {
@@ -401,16 +401,16 @@ const ReturnList = () => {
       if (searchTerm.trim() !== "") {
         const searchTermLower = searchTerm.toLowerCase();
         const matchesSearch =
-          item.return_code.toLowerCase().includes(searchTermLower) ||
-          item.borrow_code.toLowerCase().includes(searchTermLower) ||
-          item.borrower.name.toLowerCase().includes(searchTermLower) ||
+          (item.return_code && item.return_code.toLowerCase().includes(searchTermLower)) ||
+          (item.borrow_code && item.borrow_code.toLowerCase().includes(searchTermLower)) ||
+          (item.borrower?.name && item.borrower.name.toLowerCase().includes(searchTermLower)) ||
           (item.equipment?.name && item.equipment.name.toLowerCase().includes(searchTermLower)) ||
-          (item.equipment?.code && item.equipment.code.toLowerCase().includes(searchTermLower));
+          (item.equipment?.code && String(item.equipment.code).toLowerCase().includes(searchTermLower));
         if (!matchesSearch) {
           return false;
         }
       }
-      
+
       // Filter by status dropdown (if not "ทั้งหมด")
       if (statusFilter !== "ทั้งหมด" && item.status !== statusFilter) {
         return false;

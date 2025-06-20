@@ -69,9 +69,11 @@ export const addEquipment = async (req, res) => {
 export const updateEquipment = async (req, res) => {
   try {
     const data = req.body;
+    console.log('UpdateEquipment - item_id:', req.params.item_id);
+    console.log('UpdateEquipment - data:', data);
     if (data.pic && typeof data.pic === 'string') {
       if (!data.pic.startsWith('http')) {
-        data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
+        data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?.*uploads\//, '')}`;
       }
     }
     // รองรับ field ใหม่
@@ -103,6 +105,7 @@ export const updateEquipment = async (req, res) => {
     await Equipment.updateEquipment(req.params.item_id, data);
     res.json({ message: 'Equipment updated' });
   } catch (err) {
+    console.error('UpdateEquipment ERROR:', err);
     res.status(500).json({ error: err.message });
   }
 };
