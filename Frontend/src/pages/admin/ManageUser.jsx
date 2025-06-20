@@ -312,7 +312,7 @@ function ManageUser() {
 
   return (
     <ThemeProvider value={theme}>
-      <Toaster position="top-center" 
+      <Toaster position="bottom-right" 
       reverseOrder={false} 
       />
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
