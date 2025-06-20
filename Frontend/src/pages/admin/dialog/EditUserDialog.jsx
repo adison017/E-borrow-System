@@ -742,7 +742,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
                         <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
                         รหัสไปรษณีย์
                       </label>
