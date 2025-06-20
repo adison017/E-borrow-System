@@ -142,8 +142,8 @@ function ManageCategory() {
 
   const filteredCategories = categoryList.filter(
     category =>
-      category.category_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      category.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (category.category_code && String(category.category_code).toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (category.name && category.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (

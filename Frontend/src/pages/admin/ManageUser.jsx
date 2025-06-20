@@ -294,13 +294,13 @@ function ManageUser() {
   // Filtering logic
   const filteredUsers = userList.filter(user => {
     const matchesSearch =
-      user.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.position_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.branch_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      (user.student_id && String(user.student_id).toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.fullname && user.fullname.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.phone && String(user.phone).toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.position_name && user.position_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.branch_name && user.branch_name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesRole = !roleFilter || user.role_name === roleFilter;
     const matchesBranch = !branchFilter || user.branch_name === branchFilter;
     const matchesPosition = !positionFilter || user.position_name === positionFilter;
