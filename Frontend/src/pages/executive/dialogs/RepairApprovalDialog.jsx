@@ -420,12 +420,10 @@ export default function RepairApprovalDialog({
 
   const nextImage = () => {
     setActiveImageIndex(prev => (prev + 1) % repairImages.length);
-    setIsZoomed(false);
   }
 
   const prevImage = () => {
     setActiveImageIndex(prev => (prev - 1 + repairImages.length) % repairImages.length);
-    setIsZoomed(false);
   }
 
   const toggleViewMode = () => {
@@ -541,7 +539,8 @@ export default function RepairApprovalDialog({
                         src={image.url || `http://localhost:5000/${image.file_path}`}
                         alt={`รูปภาพความเสียหาย ${index + 1}`}
                         className="w-full h-32 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
-                        onClick={() => {
+                        onClick={e => {
+                          e.stopPropagation();
                           setActiveImageIndex(index);
                           setIsZoomed(true);
                         }}
@@ -565,7 +564,8 @@ export default function RepairApprovalDialog({
                         src={image.url || `http://localhost:5000/${image.file_path}`}
                         alt={`รูปภาพความเสียหาย ${index + 1}`}
                         className="w-16 h-16 object-cover rounded border border-gray-200"
-                        onClick={() => {
+                        onClick={e => {
+                          e.stopPropagation();
                           setActiveImageIndex(index);
                           setIsZoomed(true);
                         }}
@@ -881,7 +881,7 @@ export default function RepairApprovalDialog({
 
       {/* Image Zoom Modal */}
       {isZoomed && repairImages.length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]">
           <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-lg overflow-hidden">
             {/* Header */}
             <div className="flex justify-between items-center p-4 bg-gray-100">

@@ -20,54 +20,27 @@ export default function InspectRepairedEquipmentDialog({
       setError('โปรดกรอกบันทึกการตรวจสอบ');
       return;
     }
-
     setIsSubmitting(true);
     setError('');
-
     try {
-      // Determine the new status based on inspection result
       const newStatus = formData.isRepaired ? 'พร้อมใช้งาน' : 'ชำรุด';
-
-      // Update equipment status in database
-      const equipmentUpdateData = {
-        status: newStatus,
-        last_updated: new Date().toISOString().split('T')[0]
-      };
-
-      console.log('Updating equipment status:', equipmentUpdateData);
-
-      // Update equipment status via API
-      const response = await axios.put(
-        `http://localhost:5000/api/equipment/${equipment.item_id}/status`,
-        equipmentUpdateData
-      );
-
-      console.log('Equipment status update response:', response.data);
-
-      // Call onSubmit with complete data
+      // ส่งข้อมูล inspection กลับไปให้ parent
       onSubmit({
         ...formData,
         equipment: {
           name: equipment.name,
           item_id: equipment.item_id,
           code: equipment.item_code,
-          category: equipment.category || 'อุปกรณ์ทั่วไป'
+          category: equipment.category || 'อุปกรณ์ทั่วไป',
         },
         inspectionDate: new Date().toISOString().split('T')[0],
         status: newStatus,
-        inspectionResult: formData.isRepaired ? 'ซ่อมเสร็จสมบูรณ์' : 'ยังไม่สมบูรณ์'
+        inspectionResult: formData.isRepaired ? 'ซ่อมเสร็จสมบูรณ์' : 'ยังไม่สมบูรณ์',
       });
-
-      // Reset form
-      setFormData({
-        inspectionNotes: '',
-        isRepaired: true
-      });
-
+      setFormData({ inspectionNotes: '', isRepaired: true });
       onClose();
     } catch (error) {
-      console.error('Error updating equipment status:', error);
-      setError('เกิดข้อผิดพลาดในการอัพเดทสถานะครุภัณฑ์ กรุณาลองใหม่อีกครั้ง');
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsSubmitting(false);
     }
