@@ -23,12 +23,13 @@ export default function EditEquipmentDialog({
   const fileInputRef = useRef(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [missingFields, setMissingFields] = useState([]);
 
   const statusConfig = {
-    "ชำรุด": { color: "red", icon: "XCircleIcon" },
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
+    "ถูกยืม": { color: "blue", icon: "ExclamationCircleIcon" },
+    "ชำรุด": { color: "red", icon: "XCircleIcon" },
     "ระหว่างซ่อม": { color: "amber", icon: "ClockIcon" },
-    "ถูกยืม": { color: "blue", icon: "ExclamationCircleIcon" }
   };
 
   useEffect(() => {
@@ -36,7 +37,26 @@ export default function EditEquipmentDialog({
       getCategories().then(data => setCategories(data));
     }
 
-    // Ensure all values are strings, never undefined
+    // ฟังก์ชัน normalizeDate รองรับทุกกรณี
+    function normalizeDate(val) {
+      if (!val) return "";
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+        const [day, month, year] = val.split("/");
+        return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      }
+      if (/^\d{4}-\d{2}-\d{2}T/.test(val)) {
+        // แปลงเป็น local date string
+        const d = new Date(val);
+        const offset = d.getTimezoneOffset();
+        d.setMinutes(d.getMinutes() - offset);
+        return d.toISOString().slice(0, 10);
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        return val;
+      }
+      return "";
+    }
+
     const defaultData = {
       id: "",
       name: "",
@@ -57,7 +77,10 @@ export default function EditEquipmentDialog({
         quantity: equipmentData.quantity || "",
         unit: equipmentData.unit || "",
         status: equipmentData.status || "พร้อมใช้งาน",
-        pic: equipmentData.pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
+        pic: equipmentData.pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png",
+        purchaseDate: normalizeDate(equipmentData.purchaseDate) || "",
+        price: equipmentData.price || "",
+        location: equipmentData.location || ""
       });
     } else {
       setFormData(defaultData);
@@ -81,6 +104,13 @@ export default function EditEquipmentDialog({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "purchaseDate") {
+      setFormData(prev => ({
+        ...prev,
+        [name]: normalizeDate(value)
+      }));
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value || "" // Ensure value is never undefined
@@ -110,14 +140,27 @@ export default function EditEquipmentDialog({
   };
 
   const handleSubmit = async () => {
+    // ตรวจสอบฟิลด์ที่จำเป็น (ยกเว้น description)
+    const requiredFields = [
+      { key: 'name', label: 'ชื่อครุภัณฑ์' },
+      { key: 'quantity', label: 'จำนวน' },
+      { key: 'category', label: 'หมวดหมู่' },
+      { key: 'unit', label: 'หน่วย' },
+      { key: 'status', label: 'สถานะ' },
+      { key: 'purchaseDate', label: 'วันที่จัดซื้อ' },
+      { key: 'price', label: 'ราคา' },
+      { key: 'location', label: 'สถานที่จัดเก็บ' }
+    ];
+    const missing = requiredFields.filter(f => !formData[f.key] || String(formData[f.key]).trim() === '').map(f => f.label);
+    setMissingFields(missing);
+    if (missing.length > 0) {
+      return;
+    }
     let dataToSave = { ...formData };
     if (dataToSave.pic instanceof File) {
-      dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.id); // ส่ง id ไปด้วย
+      dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.id);
     }
-    // แปลง id เป็น item_id เพื่อให้ตรงกับโครงสร้างข้อมูลที่คาดหวัง
     dataToSave.item_id = dataToSave.id;
-    delete dataToSave.id;
-    // ไม่ต้องตัด path แล้ว เพราะ backend รับได้เลย
     onSave(dataToSave);
     onClose();
   };
@@ -280,7 +323,7 @@ export default function EditEquipmentDialog({
                   name="unit"
                   value={formData.unit}
                   onChange={handleChange}
-                  className="py-2 bg-white border-t border-b border-r border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
+                  className="bg-white border-t border-b border-r border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800"
                   required
                 >
                   <option value="" disabled>เลือกหน่วย</option>
@@ -293,7 +336,7 @@ export default function EditEquipmentDialog({
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">สถานะ</label>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">สถานะ <span className="text-rose-500">*</span></label>
               <select
                 name="status"
                 value={formData.status}
@@ -308,28 +351,28 @@ export default function EditEquipmentDialog({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">วันที่จัดซื้อ</label>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">วันที่จัดซื้อ <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <input
                   type="date"
                   name="purchaseDate"
-                  value={dayjs(formData.purchaseDate).isValid() ? dayjs(formData.purchaseDate).format('YYYY-MM-DD') : ''}
+                  value={formData.purchaseDate || ''}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
                   placeholder="เลือกวันที่"
-                  onClick={() => document.querySelector('input[name="purchaseDate"]').showPicker()}
+                  onClick={() => document.querySelector('input[name=\"purchaseDate\"]').showPicker()}
                 />
                 <button 
                   type="button" 
                   className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
-                  onClick={() => document.querySelector('input[name="purchaseDate"]').showPicker()}
+                  onClick={() => document.querySelector('input[name=\"purchaseDate\"]').showPicker()}
                 >
                   <FaCalendarAlt />
                 </button>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">ราคา (บาท)</label>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">ราคา ฿ <span className="text-rose-500">*</span></label>
               <input
                 type="text"
                 name="price"
@@ -347,7 +390,7 @@ export default function EditEquipmentDialog({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">สถานที่จัดเก็บ</label>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">สถานที่จัดเก็บ <span className="text-rose-500">*</span></label>
             <input
               type="text"
               name="location"
@@ -357,18 +400,26 @@ export default function EditEquipmentDialog({
               placeholder="ระบุสถานที่จัดเก็บ"
             />
           </div>
+          {missingFields.length > 0 && (
+          <div className="mt-2 mb-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-rose-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-8-3a1 1 0 00-1 1v3a1 1 0 002 0V8a1 1 0 00-1-1zm0 7a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            กรุณากรอกข้อมูลต่อไปนี้ให้ครบถ้วน: {missingFields.join(', ')}
+          </div>
+        )}
         </div>
         {/* Footer */}
         <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end space-x-3">
           <button
-            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm"
+            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm"
             onClick={onClose}
             type="button"
           >
             ยกเลิก
           </button>
           <button
-            className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm ${
+            className={`px-5 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm ${
               isFormValid
                 ? "bg-blue-600 hover:bg-blue-700"
                 : "bg-blue-300 cursor-not-allowed"

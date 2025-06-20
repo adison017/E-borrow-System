@@ -2,10 +2,6 @@
 @import 'flowbite';
 @plugin "daisyui";
 
-/* Base styles */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 /* Enhanced Table Styles */
 @layer components {
@@ -61,4 +57,3 @@
     background-color: #ff9800; /* สีส้มสำหรับ warning */
     color: white;
   }
-  
