@@ -31,12 +31,13 @@ export default function AddEquipmentDialog({
   const fileInputRef = useRef(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [missingFields, setMissingFields] = useState([]);
 
   const statusConfig = {
-    "ชำรุด": { color: "red", icon: "XCircleIcon" },
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
+    "ถูกยืม": { color: "blue", icon: "ExclamationCircleIcon" },
+    "ชำรุด": { color: "red", icon: "XCircleIcon" },
     "ระหว่างซ่อม": { color: "amber", icon: "ClockIcon" },
-    "ถูกยืม": { color: "blue", icon: "ExclamationCircleIcon" }
   };
   
   useEffect(() => {
@@ -102,11 +103,27 @@ export default function AddEquipmentDialog({
   };
 
   const handleSubmit = async () => {
+    // ตรวจสอบฟิลด์ที่จำเป็น (ยกเว้น description)
+    const requiredFields = [
+      { key: 'name', label: 'ชื่อครุภัณฑ์' },
+      { key: 'quantity', label: 'จำนวน' },
+      { key: 'category', label: 'หมวดหมู่' },
+      { key: 'unit', label: 'หน่วย' },
+      { key: 'status', label: 'สถานะ' },
+      { key: 'purchaseDate', label: 'วันที่จัดซื้อ' },
+      { key: 'price', label: 'ราคา' },
+      { key: 'location', label: 'สถานที่จัดเก็บ' }
+    ];
+    const missing = requiredFields.filter(f => !formData[f.key] || String(formData[f.key]).trim() === '').map(f => f.label);
+    setMissingFields(missing);
+    if (missing.length > 0) {
+      return;
+    }
     let dataToSave = { ...formData };
     if (dataToSave.pic instanceof File) {
-      dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.id); // ส่ง id ไปด้วย
+      dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.id);
     }
-    // ไม่ต้องตัด path แล้ว เพราะ backend รับได้เลย
+    dataToSave.item_id = dataToSave.id;
     onSave(dataToSave);
     onClose();
   };
@@ -260,15 +277,18 @@ export default function AddEquipmentDialog({
                   placeholder="ระบุจำนวน"
                   required
                   min={1}
+                  step="1"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
                 />
                 <select
                   name="unit"
                   value={formData.unit}
                   onChange={handleChange}
-                  className="py-3 px-10 bg-white border-t border-b border-r border-gray-300 rounded-r-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
+                  className=" bg-white border-t border-b border-r border-gray-300 rounded-r-xl focus:ring-2 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300 ring-emerald-300 focus:ring-emerald-600"
                   required
                 >
-                  <option value="">หน่วย</option>
+                  <option value="" disabled>เลือกหน่วย</option>
                   <option value="ชิ้น">ชิ้น</option>
                   <option value="ชุด">ชุด</option>
                   <option value="กล่อง">กล่อง</option>
@@ -278,7 +298,7 @@ export default function AddEquipmentDialog({
               </div>
             </div>
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">สถานะ</label>
+              <label className="block text-sm font-semibold text-gray-800 mb-2">สถานะ <span className="text-rose-500">*</span></label>
               <select
                 name="status"
                 value={formData.status}
@@ -294,16 +314,15 @@ export default function AddEquipmentDialog({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">วันที่จัดซื้อ</label>
+              <label className="block text-sm font-semibold text-gray-800 mb-2">วันที่จัดซื้อ <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <input
                   type="date"
                   name="purchaseDate"
-                  value={dayjs(formData.purchaseDate).isValid() ? dayjs(formData.purchaseDate).format('YYYY-MM-DD') : ''}
+                  value={formData.purchaseDate || ''}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
                   placeholder="เลือกวันที่"
-                  onClick={() => document.querySelector('input[name="purchaseDate"]').showPicker()}
                 />
                 <button 
                   type="button" 
@@ -315,7 +334,7 @@ export default function AddEquipmentDialog({
               </div>
             </div>              
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">ราคา (บาท)</label>
+              <label className="block text-sm font-semibold text-gray-800 mb-2">ราคา ฿ <span className="text-rose-500">*</span></label>
               <input
                 type="text"
                 name="price"
@@ -334,7 +353,7 @@ export default function AddEquipmentDialog({
           </div>
 
           <div className="group">
-            <label className="block text-sm font-semibold text-gray-800 mb-2">สถานที่จัดเก็บ</label>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">สถานที่จัดเก็บ <span className="text-rose-500">*</span></label>
             <input
               type="text"
               name="location"
@@ -344,6 +363,15 @@ export default function AddEquipmentDialog({
               placeholder="ระบุสถานที่จัดเก็บ"
             />
           </div>
+
+          {missingFields.length > 0 && (
+            <div className="mt-2 mb-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-rose-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-8-3a1 1 0 00-1 1v3a1 1 0 002 0V8a1 1 0 00-1-1zm0 7a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+              กรุณากรอกข้อมูลต่อไปนี้ให้ครบถ้วน: {missingFields.join(', ')}
+            </div>
+          )}
         </div>
         
         {/* Footer */}
@@ -356,13 +384,8 @@ export default function AddEquipmentDialog({
             ยกเลิก
           </button>
           <button
-            className={`px-6 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
-              isFormValid 
-                ? "bg-emerald-600 hover:bg-emerald-700" 
-                : "bg-emerald-300 cursor-not-allowed"
-            }`}
+            className={`px-6 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 bg-emerald-600 hover:bg-emerald-700`}
             onClick={handleSubmit}
-            disabled={!isFormValid}
             type="button"
           >
             เพิ่มครุภัณฑ์

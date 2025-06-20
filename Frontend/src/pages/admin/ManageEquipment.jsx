@@ -131,9 +131,9 @@ function ManageEquipment() {
   };
 
   const confirmDelete = () => {
-    deleteEquipment(selectedEquipment.item_id).then(() => getEquipment().then(setEquipmentList));
+    deleteEquipment(selectedEquipment.item_id || selectedEquipment.id).then(() => getEquipment().then(setEquipmentList));
     setDeleteDialogOpen(false);
-    showAlertMessage(`ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "success");
+    showAlertMessage(`ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "delete");
     setSelectedEquipment(null);
   };
 
@@ -165,17 +165,21 @@ function ManageEquipment() {
   const filteredEquipment = equipmentList
     .filter(
       item =>
+
         (((item.item_id && String(item.item_id).toLowerCase().includes(searchTerm.toLowerCase())) ||
         (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())))) &&
+
         (statusFilter === "ทั้งหมด" || item.status === statusFilter) &&
         (categoryFilter === "ทั้งหมด" || item.category === categoryFilter)
     )
     .sort((a, b) => {
       if (a.status === "ชำรุด" && b.status !== "ชำรุด") return -1;
       if (b.status === "ชำรุด" && a.status !== "ชำรุด") return 1;
+
       // ถ้าไม่ใช่ทั้งคู่ ให้เรียงตาม item_id
       return String(a.item_id || '').localeCompare(String(b.item_id || ''));
+
     });
 
   // Pagination logic
@@ -547,11 +551,14 @@ function ManageEquipment() {
           onSave={async (updatedData) => {
             let dataToSave = { ...updatedData };
             if (dataToSave.pic instanceof File) {
-              dataToSave.pic = await uploadImage(dataToSave.pic);
+              dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_id || dataToSave.id);
             }
+            // ให้แน่ใจว่ามี item_id
+            dataToSave.item_id = dataToSave.item_id || dataToSave.id;
+            delete dataToSave.id;
             await updateEquipment(dataToSave.item_id, dataToSave);
             getEquipment().then(setEquipmentList);
-            showAlertMessage(`แก้ไขครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "success");
+            showAlertMessage(`แก้ไขครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "edit");
           }}
         />
 
@@ -560,21 +567,25 @@ function ManageEquipment() {
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
           initialFormData={{
-            item_id: `EQ-${String(equipmentList.length + 1).padStart(3, '0')}`,
+            id: generateNextEquipmentId(equipmentList),
             name: "",
             category: "",
             description: "",
             quantity: "",
+            unit: "",
             status: "พร้อมใช้งาน",
             pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
           }}
           onSave={async (newEquipment) => {
             let dataToSave = { ...newEquipment };
             if (dataToSave.pic instanceof File) {
-              dataToSave.pic = await uploadImage(dataToSave.pic);
+              dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_id || dataToSave.id);
             }
+            dataToSave.item_id = dataToSave.item_id || dataToSave.id;
+            delete dataToSave.id;
             await addEquipment(dataToSave);
             getEquipment().then(setEquipmentList);
+            showAlertMessage(`เพิ่มครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "success");
           }}
         />
 
@@ -611,6 +622,28 @@ function ManageEquipment() {
       </Tooltip>
     </ThemeProvider>
   );
+}
+
+// ฟังก์ชันหา id ใหม่ที่ไม่ซ้ำ
+function generateNextEquipmentId(equipmentList) {
+  // ดึงเลขลำดับจาก id ที่เป็นรูปแบบ EQ-xxx
+  const usedNumbers = equipmentList
+    .map(item => {
+      const match = (item.id || item.item_id || '').match(/^EQ-(\d{3})$/);
+      return match ? parseInt(match[1], 10) : null;
+    })
+    .filter(num => num !== null)
+    .sort((a, b) => a - b);
+  // หาเลขที่ว่าง (gap) ที่เล็กที่สุด
+  let nextNumber = 1;
+  for (let i = 0; i < usedNumbers.length; i++) {
+    if (usedNumbers[i] !== i + 1) {
+      nextNumber = i + 1;
+      break;
+    }
+    nextNumber = usedNumbers.length + 1;
+  }
+  return `EQ-${String(nextNumber).padStart(3, '0')}`;
 }
 
 export default ManageEquipment;

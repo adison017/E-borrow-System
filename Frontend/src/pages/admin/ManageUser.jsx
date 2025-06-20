@@ -5,6 +5,7 @@ import {
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
+import { Toaster, toast } from 'react-hot-toast';
 
 import {
   PencilIcon,
@@ -25,7 +26,6 @@ import {
   Tooltip,
   Typography
 } from "@material-tailwind/react";
-import Notification from "../../components/Notification";
 import AddUserDialog from "./dialog/AddUserDialog";
 import DeleteUserDialog from "./dialog/DeleteUserDialog";
 import EditUserDialog from "./dialog/EditUserDialog";
@@ -75,9 +75,6 @@ function ManageUser() {
     postal_no: "",
     password: ""
   });
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [alertType, setAlertType] = useState("success");
   const [isLoading, setIsLoading] = useState(true);
   const effectRan = useRef(false);
 
@@ -166,14 +163,12 @@ function ManageUser() {
     fetchFilters();
   }, []);
 
-  // ฟังก์ชั่นแสดง Alert
+  // ฟังก์ชั่นแสดง Toast
   const showAlertMessage = (message, type = "success") => {
-    setAlertMessage(message);
-    setAlertType(type);
-    setShowAlert(true);
-    setTimeout(() => {
-      setShowAlert(false);
-    }, 3000);
+    if (type === 'success') toast.success(message);
+    else if (type === 'error') toast.error(message);
+    else if (type === 'loading') toast.loading(message);
+    else toast(message);
   };
 
   const handleDeleteClick = async (user) => {
@@ -317,14 +312,10 @@ function ManageUser() {
 
   return (
     <ThemeProvider value={theme}>
+      <Toaster position="top-center" 
+      reverseOrder={false} 
+      />
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
-        {/* Alert Notification */}
-        <Notification
-          show={showAlert}
-          message={alertMessage}
-          type={alertType}
-          onClose={() => setShowAlert(false)}
-        />
         <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-2">
           <div className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
