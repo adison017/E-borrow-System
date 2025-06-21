@@ -2,7 +2,7 @@ import connection from '../db.js';
 
 export const getAllEquipment = async () => {
   try {
-    const [rows] = await connection.query('SELECT *, purchaseDate, price, location FROM equipment');
+    const [rows] = await connection.query('SELECT * FROM equipment');
     return rows;
   } catch (error) {
     throw error;

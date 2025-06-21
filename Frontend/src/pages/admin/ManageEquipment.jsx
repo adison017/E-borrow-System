@@ -629,7 +629,7 @@ function generateNextEquipmentId(equipmentList) {
   // ดึงเลขลำดับจาก id ที่เป็นรูปแบบ EQ-xxx
   const usedNumbers = equipmentList
     .map(item => {
-      const match = (item.id || item.item_id || '').match(/^EQ-(\d{3})$/);
+      const match = String(item.id || item.item_id || '').match(/^EQ-(\d{3})$/);
       return match ? parseInt(match[1], 10) : null;
     })
     .filter(num => num !== null)
