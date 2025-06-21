@@ -49,7 +49,7 @@ const theme = {
 
 const TABLE_HEAD = [
   "รูปภาพ",
-  "รหัสครุภัณฑ์",
+  "รหัสครุภัณฑ์", // item_code
   "ชื่อครุภัณฑ์",
   "หมวดหมู่",
   "จำนวน",
@@ -71,7 +71,7 @@ const statusConfig = {
     backgroundColor: "bg-amber-50",
     borderColor: "border-amber-100"
   },
-  "รออนุมัติซ่อม": {
+  "รออนุมัติซ่อม": { // เปลี่ยนจาก 'รอการอนุมัติซ่อม' เป็น 'รออนุมัติซ่อม'
     color: "blue",
     icon: ClockIcon,
     backgroundColor: "bg-blue-50",
@@ -130,8 +130,9 @@ function ManageEquipment() {
     setDeleteDialogOpen(true);
   };
 
+  // ฟังก์ชั่นสำหรับลบ
   const confirmDelete = () => {
-    deleteEquipment(selectedEquipment.item_id || selectedEquipment.id).then(() => getEquipment().then(setEquipmentList));
+    deleteEquipment(selectedEquipment.item_code).then(() => getEquipment().then(setEquipmentList));
     setDeleteDialogOpen(false);
     showAlertMessage(`ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "delete");
     setSelectedEquipment(null);
@@ -158,25 +159,34 @@ function ManageEquipment() {
 
   // ฟังก์ชั่นบันทึกครุภัณฑ์ใหม่
   const handleAddEquipment = (data) => {
-    addEquipment(data).then(() => getEquipment().then(setEquipmentList));
+    let dataToSave = { ...data };
+    // ให้แน่ใจว่ามี item_id
+    dataToSave.item_id = dataToSave.item_id || dataToSave.id;
+    delete dataToSave.id;
+    addEquipment(dataToSave).then(() => getEquipment().then(setEquipmentList));
   };
 
-  // ฟังก์ชั่นสำหรับกรองข้อมูลตามคำค้นหา, สถานะ และหมวดหมู่
+  // ฟังก์ชั่นสำหรับกรอง/ค้นหา/เรียงลำดับ
   const filteredEquipment = equipmentList
-    .filter(
-      item =>
-        ((item.item_id || item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.description || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (statusFilter === "ทั้งหมด" || item.status === statusFilter) &&
-        (categoryFilter === "ทั้งหมด" || item.category === categoryFilter)
-    )
+    .filter(item => {
+      const codeSafe = typeof item.item_code === 'string' ? item.item_code : String(item.item_code ?? "");
+      const nameSafe = typeof item.name === 'string' ? item.name : String(item.name ?? "");
+      const descSafe = typeof item.description === 'string' ? item.description : String(item.description ?? "");
+      return (
+        codeSafe.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        nameSafe.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        descSafe.toLowerCase().includes(searchTerm.toLowerCase())
+      ) &&
+      (statusFilter === "ทั้งหมด" || item.status === statusFilter) &&
+      (categoryFilter === "ทั้งหมด" || item.category === categoryFilter);
+    })
     .sort((a, b) => {
       if (a.status === "ชำรุด" && b.status !== "ชำรุด") return -1;
       if (b.status === "ชำรุด" && a.status !== "ชำรุด") return 1;
-      // ถ้าไม่ใช่ทั้งคู่ ให้เรียงตาม id
-      return (a.item_id || a.id || '').localeCompare(b.item_id || b.id || '');
+      // เรียงตาม item_code
+      const aCode = typeof a.item_code === 'string' ? a.item_code : String(a.item_code ?? '');
+      const bCode = typeof b.item_code === 'string' ? b.item_code : String(b.item_code ?? '');
+      return aCode.localeCompare(bCode);
     });
 
   // Pagination logic
@@ -218,11 +228,11 @@ function ManageEquipment() {
   };
 
   const handleRepairSubmit = async (repairData) => {
-    // Update equipment status to 'รออนุมัติซ่อม' ใน database
-    const equipmentId = repairData.equipment.item_id;
-    const equipmentToUpdate = equipmentList.find(item => item.item_id === equipmentId);
+    // ใช้ item_code เป็น canonical identifier
+    const equipmentCode = repairData.equipment.code || repairData.equipment.item_code || repairData.equipment.id || repairData.equipment.item_id;
+    const equipmentToUpdate = equipmentList.find(item => item.item_code === equipmentCode);
     if (equipmentToUpdate) {
-      await updateEquipment(equipmentId, { ...equipmentToUpdate, status: 'รออนุมัติซ่อม' });
+      await updateEquipment(equipmentCode, { ...equipmentToUpdate, status: 'รออนุมัติซ่อม' });
       getEquipment().then(setEquipmentList);
     }
     setRepairDialogOpen(false);
@@ -256,7 +266,6 @@ function ManageEquipment() {
       // Show success message
       const statusText = inspectionData.status === 'พร้อมใช้งาน' ? 'พร้อมใช้งาน' : 'ชำรุด';
       showAlertMessage(`อัพเดทสถานะครุภัณฑ์ ${inspectionData.equipment.name} เป็น "${statusText}" เรียบร้อยแล้ว`, "success");
-
     } catch (error) {
       console.error('Error handling inspection submit:', error);
       showAlertMessage('เกิดข้อผิดพลาดในการอัพเดทสถานะครุภัณฑ์', "error");
@@ -438,9 +447,9 @@ function ManageEquipment() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedEquipment.length > 0 ? (
                   paginatedEquipment.map((item, index) => {
-                    const { pic, id, name, category, quantity, status, created_at, unit } = item;
+                    const { pic, item_code, name, category, quantity, status, created_at, unit } = item;
                     return (
-                      <tr key={id} className="hover:bg-gray-50">
+                      <tr key={item_code} className="hover:bg-gray-50">
                         <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
                             <img
@@ -451,7 +460,7 @@ function ManageEquipment() {
                             />
                           </div>
                         </td>
-                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{id}</td>
+                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{item_code}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
                         <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}{unit ? ` ${unit}` : ''}</td>
@@ -552,13 +561,11 @@ function ManageEquipment() {
           equipmentData={selectedEquipment}
           onSave={async (updatedData) => {
             let dataToSave = { ...updatedData };
+            // ใช้ item_code เป็น canonical identifier
             if (dataToSave.pic instanceof File) {
-              dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_id || dataToSave.id);
+              dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
             }
-            // ให้แน่ใจว่ามี item_id
-            dataToSave.item_id = dataToSave.item_id || dataToSave.id;
-            delete dataToSave.id;
-            await updateEquipment(dataToSave.item_id, dataToSave);
+            await updateEquipment(dataToSave.item_code, dataToSave);
             getEquipment().then(setEquipmentList);
             showAlertMessage(`แก้ไขครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "edit");
           }}
@@ -569,7 +576,7 @@ function ManageEquipment() {
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
           initialFormData={{
-            id: generateNextEquipmentId(equipmentList),
+            item_code: generateNextEquipmentId(equipmentList),
             name: "",
             category: "",
             description: "",
@@ -581,10 +588,8 @@ function ManageEquipment() {
           onSave={async (newEquipment) => {
             let dataToSave = { ...newEquipment };
             if (dataToSave.pic instanceof File) {
-              dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_id || dataToSave.id);
+              dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
             }
-            dataToSave.item_id = dataToSave.item_id || dataToSave.id;
-            delete dataToSave.id;
             await addEquipment(dataToSave);
             getEquipment().then(setEquipmentList);
             showAlertMessage(`เพิ่มครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "success");
@@ -628,10 +633,11 @@ function ManageEquipment() {
 
 // ฟังก์ชันหา id ใหม่ที่ไม่ซ้ำ
 function generateNextEquipmentId(equipmentList) {
-  // ดึงเลขลำดับจาก id ที่เป็นรูปแบบ EQ-xxx
+  // ดึงเลขลำดับจาก item_code ที่เป็นรูปแบบ EQ-xxx
   const usedNumbers = equipmentList
     .map(item => {
-      const match = (item.id || item.item_id || '').match(/^EQ-(\d{3})$/);
+      const codeStr = typeof item.item_code === 'string' ? item.item_code : String(item.item_code ?? '');
+      const match = codeStr.match(/^EQ-(\d{3})$/);
       return match ? parseInt(match[1], 10) : null;
     })
     .filter(num => num !== null)
