@@ -70,7 +70,7 @@ export default function RepairApprovalList() {
         console.log('repair_pic_raw:', request.repair_pic_raw);
 
         return {
-          requestId: request.repair_id.toString(),
+          requestId: request.id.toString(), // Changed from request.repair_id to request.id
           requester_name: request.requester_name,
           branch_name: request.branch_name,
           equipment_name: request.equipment_name,
