@@ -1,11 +1,10 @@
+import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import { FaClipboardList, FaImage, FaTimes, FaTools, FaUser } from 'react-icons/fa';
 import { RiCoinsFill } from "react-icons/ri";
-import axios from 'axios';
 import { globalUserData } from '../../../components/Header';
 import Notification from '../../../components/Notification';
-import Swal from 'sweetalert2';
 
 export default function RepairRequestDialog({
   open,
@@ -201,7 +200,7 @@ export default function RepairRequestDialog({
         problem_description: formData.description,
         request_date: requestDate,
         estimated_cost: Number(formData.estimatedCost) || 0,
-        status: "รอการอนุมัติซ่อม",
+        status: "รออนุมัติซ่อม",
         pic_filename: uploadedImages.length > 0 ? uploadedImages[0].filename : null,
         images: uploadedImages
       };
@@ -217,19 +216,20 @@ export default function RepairRequestDialog({
 
       console.log('8. Server Response:', response.data);
 
-      // Update equipment status to "รอการอนุมัติซ่อม"
+      // Update equipment status to "รออนุมัติซ่อม"
       try {
-        const equipmentId = equipment.item_id || equipment.id;
-        console.log('Updating equipment status for ID:', equipmentId);
+        // Use item_code as canonical identifier
+        const equipmentCode = equipment.item_code || equipment.id || equipment.item_id;
+        console.log('Updating equipment status for item_code:', equipmentCode);
 
-        if (equipmentId) {
-          const response = await axios.put(`http://localhost:5000/api/equipment/${equipmentId}/status`, {
-            status: "รอการอนุมัติซ่อม"
+        if (equipmentCode) {
+          const response = await axios.put(`http://localhost:5000/api/equipment/${equipmentCode}/status`, {
+            status: "รออนุมัติซ่อม"
           });
 
           console.log('Equipment status update response:', response.data);
         } else {
-          console.warn('No equipment ID available for status update');
+          console.warn('No equipment item_code available for status update');
         }
       } catch (error) {
         console.error('Error updating equipment status:', error);
@@ -257,7 +257,7 @@ export default function RepairRequestDialog({
           department: requesterInfo.department
         },
         requestDate: requestDate,
-        status: 'รอการอนุมัติซ่อม'
+        status: 'รออนุมัติซ่อม'
       });
 
       // Show success notification
