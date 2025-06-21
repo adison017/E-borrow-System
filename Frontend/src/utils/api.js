@@ -5,31 +5,26 @@ const UPLOAD_BASE = "http://localhost:5000";
 export const getEquipment = () => fetch(`${API_BASE}/equipment`).then(res => res.json());
 
 // Upload image and return filename only
-export const uploadImage = async (file, id) => {
+export const uploadImage = async (file, item_code) => {
   const formData = new FormData();
   formData.append("image", file);
-  if (id) formData.append("id", id); // ส่ง id ไปด้วย
+  if (item_code) formData.append("item_code", item_code); // ส่ง item_code ไปด้วย
   const res = await fetch("http://localhost:5000/api/equipment/upload", {
     method: "POST",
     body: formData,
   });
   const data = await res.json();
-  return data.url; // ต้องเป็น .url
+  return data.url;
 };
 
 export const addEquipment = (data) => {
-  // ส่งทั้ง id และ item_id เพื่อความเข้ากันได้
-  // ถ้า data.id มีอยู่แล้ว ไม่ต้อง overwrite item_id
+  // Always use item_code as canonical identifier
   const payload = { ...data };
-  if (!payload.item_id && payload.id) payload.item_id = payload.id;
-  // แปลง quantity, price เป็น number ถ้าเป็น string
+  if (!payload.item_code && (payload.id || payload.item_id)) payload.item_code = payload.id || payload.item_id;
   if (typeof payload.quantity === 'string') payload.quantity = Number(payload.quantity);
   if (typeof payload.price === 'string') payload.price = Number(payload.price);
-  // ถ้า price เป็นค่าว่าง/null ให้ลบออก
   if (payload.price === '' || payload.price === null || isNaN(payload.price)) delete payload.price;
-  // ถ้า purchaseDate เป็นค่าว่าง/null ให้ลบออก
   if (!payload.purchaseDate) delete payload.purchaseDate;
-  // ถ้า location เป็นค่าว่าง/null ให้ลบออก
   if (!payload.location) delete payload.location;
   return fetch(`${API_BASE}/equipment`, {
     method: "POST",
@@ -38,20 +33,33 @@ export const addEquipment = (data) => {
   }).then(res => res.json());
 };
 
-export const updateEquipment = (item_id, data) => {
-  // ส่งทั้ง id และ item_id เพื่อความเข้ากันได้
-  const payload = { ...data, item_id: item_id, id: item_id };
-  return fetch(`${API_BASE}/equipment/${item_id}`, {
+export const updateEquipment = (item_code, data) => {
+  // Always use item_code as canonical identifier
+  const payload = { ...data, item_code };
+  return fetch(`${API_BASE}/equipment/${item_code}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   }).then(res => res.json());
 };
 
-export const deleteEquipment = (item_id) => fetch(`${API_BASE}/equipment/${item_id}`, { method: "DELETE" }).then(res => res.json());
+export const deleteEquipment = (item_code) => fetch(`${API_BASE}/equipment/${item_code}`, { method: "DELETE" }).then(res => res.json());
 
 // Category
 export const getCategories = () => fetch(`${API_BASE}/category`).then(res => res.json());
 export const addCategory = (data) => fetch(`${API_BASE}/category`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(res => res.json());
 export const updateCategory = (id, data) => fetch(`${API_BASE}/category/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(res => res.json());
 export const deleteCategory = (id) => fetch(`${API_BASE}/category/${id}`, { method: "DELETE" }).then(res => res.json());
+
+// Update equipment status
+export const updateEquipmentStatus = (item_code, status) => {
+  // item_code must be string (not id)
+  if (!item_code || typeof item_code !== 'string') throw new Error('item_code is required');
+  // status: can be string or object (support both)
+  const statusPayload = typeof status === 'object' && status.status ? status : { status };
+  return fetch(`${API_BASE}/equipment/${item_code}/status`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(statusPayload),
+  }).then(res => res.json());
+};
