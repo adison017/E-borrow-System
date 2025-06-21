@@ -23,16 +23,33 @@ export default function RepairApprovalDialog({
   onReject
 }) {
   console.log('Repair Request Data:', repairRequest);
-  console.log('Equipment Data:', repairRequest?.equipment);
-  console.log('Requester Data:', repairRequest?.requester);
-  console.log('Status:', repairRequest?.status);
-  console.log('Request Date:', repairRequest?.request_date);
   console.log('Equipment Name:', repairRequest?.equipment_name);
   console.log('Equipment Code:', repairRequest?.equipment_code);
   console.log('Equipment Category:', repairRequest?.equipment_category);
+  console.log('Requester Name:', repairRequest?.requester_name);
+  console.log('Branch Name:', repairRequest?.branch_name);
+  console.log('Status:', repairRequest?.status);
+  console.log('Request Date:', repairRequest?.request_date);
   console.log('Problem Description:', repairRequest?.problem_description);
   console.log('Estimated Cost:', repairRequest?.estimated_cost);
   console.log('Equipment Pic:', repairRequest?.equipment_pic);
+
+  // Normalize repairRequest fields in case they are objects
+  const normalizedRepairRequest = {
+    ...repairRequest,
+    requester_name: typeof repairRequest?.requester_name === 'string'
+      ? repairRequest.requester_name
+      : repairRequest?.requester?.name || '',
+    equipment_name: typeof repairRequest?.equipment_name === 'string'
+      ? repairRequest.equipment_name
+      : repairRequest?.equipment?.name || '',
+    equipment_code: typeof repairRequest?.equipment_code === 'string'
+      ? repairRequest.equipment_code
+      : repairRequest?.equipment?.code || '',
+    equipment_category: typeof repairRequest?.equipment_category === 'string'
+      ? repairRequest.equipment_category
+      : repairRequest?.equipment?.category || '',
+  };
 
   const [notes, setNotes] = useState('')
   const [budgetApproved, setBudgetApproved] = useState(repairRequest?.estimated_cost || 0)
@@ -47,6 +64,7 @@ export default function RepairApprovalDialog({
   const [repairImages, setRepairImages] = useState([]);
   const [adminUsers, setAdminUsers] = useState([]);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Parse repair images from pic_filename field
   useEffect(() => {
@@ -150,32 +168,76 @@ export default function RepairApprovalDialog({
   ];
 
   const handleApprove = async () => {
-    if (!repairRequest) return;
+    if (!normalizedRepairRequest) {
+      setFormError("ไม่พบข้อมูลคำขอซ่อม");
+      return;
+    }
+
+    if (isSubmitting) {
+      return; // Prevent multiple submissions
+    }
+
+    // Validate required fields
+    const requiredFields = {
+      requestId: normalizedRepairRequest.requestId,
+      problem_description: normalizedRepairRequest.problem_description,
+      request_date: normalizedRepairRequest.request_date,
+      estimated_cost: normalizedRepairRequest.estimated_cost,
+      equipment_code: normalizedRepairRequest.equipment_code
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      setFormError(`ข้อมูลไม่ครบถ้วน: ${missingFields.join(', ')}`);
+      return;
+    }
+
     setFormError("");
+    setIsSubmitting(true);
+
     try {
+      console.log('Preparing approval payload for request ID:', normalizedRepairRequest.requestId);
+
       // Prepare payload for approval
       const payload = {
-        problem_description: repairRequest.problem_description,
-        request_date: repairRequest.request_date,
+        requester_name: normalizedRepairRequest.requester_name,
+        equipment_name: normalizedRepairRequest.equipment_name,
+        equipment_code: normalizedRepairRequest.equipment_code,
+        equipment_category: normalizedRepairRequest.equipment_category,
+        problem_description: normalizedRepairRequest.problem_description,
+        request_date: normalizedRepairRequest.request_date,
         estimated_cost: budgetApproved,
         status: "approved",
-        pic_filename: repairRequest.pic_filename || repairRequest.repair_pic_raw || '',
+        pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
         note: notes,
         budget: budgetApproved,
         responsible_person: assignedToName,
-        approval_date: new Date(),
-        images: repairRequest.repair_pic || []
+        approval_date: new Date().toISOString(),
+        images: normalizedRepairRequest.repair_pic || []
       };
+
+      console.log('Approval payload:', payload);
+
       // Update repair request status to approved
-      await axios.put(`http://localhost:5000/api/repair-requests/${repairRequest.requestId}`, payload);
+      await axios.put(`http://localhost:5000/api/repair-requests/${normalizedRepairRequest.requestId}`, payload);
+
       // Update equipment status to 'กำลังซ่อม'
-      if (repairRequest.equipment_code) {
-        await axios.put(`http://localhost:5000/api/equipment/${repairRequest.equipment_code}/status`, { status: "กำลังซ่อม" });
+      if (normalizedRepairRequest.equipment_code) {
+        await axios.put(`http://localhost:5000/api/equipment/${normalizedRepairRequest.equipment_code}/status`, { status: "กำลังซ่อม" });
       }
+
       onApprove(payload);
       onClose();
     } catch (error) {
-      setFormError("เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม");
+      console.error('Error approving repair request:', error);
+      console.error('Error response:', error.response?.data);
+      setFormError(`เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -192,33 +254,77 @@ export default function RepairApprovalDialog({
   };
 
   const handleConfirmReject = async () => {
-    if (!repairRequest) return;
+    if (!normalizedRepairRequest) {
+      setFormError("ไม่พบข้อมูลคำขอซ่อม");
+      return;
+    }
+
+    if (isSubmitting) {
+      return; // Prevent multiple submissions
+    }
+
+    // Validate required fields
+    const requiredFields = {
+      requestId: normalizedRepairRequest.requestId,
+      problem_description: normalizedRepairRequest.problem_description,
+      request_date: normalizedRepairRequest.request_date,
+      estimated_cost: normalizedRepairRequest.estimated_cost,
+      equipment_code: normalizedRepairRequest.equipment_code
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      setFormError(`ข้อมูลไม่ครบถ้วน: ${missingFields.join(', ')}`);
+      return;
+    }
+
     setFormError("");
+    setIsSubmitting(true);
+
     try {
+      console.log('Preparing rejection payload for request ID:', normalizedRepairRequest.requestId);
+
       // Prepare payload for rejection
       const payload = {
-        problem_description: repairRequest.problem_description,
-        request_date: repairRequest.request_date,
-        estimated_cost: repairRequest.estimated_cost,
+        requester_name: normalizedRepairRequest.requester_name,
+        equipment_name: normalizedRepairRequest.equipment_name,
+        equipment_code: normalizedRepairRequest.equipment_code,
+        equipment_category: normalizedRepairRequest.equipment_category,
+        problem_description: normalizedRepairRequest.problem_description,
+        request_date: normalizedRepairRequest.request_date,
+        estimated_cost: normalizedRepairRequest.estimated_cost,
         status: "rejected",
-        pic_filename: repairRequest.pic_filename || repairRequest.repair_pic_raw || '',
+        pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
         note: rejectReason ? `${rejectReason} ${notes}` : notes,
-        budget: repairRequest.estimated_cost,
+        budget: normalizedRepairRequest.estimated_cost,
         responsible_person: assignedToName,
-        approval_date: new Date(),
-        images: repairRequest.repair_pic || []
+        approval_date: new Date().toISOString(),
+        images: normalizedRepairRequest.repair_pic || []
       };
+
+      console.log('Rejection payload:', payload);
+
       // Update repair request status to rejected
-      await axios.put(`http://localhost:5000/api/repair-requests/${repairRequest.requestId}`, payload);
+      await axios.put(`http://localhost:5000/api/repair-requests/${normalizedRepairRequest.requestId}`, payload);
+
       // Update equipment status to 'ชำรุด'
-      if (repairRequest.equipment_code) {
-        await axios.put(`http://localhost:5000/api/equipment/${repairRequest.equipment_code}/status`, { status: "ชำรุด" });
+      if (normalizedRepairRequest.equipment_code) {
+        await axios.put(`http://localhost:5000/api/equipment/${normalizedRepairRequest.equipment_code}/status`, { status: "ชำรุด" });
       }
+
       onReject(payload);
       setShowRejectDialog(false);
       onClose();
     } catch (error) {
-      setFormError("เกิดข้อผิดพลาดในการปฏิเสธคำขอซ่อม");
+      console.error('Error rejecting repair request:', error);
+      console.error('Error response:', error.response?.data);
+      setFormError(`เกิดข้อผิดพลาดในการปฏิเสธคำขอซ่อม: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -578,13 +684,21 @@ export default function RepairApprovalDialog({
         {/* Footer actions */}
         {(repairRequest.status === 'รออนุมัติซ่อม' || !repairRequest.status || repairRequest.status === 'pending') && (
           <div className="modal-action mt-6 pt-3">
-            <button onClick={handleRejectClick} className="btn btn-error hover:opacity-90 text-white rounded-2xl">
+            <button
+              onClick={handleRejectClick}
+              className="btn btn-error hover:opacity-90 text-white rounded-2xl"
+              disabled={isSubmitting}
+            >
               <FaTimesCircle className="mr-1" />
-              ปฏิเสธ
+              {isSubmitting ? 'กำลังประมวลผล...' : 'ปฏิเสธ'}
             </button>
-            <button onClick={handleApprove} className="btn btn-success hover:opacity-90 text-white rounded-2xl">
+            <button
+              onClick={handleApprove}
+              className="btn btn-success hover:opacity-90 text-white rounded-2xl"
+              disabled={isSubmitting}
+            >
               <FaCheckCircle className="mr-1" />
-              อนุมัติ
+              {isSubmitting ? 'กำลังประมวลผล...' : 'อนุมัติ'}
             </button>
           </div>
         )}
@@ -669,10 +783,10 @@ export default function RepairApprovalDialog({
                   <button
                     onClick={handleConfirmReject}
                     className="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors duration-150 flex items-center gap-1"
-                    disabled={!rejectReason || (rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !notes.trim())}
+                    disabled={!rejectReason || (rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !notes.trim()) || isSubmitting}
                   >
                     <XCircleIcon className="w-5 h-5" />
-                    ยืนยัน
+                    {isSubmitting ? 'กำลังประมวลผล...' : 'ยืนยัน'}
                   </button>
                 </div>
               </div>

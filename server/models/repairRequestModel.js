@@ -3,6 +3,7 @@ import connection from '../db.js';
 export const getAllRepairRequests = async () => {
   try {
     const [rows] = await connection.query(`SELECT
+  rr.id,
   rr.id AS repair_id,
   requester.Fullname AS requester_name,
   requester.avatar,
@@ -117,7 +118,12 @@ export const parseRepairImages = (pic_filename) => {
 
 // Function to stringify images for storage
 export const stringifyRepairImages = (images) => {
-  if (!images || images.length === 0) return null;
+  console.log('stringifyRepairImages called with:', images);
+
+  if (!images || images.length === 0) {
+    console.log('No images to stringify, returning null');
+    return null;
+  }
 
   try {
     // Ensure each image has the required structure
@@ -130,7 +136,9 @@ export const stringifyRepairImages = (images) => {
       index: image.index || index
     }));
 
-    return JSON.stringify(processedImages);
+    const result = JSON.stringify(processedImages);
+    console.log('Stringified images result:', result);
+    return result;
   } catch (error) {
     console.error('Error stringifying repair images:', error);
     return null;
@@ -182,6 +190,15 @@ export const addRepairRequest = async (repairRequest) => {
 
 export const updateRepairRequest = async (id, repairRequest) => {
   try {
+    console.log('=== Updating Repair Request ===');
+    console.log('ID:', id);
+    console.log('Repair Request Data:', repairRequest);
+
+    // Validate input parameters
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid repair request ID');
+    }
+
     const {
       problem_description,
       request_date,
@@ -195,8 +212,32 @@ export const updateRepairRequest = async (id, repairRequest) => {
       images = []
     } = repairRequest;
 
+    // Validate required fields
+    if (!problem_description || !request_date || estimated_cost === undefined || !status) {
+      throw new Error('Missing required fields for repair request update');
+    }
+
+    // --- แก้ไขตรงนี้ ---
+    // pic_filename ต้องเป็น string เสมอ
+    let picFilenameToSave = pic_filename;
+    if (Array.isArray(pic_filename) || typeof pic_filename === 'object') {
+      picFilenameToSave = JSON.stringify(pic_filename);
+    }
+
     const imagesJson = stringifyRepairImages(images);
-    const mainPicFilename = images.length > 0 ? images[0].filename : pic_filename;
+    const mainPicFilename = images.length > 0 ? images[0].filename : picFilenameToSave;
+
+    console.log('Processed data for update:', {
+      imagesJson,
+      mainPicFilename,
+      approval_date
+    });
+
+    // Convert approval_date to proper format if it's a string
+    let formattedApprovalDate = approval_date;
+    if (typeof approval_date === 'string') {
+      formattedApprovalDate = new Date(approval_date);
+    }
 
     const [result] = await connection.query(
       `UPDATE repair_requests
@@ -210,11 +251,19 @@ export const updateRepairRequest = async (id, repairRequest) => {
           responsible_person = ?,
           approval_date = ?
       WHERE id = ?`,
-      [problem_description, request_date, estimated_cost, status, imagesJson || mainPicFilename, note, budget, responsible_person, approval_date, id]
+      [problem_description, request_date, estimated_cost, status, imagesJson || mainPicFilename, note, budget, responsible_person, formattedApprovalDate, id]
     );
+
+    console.log('Update result:', result);
+
+    if (result.affectedRows === 0) {
+      throw new Error('No repair request found with the specified ID');
+    }
 
     return result;
   } catch (error) {
+    console.error('Database error in updateRepairRequest:', error);
+    console.error('Error stack:', error.stack);
     throw error;
   }
 };
