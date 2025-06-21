@@ -29,34 +29,30 @@ router.post('/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-
-  // รับ item_id จาก body (ต้องส่ง item_id มาด้วยตอนอัปโหลด)
-  const { item_id } = req.body;
-  if (!item_id) {
-    // ถ้าไม่มี item_id ให้ใช้ชื่อไฟล์เดิม
+  // รับ item_code จาก body (ต้องส่ง item_code มาด้วยตอนอัปโหลด)
+  const { item_code } = req.body;
+  if (!item_code) {
+    // ถ้าไม่มี item_code ให้ใช้ชื่อไฟล์เดิม
     return res.json({ url: `/uploads/${req.file.filename}` });
   }
-
   // หานามสกุลไฟล์
   const ext = path.extname(req.file.originalname) || path.extname(req.file.filename);
-  const newFilename = `${item_id}${ext}`;
+  const newFilename = `${item_code}${ext}`;
   const uploadPath = path.join(__dirname, '..', 'uploads');
   const oldPath = path.join(uploadPath, req.file.filename);
   const newPath = path.join(uploadPath, newFilename);
-
   // เปลี่ยนชื่อไฟล์
   fs.renameSync(oldPath, newPath);
-
   // คืน path ใหม่
   res.json({ url: `/uploads/${newFilename}` });
 });
 
+// Use item_code as canonical identifier for all CRUD routes
 router.get('/', equipmentController.getAllEquipment);
-router.get('/:item_id', equipmentController.getEquipmentById);
-router.get('/code/:item_code', equipmentController.getEquipmentByCode);
+router.get('/:item_code', equipmentController.getEquipmentByCode);
 router.post('/', equipmentController.addEquipment);
-router.put('/:item_id', equipmentController.updateEquipment);
-router.put('/:item_id/status', equipmentController.updateEquipmentStatus);
-router.delete('/:item_id', equipmentController.deleteEquipment);
+router.put('/:item_code', equipmentController.updateEquipment);
+router.put('/:item_code/status', equipmentController.updateEquipmentStatus);
+router.delete('/:item_code', equipmentController.deleteEquipment);
 
 export default router;

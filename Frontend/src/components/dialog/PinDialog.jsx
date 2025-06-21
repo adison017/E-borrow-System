@@ -1,7 +1,7 @@
 export default function PinDialog({ open, pin, setPin, pinError, onCancel, onSubmit }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-black/30">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full border border-blue-100">
         <div className="flex flex-col items-center">
           <div className="bg-blue-100 rounded-full p-3 mb-3">

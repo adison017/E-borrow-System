@@ -1,5 +1,6 @@
 import { XCircleIcon } from "@heroicons/react/24/outline";
-import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import {
   FaCheckCircle,
@@ -11,9 +12,8 @@ import {
   FaTools,
   FaUser
 } from 'react-icons/fa';
-import { MdAssignment, MdClose, MdFullscreen, MdGridView } from "react-icons/md";
+import { MdAssignment, MdClose } from "react-icons/md";
 import { RiCoinsFill } from "react-icons/ri";
-import axios from 'axios';
 
 export default function RepairApprovalDialog({
   open,
@@ -150,210 +150,34 @@ export default function RepairApprovalDialog({
   ];
 
   const handleApprove = async () => {
-    console.log('Starting handleApprove function');
-    console.log('repairRequest:', repairRequest);
-    console.log('assignedTo:', assignedTo);
-
-    // Validate required fields
-    if (!assignedToName) {
-      console.log('Validation failed: assignedToName is empty');
-      setFormError("โปรดเลือกผู้รับผิดชอบ");
-      return;
-    }
-
-    // Validate repair request ID and equipment code
-    if (!repairRequest?.requestId) {
-      console.log('Validation failed: requestId is missing');
-      setFormError("ไม่พบรหัสคำขอซ่อม กรุณาลองใหม่อีกครั้ง");
-      return;
-    }
-
-    if (!repairRequest?.equipment_code) {
-      console.log('Validation failed: equipment_code is missing');
-      setFormError("ไม่พบรหัสครุภัณฑ์ กรุณาลองใหม่อีกครั้ง");
-      return;
-    }
-
+    if (!repairRequest) return;
+    setFormError("");
     try {
-      // Log the full repair request object for debugging
-      console.log('Full Repair Request Object:', JSON.stringify(repairRequest, null, 2));
-
-      const updateData = {
+      // Prepare payload for approval
+      const payload = {
         problem_description: repairRequest.problem_description,
         request_date: repairRequest.request_date,
-        estimated_cost: repairRequest.estimated_cost,
-        status: "อนุมัติ",
-        pic_filename: repairRequest.equipment_pic_filename,
+        estimated_cost: budgetApproved,
+        status: "approved",
+        pic_filename: repairRequest.pic_filename || repairRequest.repair_pic_raw || '',
         note: notes,
-        budget: Number(budgetApproved),
+        budget: budgetApproved,
         responsible_person: assignedToName,
-        approval_date: new Date().toISOString().split('T')[0]
+        approval_date: new Date(),
+        images: repairRequest.repair_pic || []
       };
-
-      // Log the update data for debugging
-      console.log('Sending update data:', updateData);
-
-      // Make the API request to update repair request
-      console.log('Making API request to update repair request...');
-      const response = await axios.put(
-        `http://localhost:5000/api/repair-requests/${repairRequest.requestId}`,
-        updateData
-      );
-      console.log('Repair request update response:', response.data);
-
-      // Check if the response contains data
-      if (response.data) {
-        // Update equipment status to "กำลังซ่อม"
-        try {
-          console.log('Updating equipment status for code:', repairRequest.equipment_code);
-          const equipmentUpdateData = {
-            status: "กำลังซ่อม",
-            last_updated: new Date().toISOString().split('T')[0]
-          };
-          console.log('Equipment update data:', equipmentUpdateData);
-
-          // First get equipment by code to get the item_id
-          const equipmentResponse = await axios.get(
-            `http://localhost:5000/api/equipment/code/${repairRequest.equipment_code}`
-          );
-          console.log('Equipment data:', equipmentResponse.data);
-
-          if (equipmentResponse.data && equipmentResponse.data.item_id) {
-            // Then update the equipment status using the ID
-            const updateResponse = await axios.put(
-              `http://localhost:5000/api/equipment/${equipmentResponse.data.item_id}/status`,
-              equipmentUpdateData
-            );
-            console.log('Equipment status update response:', updateResponse.data);
-          } else {
-            throw new Error('Equipment not found');
-          }
-        } catch (equipmentError) {
-          console.error('Error updating equipment status:', equipmentError);
-          console.error('Error details:', {
-            message: equipmentError.message,
-            response: equipmentError.response?.data,
-            status: equipmentError.response?.status,
-            url: `http://localhost:5000/api/equipment/code/${repairRequest.equipment_code}`
-          });
-          setFormError("อัพเดทสถานะครุภัณฑ์ไม่สำเร็จ แต่การอนุมัติสำเร็จ");
-        }
-
-        // Reset form state
-        setNotes('');
-        setBudgetApproved(0);
-        setAssignedTo('');
-        setAssignedToName('');
-        setFormError('');
-
-        // Notify parent component of successful approval
-        console.log('Notifying parent component of successful approval');
-        onApprove({
-          repair_id: repairRequest.requestId,
-          note: notes,
-          budget: Number(budgetApproved),
-          responsible_person: assignedToName,
-          approval_date: new Date().toISOString().split('T')[0],
-          status: "อนุมัติ"
-        });
-
-        // Close dialog after successful update
-        console.log('Closing dialog');
-        onClose();
-      } else {
-        console.error('No response data received');
-        throw new Error('No response data received');
+      // Update repair request status to approved
+      await axios.put(`http://localhost:5000/api/repair-requests/${repairRequest.requestId}`, payload);
+      // Update equipment status to 'กำลังซ่อม'
+      if (repairRequest.equipment_code) {
+        await axios.put(`http://localhost:5000/api/equipment/${repairRequest.equipment_code}/status`, { status: "กำลังซ่อม" });
       }
+      onApprove(payload);
+      onClose();
     } catch (error) {
-      console.error('Error in handleApprove:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        stack: error.stack
-      });
-
-      // Check if the request was actually successful despite the error
-      if (error.response?.status === 200 || error.response?.data) {
-        console.log('Request was successful despite error, updating equipment status');
-        // Try to update equipment status
-        try {
-          console.log('Updating equipment status for code:', repairRequest.equipment_code);
-          const equipmentUpdateData = {
-            status: "กำลังซ่อม",
-            last_updated: new Date().toISOString().split('T')[0]
-          };
-          console.log('Equipment update data:', equipmentUpdateData);
-
-          // First get equipment by code to get the item_id
-          const equipmentResponse = await axios.get(
-            `http://localhost:5000/api/equipment/code/${repairRequest.equipment_code}`
-          );
-          console.log('Equipment data:', equipmentResponse.data);
-
-          if (equipmentResponse.data && equipmentResponse.data.item_id) {
-            // Then update the equipment status using the ID
-            const updateResponse = await axios.put(
-              `http://localhost:5000/api/equipment/${equipmentResponse.data.item_id}/status`,
-              equipmentUpdateData
-            );
-            console.log('Equipment status update response:', updateResponse.data);
-          } else {
-            throw new Error('Equipment not found');
-          }
-        } catch (equipmentError) {
-          console.error('Error updating equipment status:', equipmentError);
-          console.error('Equipment error details:', {
-            message: equipmentError.message,
-            response: equipmentError.response?.data,
-            status: equipmentError.response?.status,
-            url: `http://localhost:5000/api/equipment/code/${repairRequest.equipment_code}`
-          });
-          setFormError("อัพเดทสถานะครุภัณฑ์ไม่สำเร็จ แต่การอนุมัติสำเร็จ");
-        }
-
-        // Reset form state
-        setNotes('');
-        setBudgetApproved(0);
-        setAssignedTo('');
-        setAssignedToName('');
-        setFormError('');
-
-        // Notify parent component of successful approval
-        console.log('Notifying parent component of successful approval');
-        onApprove({
-          repair_id: repairRequest.requestId,
-          note: notes,
-          budget: Number(budgetApproved),
-          responsible_person: assignedToName,
-          approval_date: new Date().toISOString().split('T')[0],
-          status: "อนุมัติ"
-        });
-
-        // Close dialog after successful update
-        console.log('Closing dialog');
-        onClose();
-        return;
-      }
-
-      // Handle specific error cases
-      if (error.response) {
-        console.log('Handling specific error cases');
-        switch (error.response.status) {
-          case 404:
-            setFormError("ไม่พบคำขอซ่อมที่ต้องการอัพเดท");
-            break;
-          case 500:
-            setFormError("เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง");
-            break;
-          default:
-            setFormError("เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม");
-        }
-      } else {
-        setFormError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
-      }
+      setFormError("เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม");
     }
-  }
+  };
 
   const handleRejectClick = () => {
     setShowRejectDialog(true);
@@ -368,52 +192,32 @@ export default function RepairApprovalDialog({
   };
 
   const handleConfirmReject = async () => {
-    if (!rejectReason) {
-      setFormError("โปรดเลือกเหตุผลในการปฏิเสธ");
-      return;
-    }
-    if (rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !notes.trim()) {
-      setFormError("โปรดระบุเหตุผลเพิ่มเติม");
-      return;
-    }
-
-    const finalNotes = rejectReason.includes("อื่นๆ")
-      ? notes
-      : `${rejectReason}${notes ? `. ${notes}` : ''}`.trim();
-
+    if (!repairRequest) return;
+    setFormError("");
     try {
-      // Make the API request to update repair request status to rejected
-      const updateData = {
+      // Prepare payload for rejection
+      const payload = {
         problem_description: repairRequest.problem_description,
         request_date: repairRequest.request_date,
         estimated_cost: repairRequest.estimated_cost,
-        status: "ปฏิเสธ",
-        pic_filename: repairRequest.equipment_pic_filename,
-        note: finalNotes,
-        approval_date: new Date().toISOString().split('T')[0]
+        status: "rejected",
+        pic_filename: repairRequest.pic_filename || repairRequest.repair_pic_raw || '',
+        note: rejectReason ? `${rejectReason} ${notes}` : notes,
+        budget: repairRequest.estimated_cost,
+        responsible_person: assignedToName,
+        approval_date: new Date(),
+        images: repairRequest.repair_pic || []
       };
-
-      console.log('Sending rejection update data:', updateData);
-
-      const response = await axios.put(
-        `http://localhost:5000/api/repair-requests/${repairRequest.requestId}`,
-        updateData
-      );
-
-      console.log('Rejection update response:', response.data);
-
-      // Notify parent component of successful rejection
-      onReject({
-        requestId: repairRequest.requestId,
-        approvalNotes: finalNotes,
-        rejectionDate: new Date().toISOString().split('T')[0]
-      });
-
-      setNotes("");
+      // Update repair request status to rejected
+      await axios.put(`http://localhost:5000/api/repair-requests/${repairRequest.requestId}`, payload);
+      // Update equipment status to 'ชำรุด'
+      if (repairRequest.equipment_code) {
+        await axios.put(`http://localhost:5000/api/equipment/${repairRequest.equipment_code}/status`, { status: "ชำรุด" });
+      }
+      onReject(payload);
       setShowRejectDialog(false);
       onClose();
     } catch (error) {
-      console.error('Error rejecting request:', error);
       setFormError("เกิดข้อผิดพลาดในการปฏิเสธคำขอซ่อม");
     }
   };
@@ -664,7 +468,7 @@ export default function RepairApprovalDialog({
           </div>
 
           {/* การดำเนินการ */}
-          {repairRequest.status === 'รอการอนุมัติซ่อม' && (
+          {(repairRequest.status === 'รออนุมัติซ่อม' || !repairRequest.status || repairRequest.status === 'pending') && (
             <div className="bg-white p-4">
               <h4 className="font-medium mb-3 flex items-center gap-2 text-primary">
                 <MdAssignment />
@@ -757,7 +561,7 @@ export default function RepairApprovalDialog({
                 <div>
                   <h4 className="font-bold">ปฏิเสธคำขอ</h4>
                   <p className="text-xs mt-1">
-                    วันที่ปฏิเสธ: {repairRequest.rejectionDate}
+                    วันที่ปฏิเสด: {repairRequest.rejectionDate}
                   </p>
                   {repairRequest.approvalNotes && (
                     <p className="text-sm mt-2">
@@ -772,20 +576,18 @@ export default function RepairApprovalDialog({
         </div>
 
         {/* Footer actions */}
-        <div className="modal-action mt-6 pt-3">
-          {repairRequest.status === 'รอการอนุมัติซ่อม' && (
-            <>
-              <button onClick={handleRejectClick} className="btn btn-error hover:opacity-90 text-white rounded-2xl">
-                <FaTimesCircle className="mr-1" />
-                ปฏิเสธ
-              </button>
-              <button onClick={handleApprove} className="btn btn-success hover:opacity-90 text-white rounded-2xl">
-                <FaCheckCircle className="mr-1" />
-                อนุมัติ
-              </button>
-            </>
-          )}
-        </div>
+        {(repairRequest.status === 'รออนุมัติซ่อม' || !repairRequest.status || repairRequest.status === 'pending') && (
+          <div className="modal-action mt-6 pt-3">
+            <button onClick={handleRejectClick} className="btn btn-error hover:opacity-90 text-white rounded-2xl">
+              <FaTimesCircle className="mr-1" />
+              ปฏิเสธ
+            </button>
+            <button onClick={handleApprove} className="btn btn-success hover:opacity-90 text-white rounded-2xl">
+              <FaCheckCircle className="mr-1" />
+              อนุมัติ
+            </button>
+          </div>
+        )}
       </div>
       {/* Reject Reason Dialog */}
       {showRejectDialog && (
