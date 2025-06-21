@@ -18,13 +18,13 @@ export const getAllRepairRequests = async () => {
   rr.pic_filename AS repair_pic,
   rr.status,
   rr.repair_code,
-  e.pic AS equipment_pic,             -- รูปภาพครุภัณฑ์ (URL หรือ path)
-  e.pic_filename AS equipment_pic_filename -- ชื่อไฟล์รูป (ถ้ามี)
+  e.pic AS equipment_pic
 FROM repair_requests rr
 JOIN users requester ON rr.user_id = requester.user_id
 LEFT JOIN branches b ON requester.branch_id = b.branch_id
 LEFT JOIN roles r ON requester.role_id = r.role_id
-JOIN equipment e ON rr.item_id = e.item_id where rr.status = "รอการอนุมัติซ่อม";
+LEFT JOIN equipment e ON rr.item_id = e.item_id
+WHERE rr.status = "รออนุมัติซ่อม";
 `);
 
     // Parse images for each repair request
@@ -32,6 +32,10 @@ JOIN equipment e ON rr.item_id = e.item_id where rr.status = "รอการอ
       const parsedImages = parseRepairImages(row.repair_pic);
       return {
         ...row,
+        equipment_name: row.equipment_name || '',
+        equipment_code: row.equipment_code || '',
+        equipment_category: row.equipment_category || '',
+        equipment_pic: row.equipment_pic || '',
         repair_pic: parsedImages, // Return parsed images array instead of raw JSON string
         repair_pic_raw: row.repair_pic // Keep original for debugging
       };
@@ -39,6 +43,7 @@ JOIN equipment e ON rr.item_id = e.item_id where rr.status = "รอการอ
 
     return parsedRows;
   } catch (error) {
+    console.error('getAllRepairRequests error:', error);
     throw error;
   }
 };
@@ -143,7 +148,11 @@ export const addRepairRequest = async (repairRequest) => {
       estimated_cost,
       status,
       pic_filename,
-      images = [] // New parameter for multiple images
+      images = [],
+      note = '',
+      budget = 0,
+      responsible_person = '',
+      approval_date = new Date()
     } = repairRequest;
 
     console.log('=== Adding Repair Request to Database ===');
@@ -151,10 +160,7 @@ export const addRepairRequest = async (repairRequest) => {
     console.log('Images Count:', images.length);
     console.log('Images:', images);
 
-    // Convert images array to JSON string for storage
     const imagesJson = stringifyRepairImages(images);
-
-    // Use the first image filename as pic_filename for backward compatibility
     const mainPicFilename = images.length > 0 ? images[0].filename : pic_filename;
 
     console.log('Images JSON:', imagesJson);
@@ -162,12 +168,10 @@ export const addRepairRequest = async (repairRequest) => {
 
     const [result] = await connection.query(
       `INSERT INTO repair_requests
-      (repair_code, user_id, item_id, problem_description, request_date, estimated_cost, status, pic_filename)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [repair_code, user_id, item_id, problem_description, request_date, estimated_cost, status, imagesJson || mainPicFilename]
+      (repair_code, user_id, item_id, problem_description, request_date, estimated_cost, status, pic_filename, note, budget, responsible_person, approval_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [repair_code, user_id, item_id, problem_description, request_date, estimated_cost, status, imagesJson || mainPicFilename, note, budget, responsible_person, approval_date]
     );
-
-    console.log('Database insert result:', result);
 
     return { ...result, repair_id: result.insertId };
   } catch (error) {
@@ -184,17 +188,14 @@ export const updateRepairRequest = async (id, repairRequest) => {
       estimated_cost,
       status,
       pic_filename,
-      note,
-      budget,
-      responsible_person,
-      approval_date,
-      images = [] // New parameter for multiple images
+      note = '',
+      budget = 0,
+      responsible_person = '',
+      approval_date = new Date(),
+      images = []
     } = repairRequest;
 
-    // Convert images array to JSON string for storage
     const imagesJson = stringifyRepairImages(images);
-
-    // Use the first image filename as pic_filename for backward compatibility
     const mainPicFilename = images.length > 0 ? images[0].filename : pic_filename;
 
     const [result] = await connection.query(

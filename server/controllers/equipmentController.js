@@ -16,21 +16,7 @@ export const getAllEquipment = async (req, res) => {
   }
 };
 
-export const getEquipmentById = async (req, res) => {
-  try {
-    const results = await Equipment.getEquipmentById(req.params.item_id);
-    if (results.length === 0) return res.status(404).json({ error: 'Not found' });
-    const item = results[0];
-    const mapped = {
-      ...item,
-      pic: getPicUrl(item.pic)
-    };
-    res.json(mapped);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
+// Use item_code as canonical identifier for all CRUD
 export const getEquipmentByCode = async (req, res) => {
   try {
     const results = await Equipment.getEquipmentByCode(req.params.item_code);
@@ -51,16 +37,14 @@ export const addEquipment = async (req, res) => {
     const data = req.body;
     if (data.pic && typeof data.pic === 'string') {
       if (!data.pic.startsWith('http')) {
-        // ถ้าเป็นชื่อไฟล์หรือ /uploads/xxx.png ให้แปลงเป็น URL เต็ม
         data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
       }
     }
-    // รองรับ field ใหม่
     data.purchaseDate = data.purchaseDate || null;
     data.price = data.price || null;
     data.location = data.location || null;
     await Equipment.addEquipment(data);
-    res.status(201).json({ message: 'Equipment added', item_id: data.item_id });
+    res.status(201).json({ message: 'Equipment added', item_code: data.item_code });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -69,21 +53,20 @@ export const addEquipment = async (req, res) => {
 export const updateEquipment = async (req, res) => {
   try {
     const data = req.body;
-    console.log('UpdateEquipment - item_id:', req.params.item_id);
-    console.log('UpdateEquipment - data:', data);
+    // Ensure item_code is always present and used
+    const item_code = req.params.item_code || data.item_code || data.id || data.item_id;
+    if (!item_code) return res.status(400).json({ error: 'item_code is required' });
     if (data.pic && typeof data.pic === 'string') {
       if (!data.pic.startsWith('http')) {
-        data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?.*uploads\//, '')}`;
+        data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
       }
     }
-    // รองรับ field ใหม่
     data.purchaseDate = data.purchaseDate || null;
     data.price = data.price || null;
     data.location = data.location || null;
     // ดึงข้อมูลเดิมก่อนอัปเดต
-    const results = await Equipment.getEquipmentById(req.params.item_id);
+    const results = await Equipment.getEquipmentByCode(item_code);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
-
     const oldPic = results[0].pic;
     // ถ้าเปลี่ยนรูปใหม่ และรูปเดิมไม่ใช่ default ให้ลบไฟล์เก่า
     if (
@@ -100,12 +83,10 @@ export const updateEquipment = async (req, res) => {
       const filePath = path.join(process.cwd(), 'server', 'uploads', filename);
       fs.unlink(filePath, (err) => {});
     }
-
     // อัปเดตข้อมูล
-    await Equipment.updateEquipment(req.params.item_id, data);
+    await Equipment.updateEquipment(item_code, data);
     res.json({ message: 'Equipment updated' });
   } catch (err) {
-    console.error('UpdateEquipment ERROR:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -116,15 +97,13 @@ export const updateEquipmentStatus = async (req, res) => {
     if (!status) {
       return res.status(400).json({ error: 'Status is required' });
     }
-
     // ดึงข้อมูลเดิมก่อนอัปเดต
-    const results = await Equipment.getEquipmentById(req.params.item_id);
+    const results = await Equipment.getEquipmentByCode(req.params.item_code);
     if (results.length === 0) {
       return res.status(404).json({ error: 'Equipment not found' });
     }
-
     // อัปเดตเฉพาะสถานะ
-    await Equipment.updateEquipmentStatus(req.params.item_id, status);
+    await Equipment.updateEquipmentStatus(req.params.item_code, status);
     res.json({ message: 'Equipment status updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -134,7 +113,7 @@ export const updateEquipmentStatus = async (req, res) => {
 export const deleteEquipment = async (req, res) => {
   try {
     // ดึงข้อมูลก่อนลบ เพื่อรู้ชื่อไฟล์
-    const results = await Equipment.getEquipmentById(req.params.item_id);
+    const results = await Equipment.getEquipmentByCode(req.params.item_code);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
 
     const picUrl = results[0].pic;
@@ -146,19 +125,13 @@ export const deleteEquipment = async (req, res) => {
       filename = filename.replace(/^\/uploads\//, '');
     }
 
-    console.log('picUrl:', picUrl);
-    console.log('filename:', filename);
-
     // ลบไฟล์ (ถ้าไม่ใช่ default)
     if (
       filename &&
       filename !== 'https://cdn-icons-png.flaticon.com/512/3474/3474360.png'
     ) {
       const filePath = path.join(process.cwd(), 'server', 'uploads', filename);
-      console.log('filePath:', filePath);
-      fs.unlink(filePath, (err) => {
-        // ไม่ต้อง return error ถ้าไฟล์ไม่มี
-      });
+      fs.unlink(filePath, (err) => {});
     }
 
     // สมมติ filename ไม่มีนามสกุล ลองเติม .png หรือ .jpg ตรวจสอบก่อนลบ
@@ -174,12 +147,8 @@ export const deleteEquipment = async (req, res) => {
         break;
       }
     }
-    if (!found) {
-      console.log('ไม่พบไฟล์ที่จะลบ:', filename);
-    }
-
     // ลบข้อมูลใน DB
-    await Equipment.deleteEquipment(req.params.item_id);
+    await Equipment.deleteEquipment(req.params.item_code);
     res.json({ message: 'Equipment deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
