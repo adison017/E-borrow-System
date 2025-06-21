@@ -67,25 +67,19 @@ export const addRepairRequest = async (req, res) => {
     if (!data.status) {
       data.status = 'รอดำเนินการ';
     }
-    // Set current date if not provided
     if (!data.request_date) {
       data.request_date = new Date().toISOString().split('T')[0];
     }
-
-    // Handle images from request body
+    // Ensure all NOT NULL fields are present
+    if (!('note' in data)) data.note = '';
+    if (!('budget' in data)) data.budget = 0;
+    if (!('responsible_person' in data)) data.responsible_person = '';
+    if (!('approval_date' in data)) data.approval_date = new Date();
     const images = data.images || [];
-
-    // Log the incoming data for debugging
-    console.log('=== Adding Repair Request ===');
-    console.log('Repair Code:', data.repair_code);
-    console.log('Images Count:', images.length);
-    console.log('Images Data:', images);
-
     const result = await RepairRequest.addRepairRequest({
       ...data,
       images: images
     });
-
     res.status(201).json({
       message: 'Repair request added successfully',
       repair_id: result.repair_id,
@@ -93,7 +87,6 @@ export const addRepairRequest = async (req, res) => {
       images_count: images.length
     });
   } catch (err) {
-    console.error('Error adding repair request:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -107,30 +100,14 @@ export const updateRepairRequest = async (req, res) => {
       estimated_cost,
       status,
       pic_filename,
-      note,
-      budget,
-      responsible_person,
-      approval_date,
+      note = '',
+      budget = 0,
+      responsible_person = '',
+      approval_date = new Date(),
       images = []
     } = req.body;
-
-    console.log('Updating repair request with data:', {
-      id,
-      problem_description,
-      request_date,
-      estimated_cost,
-      status,
-      pic_filename,
-      note,
-      budget,
-      responsible_person,
-      approval_date,
-      imagesCount: images.length
-    });
-
     const results = await RepairRequest.getRepairRequestById(id);
     if (results.length === 0) return res.status(404).json({ error: 'Not found' });
-
     await RepairRequest.updateRepairRequest(id, {
       problem_description,
       request_date,
@@ -143,10 +120,8 @@ export const updateRepairRequest = async (req, res) => {
       approval_date,
       images
     });
-
     res.json({ message: 'Repair request updated successfully' });
   } catch (err) {
-    console.error('Error updating repair request:', err);
     res.status(500).json({ error: err.message });
   }
 };
