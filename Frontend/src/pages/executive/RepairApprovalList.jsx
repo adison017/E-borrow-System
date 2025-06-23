@@ -1,7 +1,7 @@
 import { CheckCircleIcon, MagnifyingGlassIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import axios from 'axios';
 import { useEffect, useState } from "react";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
-import axios from 'axios';
 
 export default function RepairApprovalList() {
   const [repairRequests, setRepairRequests] = useState([]);
@@ -19,7 +19,7 @@ export default function RepairApprovalList() {
   // สถานะของคำขอซ่อม
   const statusOptions = [
     { value: "all", label: "ทั้งหมด", count: 0 },
-    { value: "pending", label: "รอการอนุมัติซ่อม", count: 0 },
+    { value: "รออนุมัติซ่อม", label: "รออนุมัติซ่อม", count: 0 },
     { value: "approved", label: "อนุมัติแล้ว", count: 0 },
     { value: "rejected", label: "ปฏิเสธ", count: 0 },
     { value: "inprogress", label: "กำลังซ่อม", count: 0 },
@@ -27,16 +27,15 @@ export default function RepairApprovalList() {
   ];
 
   const statusBadgeStyle = {
-    pending: "bg-yellow-50 text-yellow-800 border-yellow-200",
+    "รออนุมัติซ่อม": "bg-yellow-50 text-yellow-800 border-yellow-200",
     approved: "bg-green-50 text-green-800 border-green-200",
     rejected: "bg-red-50 text-red-800 border-red-200",
     inprogress: "bg-blue-50 text-blue-800 border-blue-200",
-    completed: "bg-purple-50 text-purple-800 border-purple-200",
-    "รอการอนุมัติซ่อม": "bg-yellow-50 text-yellow-800 border-yellow-200"
+    completed: "bg-purple-50 text-purple-800 border-purple-200"
   };
 
   const statusIconStyle = {
-    pending: "text-yellow-500",
+    "รออนุมัติซ่อม": "text-yellow-500",
     approved: "text-green-500",
     rejected: "text-red-500",
     inprogress: "text-blue-500",
@@ -44,12 +43,11 @@ export default function RepairApprovalList() {
   };
 
   const statusTranslation = {
-    pending: "รอการอนุมัติซ่อม",
+    "รออนุมัติซ่อม": "รออนุมัติซ่อม",
     approved: "อนุมัติแล้ว",
     rejected: "ปฏิเสธ",
     inprogress: "กำลังซ่อม",
-    completed: "เสร็จสิ้น",
-    "รอการอนุมัติซ่อม": "รอการอนุมัติซ่อม"
+    completed: "เสร็จสิ้น"
   };
 
   useEffect(() => {
@@ -289,7 +287,7 @@ export default function RepairApprovalList() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      {request.status === "รอการอนุมัติซ่อม" ? (
+                      {request.status === "รออนุมัติซ่อม" ? (
                         <button
                           onClick={() => handleOpenDialog(request)}
                           className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"

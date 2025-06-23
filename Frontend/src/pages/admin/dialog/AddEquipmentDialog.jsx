@@ -18,8 +18,9 @@ export default function AddEquipmentDialog({
   onSave,
   equipmentData
 }) {
+  // Use item_code as the canonical equipment code
   const [formData, setFormData] = useState(initialFormData || {
-    id: "",
+    item_code: "",
     name: "",
     category: "",
     description: "",
@@ -45,7 +46,7 @@ export default function AddEquipmentDialog({
       getCategories().then(data => setCategories(data));
     }
     setFormData(equipmentData || initialFormData || {
-      id: "",
+      item_code: "",
       name: "",
       category: "",
       description: "",
@@ -69,6 +70,11 @@ export default function AddEquipmentDialog({
       }
     } else {
       setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
+    }
+
+    // If initialFormData uses id, map it to item_code for compatibility
+    if (initialFormData && initialFormData.id && !initialFormData.item_code) {
+      setFormData(prev => ({ ...prev, item_code: initialFormData.id }));
     }
   }, [equipmentData, initialFormData, open]);
 
@@ -124,7 +130,8 @@ export default function AddEquipmentDialog({
       dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.id);
     }
     dataToSave.item_id = dataToSave.id;
-    onSave(dataToSave);
+    const payload = { ...formData, item_code: formData.item_code };
+    await onSave(payload);
     onClose();
   };
 
@@ -209,8 +216,8 @@ export default function AddEquipmentDialog({
               <label className="block text-sm font-semibold text-gray-800 mb-2">รหัสครุภัณฑ์</label>
               <input
                 type="text"
-                name="id"
-                value={formData.id}
+                name="item_code"
+                value={formData.item_code}
                 onChange={handleChange}
                 disabled
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-700 shadow-sm group-hover:shadow-md transition-all duration-300"
@@ -323,6 +330,7 @@ export default function AddEquipmentDialog({
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
                   placeholder="เลือกวันที่"
+                  onClick={() => document.querySelector('input[name="purchaseDate"]').showPicker()}
                 />
                 <button 
                   type="button" 
