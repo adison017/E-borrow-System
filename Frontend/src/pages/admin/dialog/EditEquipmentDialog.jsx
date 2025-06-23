@@ -4,14 +4,34 @@ import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import { getCategories, uploadImage } from "../../../utils/api";
 
+// ย้าย normalizeDate ออกมาอยู่นอก useEffect เพื่อให้ทุกฟังก์ชันเข้าถึงได้
+function normalizeDate(val) {
+  if (!val) return "";
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+    const [day, month, year] = val.split("/");
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(val)) {
+    const d = new Date(val);
+    const offset = d.getTimezoneOffset();
+    d.setMinutes(d.getMinutes() - offset);
+    return d.toISOString().slice(0, 10);
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    return val;
+  }
+  return "";
+}
+
 export default function EditEquipmentDialog({
   open,
   onClose,
   equipmentData,
   onSave
 }) {
+  // Use item_code as the canonical equipment code
   const [formData, setFormData] = useState({
-    id: "",
+    item_code: "",
     name: "",
     category: "",
     description: "",
@@ -37,28 +57,8 @@ export default function EditEquipmentDialog({
       getCategories().then(data => setCategories(data));
     }
 
-    // ฟังก์ชัน normalizeDate รองรับทุกกรณี
-    function normalizeDate(val) {
-      if (!val) return "";
-      if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
-        const [day, month, year] = val.split("/");
-        return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-      }
-      if (/^\d{4}-\d{2}-\d{2}T/.test(val)) {
-        // แปลงเป็น local date string
-        const d = new Date(val);
-        const offset = d.getTimezoneOffset();
-        d.setMinutes(d.getMinutes() - offset);
-        return d.toISOString().slice(0, 10);
-      }
-      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-        return val;
-      }
-      return "";
-    }
-
     const defaultData = {
-      id: "",
+      item_code: "",
       name: "",
       category: "",
       description: "",
@@ -70,7 +70,7 @@ export default function EditEquipmentDialog({
 
     if (equipmentData) {
       setFormData({
-        id: equipmentData.item_id || equipmentData.id || "",
+        item_code: equipmentData.item_code || equipmentData.item_id || equipmentData.id || "",
         name: equipmentData.name || "",
         category: equipmentData.category || "",
         description: equipmentData.description || "",
@@ -99,6 +99,11 @@ export default function EditEquipmentDialog({
       }
     } else {
       setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
+    }
+
+    // If equipmentData uses id, map it to item_code for compatibility
+    if (equipmentData && equipmentData.id && !equipmentData.item_code) {
+      setFormData(prev => ({ ...prev, item_code: equipmentData.id }));
     }
   }, [equipmentData, open]);
 
@@ -158,10 +163,11 @@ export default function EditEquipmentDialog({
     }
     let dataToSave = { ...formData };
     if (dataToSave.pic instanceof File) {
-      dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.id);
+      dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
     }
-    dataToSave.item_id = dataToSave.id;
-    onSave(dataToSave);
+    // ไม่ต้อง set item_id แล้ว ให้ใช้ item_code เป็น canonical
+    const payload = { ...dataToSave, item_code: dataToSave.item_code };
+    onSave(payload);
     onClose();
   };
 
@@ -253,8 +259,8 @@ export default function EditEquipmentDialog({
               <label className="block text-sm font-semibold text-gray-800 mb-1.5">รหัสครุภัณฑ์</label>
               <input
                 type="text"
-                name="id"
-                value={formData.id}
+                name="item_code"
+                value={formData.item_code}
                 onChange={handleChange}
                 disabled
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
@@ -403,7 +409,7 @@ export default function EditEquipmentDialog({
           {missingFields.length > 0 && (
           <div className="mt-2 mb-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-rose-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-8-3a1 1 0 00-1 1v3a1 1 0 002 0V8a1 1 0 00-1-1zm0 7a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 10zm-8-3a1 1 0 00-1 1v3a1 1 0 002 0V8a1 1 0 00-1-1zm0 7a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
             </svg>
             กรุณากรอกข้อมูลต่อไปนี้ให้ครบถ้วน: {missingFields.join(', ')}
           </div>
