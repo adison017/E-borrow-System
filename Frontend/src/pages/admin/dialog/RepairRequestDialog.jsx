@@ -331,7 +331,7 @@ export default function RepairRequestDialog({
       )}
 
       <div className="modal modal-open">
-        <div className="modal-box max-w-5xl max-h-[90vh] overflow-y-auto bg-white">
+        <div className="modal-box max-w-5xl max-h-[95vh] overflow-y-auto bg-white">
           {/* Notification Component */}
           <Notification
             show={notification.show}
@@ -353,14 +353,14 @@ export default function RepairRequestDialog({
 
           <div className="space-y-4">
             {/* ข้อมูลผู้แจ้งและครุภัณฑ์ */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-blue-300/50 p-4 rounded-full">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-blue-50 p-4 rounded-full">
               {/* ข้อมูลผู้แจ้ง */}
               <div className="flex items-start gap-3 bg-white py-5 px-8 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
                 <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                   <FaUser className="text-xl" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-blue-800">ผู้แจ้งซ่อม</h4>
+                  <h4 className="font-medium text-blue-600">ผู้แจ้งซ่อม</h4>
                   <p className="text-sm font-semibold mt-1">
                     {requesterInfo.name}
                   </p>
@@ -400,7 +400,7 @@ export default function RepairRequestDialog({
             <div className="bg-white p-3 transition-colors">
               <h4 className="font-medium mb-2 flex items-center gap-2 text-primary">
                 <FaClipboardList />
-                รายละเอียดปัญหา
+                รายละเอียดปัญหา<span className="text-red-500">*</span>
               </h4>
               <textarea
                 rows={3}
@@ -412,25 +412,31 @@ export default function RepairRequestDialog({
 
               {/* ข้อมูลเพิ่มเติม */}
               <div className="grid grid-cols-2 gap-4 mt-3">
-                <div className="bg-blue-50 p-3 rounded-xl hover:bg-blue-100 transition-colors">
-                  <div className="mb-1 flex items-center text-blue-800">
+                <div className="bg-blue-50 p-3 rounded-xl transition-colors">
+                  <div className="flex items-center text-blue-800 mb-2">
                     <BsFillCalendarDateFill size={16} className="text-blue-600" />
                     <span className="px-2 text-sm"> วันที่แจ้ง </span>
                   </div>
-                  <span className="text-sm font-bold">
+                  <span className="text-sm font-bold bg-blue-400 text-white rounded-full px-3 py-1.5">
                     {requestDate}
                   </span>
                 </div>
-                <div className="bg-amber-50 p-3 rounded-xl hover:bg-amber-100 transition-colors">
-                  <div className="mb-1 flex items-center text-amber-800">
-                    <RiCoinsFill size={16} className="text-amber-600" />
-                    <span className="px-2 text-sm"> ค่าใช้จ่ายประมาณ </span>
+                <div className="bg-blue-50 p-3 rounded-xl transition-colors">
+                  <div className="mb-1 flex items-center text-blue-800">
+                    <RiCoinsFill size={16} className="text-blue-600" />
+                    <span className="px-2 text-sm"> ค่าใช้จ่ายประมาณ <span className="text-red-500 ml-1">*</span> </span>
                   </div>
                   <input
-                    type="number"
-                    className="input input-sm w-full bg-transparent border-none focus:outline-none text-sm font-bold p-0"
-                    value={formData.estimatedCost}
-                    onChange={(e) => setFormData({ ...formData, estimatedCost: e.target.value })}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9,]*"
+                    className="bg-gray-50 input input-sm w-full border-blue-400 focus:outline-none text-sm p-0 rounded-full px-4 "
+                    value={formData.estimatedCost ? Number(formData.estimatedCost).toLocaleString() : ''}
+                    onChange={e => {
+                      // Remove all commas and non-digit characters
+                      const raw = e.target.value.replace(/[^\d]/g, '');
+                      setFormData({ ...formData, estimatedCost: raw });
+                    }}
                     placeholder="ระบุค่าใช้จ่าย"
                   />
                 </div>
@@ -441,7 +447,7 @@ export default function RepairRequestDialog({
             <div className="bg-white p-4 rounded-lg border border-gray-200">
               <h4 className="font-medium mb-3 flex items-center gap-2 text-primary">
                 <FaImage />
-                รูปภาพความเสียหาย (อัพโหลดได้หลายรูป)
+                รูปภาพความเสียหาย<span className="text-red-500">*</span>
               </h4>
 
               {/* Drop Zone */}
@@ -542,7 +548,7 @@ export default function RepairRequestDialog({
 
           {/* Footer actions */}
           <div className="modal-action">
-            <button onClick={onClose} className="btn btn-ghost rounded-full">
+            <button onClick={onClose} className="btn btn-ghost rounded-full bg-gray-200 border-none hover:bg-gray-300 text-gray-700 px-6 shadow-sm transition">
               ยกเลิก
             </button>
             <button

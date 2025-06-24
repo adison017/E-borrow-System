@@ -345,7 +345,7 @@ export default function RepairApprovalDialog({
 
   return (
     <div data-theme="light" className={`modal ${open ? 'modal-open ' : ''}`}>
-      <div className="modal-box max-w-5xl max-h-[90vh] overflow-y-auto bg-white ">
+      <div className="modal-box max-w-5xl max-h-[95vh] overflow-y-auto bg-white ">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
           <h3 className="text-lg font-bold flex items-center gap-2">
@@ -357,12 +357,12 @@ export default function RepairApprovalDialog({
                 </span>
               </>
             ) : (
-              <>
-                <span className="text-primary">รายละเอียดการแจ้งซ่อม</span>
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold border border-blue-200">
-                รหัสคำขอซ่อม: {repairRequest.repair_code || '-'}
+              <div className="flex flex-col items-start">
+                <span className="text-blue-600">รายละเอียดการแจ้งซ่อม</span>
+                <span className="mt-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold border border-blue-200">
+                {repairRequest.repair_code || '-'}
                 </span>
-              </>
+              </div>
             )}
           </h3>
           <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:opacity-70">
@@ -373,34 +373,33 @@ export default function RepairApprovalDialog({
         {/* Main Content */}
         <div className="space-y-4">
           {/* ข้อมูลผู้แจ้งและครุภัณฑ์ */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-blue-200/50 p-4 rounded-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-blue-50 p-4 rounded-full">
             {/* ข้อมูลผู้แจ้ง */}
-            <div className="flex items-start gap-3 bg-white py-4 px-10 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+            <div className="flex items-start gap-3 bg-white py-5 px-8 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                 <FaUser className="text-xl" />
               </div>
               <div>
-                <h4 className="font-medium text-blue-800">ผู้แจ้งซ่อม</h4>
+                <h4 className="font-medium text-blue-600">ผู้แจ้งซ่อม</h4>
                 <p className="text-sm font-semibold mt-1">
                   {repairRequest.requester_name || '-'}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
                   {repairRequest.branch_name || '-'}
                 </p>
-                <p className="text-xs text-gray-500 mt-2 flex items-center">
-                  <BsFillCalendarDateFill className="mr-1" /> วันที่แจ้ง: {new Date(repairRequest.request_date).toLocaleDateString('th-TH')}
+                <p className="text-xs text-gray-500 mt-1 flex items-center">
+                  <BsFillCalendarDateFill className="mr-1 mt-1" /> วันที่แจ้ง: {new Date(repairRequest.request_date).toLocaleDateString('th-TH')}
                 </p>
               </div>
             </div>
 
             {/* ข้อมูลครุภัณฑ์ */}
-            <div className="bg-white py-3 px-12 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
-              <h4 className="font-medium text-primary flex items-center gap-2 mb-2">
-                <FaTools className="text-primary" />
+            <div className="bg-white px-10 py-3 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+              <h4 className="font-medium text-blue-600 flex items-center gap-2 mb-2">
+                <FaTools className="text-blue-600" />
                 ข้อมูลครุภัณฑ์
               </h4>
               <div className="space-y-1 text-sm">
-
                 <div className="grid grid-cols-4">
                   <span className="font-medium">ชื่อ:</span>
                   <span className="col-span-3">{repairRequest.equipment_name || '-'}</span>
@@ -417,104 +416,16 @@ export default function RepairApprovalDialog({
             </div>
           </div>
 
-          {/* รูปภาพความเสียหาย */}
-          {repairImages.length > 0 ? (
-            <div className="bg-white p-4 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="font-medium flex items-center gap-2">
-                  <FaImage className="text-gray-600" />
-                  รูปภาพความเสียหาย ({repairImages.length} รูป)
-                  {repairRequest.repair_code && (
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                      รหัส: {repairRequest.repair_code}
-                    </span>
-                  )}
-                </h4>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleViewMode}
-                    className="btn btn-sm btn-ghost"
-                    title={viewMode === 'grid' ? 'ดูแบบรายการ' : 'ดูแบบตาราง'}
-                  >
-                    {viewMode === 'grid' ? '📋' : '🖼️'}
-                  </button>
-                </div>
-              </div>
-
-              {viewMode === 'grid' ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {repairImages.map((image, index) => (
-                    <div key={image.filename || index} className="relative group cursor-pointer">
-                      <img
-                        src={image.url || `http://localhost:5000/${image.file_path}`}
-                        alt={`รูปภาพความเสียหาย ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setActiveImageIndex(index);
-                          setIsZoomed(true);
-                        }}
-                      />
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                        รูปที่ {index + 1}
-                      </div>
-                      {image.repair_code && (
-                        <div className="absolute top-2 left-2 bg-blue-600 bg-opacity-75 text-white text-xs px-2 py-1 rounded">
-                          {image.repair_code}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {repairImages.map((image, index) => (
-                    <div key={image.filename || index} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-                      <img
-                        src={image.url || `http://localhost:5000/${image.file_path}`}
-                        alt={`รูปภาพความเสียหาย ${index + 1}`}
-                        className="w-16 h-16 object-cover rounded border border-gray-200"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setActiveImageIndex(index);
-                          setIsZoomed(true);
-                        }}
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">รูปภาพความเสียหาย {index + 1}</p>
-                        <p className="text-xs text-gray-500">คลิกเพื่อดูขนาดใหญ่</p>
-                        {image.repair_code && (
-                          <p className="text-xs text-blue-600 font-medium">รหัส: {image.repair_code}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <FaImage className="text-gray-600" />
-                รูปภาพความเสียหาย
-              </h4>
-              <div className="bg-gray-100 p-8 rounded-lg flex flex-col items-center justify-center">
-                <FaImage className="text-gray-400 text-3xl mb-2" />
-                <p className="text-gray-500">ไม่มีรูปภาพความเสียหาย</p>
-              </div>
-            </div>
-          )}
-
           {/* รูปภาพอุปกรณ์ */}
           {repairRequest.equipment_pic || repairRequest.equipment_pic_filename ? (
-            <div className="bg-white p-4 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+            <div className="bg-white p-4 rounded-lg hover:bg-gray-50 transition-colors">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-medium flex items-center gap-2">
                   <FaImage className="text-gray-600" />
                   รูปภาพอุปกรณ์
                 </h4>
               </div>
-              <div className="relative rounded-lg flex items-center justify-center bg-gray-100 overflow-hidden" style={{height: '200px'}}>
+              <div className="relative rounded-lg flex items-center justify-center overflow-hidden" style={{height: '200px'}}>
                 <img
                   src={repairRequest.equipment_pic || `http://localhost:5000/uploads/${repairRequest.equipment_pic_filename}`}
                   alt="รูปภาพอุปกรณ์"
@@ -538,14 +449,94 @@ export default function RepairApprovalDialog({
             </div>
           )}
 
+          {/* รูปภาพความเสียหาย */}
+          {repairImages.length > 0 ? (
+            <div className="bg-white p-4 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="font-medium flex items-center gap-2">
+                  <FaImage className="text-gray-600" />
+                  รูปภาพความเสียหาย ({repairImages.length} รูป)
+                </h4>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleViewMode}
+                    className="btn btn-sm btn-ghost"
+                    title={viewMode === 'grid' ? 'ดูแบบรายการ' : 'ดูแบบตาราง'}
+                  >
+                    {viewMode === 'grid' ? (
+                      <FaClipboardList className="w-5 h-5" />
+                    ) : (
+                      <FaImage className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {repairImages.map((image, index) => (
+                    <div key={image.filename || index} className="relative group cursor-pointer">
+                      <img
+                        src={image.url || `http://localhost:5000/${image.file_path}`}
+                        alt={`รูปภาพความเสียหาย ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setActiveImageIndex(index);
+                          setIsZoomed(true);
+                        }}
+                      />
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        รูปที่ {index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {repairImages.map((image, index) => (
+                    <div key={image.filename || index} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                      <img
+                        src={image.url || `http://localhost:5000/${image.file_path}`}
+                        alt={`รูปภาพความเสียหาย ${index + 1}`}
+                        className="w-16 h-16 object-cover rounded border border-gray-200"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setActiveImageIndex(index);
+                          setIsZoomed(true);
+                        }}
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">รูปภาพความเสียหาย {index + 1}</p>
+                        <p className="text-xs text-gray-500">คลิกเพื่อดูขนาดใหญ่</p>
+                        
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <FaImage className="text-gray-600" />
+                รูปภาพความเสียหาย
+              </h4>
+              <div className="bg-gray-100 p-8 rounded-lg flex flex-col items-center justify-center">
+                <FaImage className="text-gray-400 text-3xl mb-2" />
+                <p className="text-gray-500">ไม่มีรูปภาพความเสียหาย</p>
+              </div>
+            </div>
+          )}
+
           {/* รายละเอียดปัญหา */}
           <div className="bg-white p-3 hover:bg-gray-50 transition-colors">
-            <h4 className="font-medium mb-2 flex items-center gap-2 text-primary">
+            <h4 className="font-medium mb-2 flex items-center gap-2 text-blue-600">
               <FaClipboardList />
               รายละเอียดปัญหา
             </h4>
-            <div className="bg-gray-50 p-3 rounded-lg whitespace-pre-line text-sm">
-              <div className="pl-2 border-l-4 border-amber-500">
+            <div className="bg-amber-50 p-3 rounded-2xl whitespace-pre-line text-sm">
+              <div className="pl-2 py-3 border-l-4 border-amber-400">
                 {repairRequest.problem_description || '-'}
               </div>
             </div>
@@ -561,9 +552,9 @@ export default function RepairApprovalDialog({
                   {new Date(repairRequest.request_date).toLocaleDateString('th-TH')}
                 </span>
               </div>
-              <div className="bg-amber-50 p-3 rounded-lg hover:bg-amber-100 transition-colors">
-                <div className="mb-1 flex items-center text-amber-800">
-                  <RiCoinsFill size={16} className="text-amber-600" />
+              <div className="bg-blue-50 p-3 rounded-lg hover:bg-blue-100 transition-colors">
+                <div className="mb-1 flex items-center text-blue-800">
+                  <RiCoinsFill size={16} className="text-blue-600" />
                   <span className="px-2 text-sm"> ค่าใช้จ่ายประมาณ </span>
                 </div>
                 <span className="text-sm font-bold">
@@ -576,7 +567,7 @@ export default function RepairApprovalDialog({
           {/* การดำเนินการ */}
           {(repairRequest.status === 'รออนุมัติซ่อม' || !repairRequest.status || repairRequest.status === 'pending') && (
             <div className="bg-white p-4">
-              <h4 className="font-medium mb-3 flex items-center gap-2 text-primary">
+              <h4 className="font-medium mb-3 flex items-center gap-2 text-blue-600">
                 <MdAssignment />
                 การดำเนินการ
               </h4>
@@ -584,7 +575,7 @@ export default function RepairApprovalDialog({
               <div className="space-y-3">
                 <div>
                   <label className="label">
-                    <span className="label-text font-medium">หมายเหตุ (ถ้ามี)</span>
+                    <span className="text-black">หมายเหตุ (ถ้ามี)</span>
                   </label>
                   <textarea
                     rows={2}
@@ -598,18 +589,27 @@ export default function RepairApprovalDialog({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="label">
-                      <span className="label-text font-medium">งบประมาณที่อนุมัติ (บาท)</span>
+                      <span className="text-black">งบประมาณที่อนุมัติ<span className="text-red-500 ml-1">*</span></span>
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       className="input w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl"
-                      value={budgetApproved}
-                      onChange={(e) => setBudgetApproved(e.target.value)}
+                      value={
+                        budgetApproved === '' ? '' : Number(budgetApproved.toString().replace(/,/g, '')).toLocaleString()
+                      }
+                      onChange={e => {
+                        // Only allow numbers and commas, remove non-numeric
+                        let raw = e.target.value.replace(/[^\d]/g, '');
+                        setBudgetApproved(raw);
+                      }}
+                      inputMode="numeric"
+                      pattern="[0-9,]*"
+                      placeholder="0"
                     />
                   </div>
                   <div>
                     <label className="label">
-                      <span className="label-text font-medium">มอบหมายให้</span>
+                      <span className="text-black">มอบหมายให้ <span className="text-red-500">*</span></span>
                     </label>
                     <select
                       className="select w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl"
@@ -618,7 +618,7 @@ export default function RepairApprovalDialog({
                       disabled={loadingAdmins}
                     >
                       <option value="" disabled>
-                        {loadingAdmins ? 'กำลังโหลด...' : '-- เลือกผู้รับผิดชอบ --'}
+                        {loadingAdmins ? 'กำลังโหลด...' : 'เลือกผู้รับผิดชอบ'}
                       </option>
                       {adminUsers.map(user => (
                         <option key={user.user_id} value={user.user_id}>
@@ -627,7 +627,7 @@ export default function RepairApprovalDialog({
                       ))}
                     </select>
                     {adminUsers.length === 0 && !loadingAdmins && (
-                      <p className="text-xs text-gray-500 mt-1">ไม่พบผู้ดูแลระบบ</p>
+                      <p className="text-xs text-black mt-1">ไม่พบผู้ดูแลระบบ</p>
                     )}
                   </div>
                 </div>
@@ -683,10 +683,10 @@ export default function RepairApprovalDialog({
 
         {/* Footer actions */}
         {(repairRequest.status === 'รออนุมัติซ่อม' || !repairRequest.status || repairRequest.status === 'pending') && (
-          <div className="modal-action mt-6 pt-3">
+          <div className="modal-action ">
             <button
               onClick={handleRejectClick}
-              className="btn btn-error hover:opacity-90 text-white rounded-2xl"
+              className="btn bg-red-500 hover:bg-red-700 hover:opacity-90 text-white rounded-2xl"
               disabled={isSubmitting}
             >
               <FaTimesCircle className="mr-1" />
@@ -694,7 +694,7 @@ export default function RepairApprovalDialog({
             </button>
             <button
               onClick={handleApprove}
-              className="btn btn-success hover:opacity-90 text-white rounded-2xl"
+              className="btn bg-green-500 hover:bg-green-700 hover:opacity-90 text-white rounded-2xl"
               disabled={isSubmitting}
             >
               <FaCheckCircle className="mr-1" />
@@ -706,7 +706,7 @@ export default function RepairApprovalDialog({
       {/* Reject Reason Dialog */}
       {showRejectDialog && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-xl h-max-h-[90vh] transform transition-all duration-300 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-full w-full max-w-xl h-max-h-[90vh] transform transition-all duration-300 overflow-hidden">
             <div className="p-6">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -773,16 +773,16 @@ export default function RepairApprovalDialog({
                     )}
                   </div>
                 )}
-                <div className="flex justify-end gap-3 pt-4">
+                <div className="flex justify-end gap-3">
                   <button
                     onClick={handleCancelReject}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-150"
+                    className="px-4 py-2 bg-gray-300 text-gray-700 font-medium transition-colors duration-150 rounded-full hover:bg-gray-200"
                   >
                     ยกเลิก
                   </button>
                   <button
                     onClick={handleConfirmReject}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors duration-150 flex items-center gap-1"
+                    className="px-4 py-2 bg-red-600 text-white rounded-full font-medium hover:bg-red-700 transition-colors duration-150 flex items-center gap-1"
                     disabled={!rejectReason || (rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !notes.trim()) || isSubmitting}
                   >
                     <XCircleIcon className="w-5 h-5" />
