@@ -86,21 +86,21 @@ const Home = () => {
     setLoading(true);
     getEquipment()
       .then(data => {
-        // map field ให้ตรงกับ UI เดิม
+        // map field ให้ตรงกับ UI เดิม โดยใช้ item_code เป็น string เสมอ
         const mapped = data.map(item => ({
-          id: item.item_id || item.id,
+          id: String(item.item_code), // บังคับเป็น string
           name: item.name,
-          code: item.item_id || item.id, // ใช้ item_id เป็น code ถ้าไม่มี field code
+          code: String(item.item_code), // บังคับเป็น string
           category: item.category,
-          status: item.status, // ต้องตรงกับค่าที่ใช้ในปุ่ม
-          dueDate: '', // ไม่มีใน db, ใส่ค่าว่าง
-          image: item.pic, // ใช้ pic จาก db
-          available: item.quantity, // ใช้ quantity เป็น available
-          specifications: item.description, // ใช้ description เป็น specifications
-          location: item.location || '', // ดึงจาก db ถ้ามี
-          purchaseDate: item.purchaseDate || '', // ดึงจาก db ถ้ามี
-          price: item.price || '', // ดึงจาก db ถ้ามี
-          unit: item.unit // เพิ่ม unit ถ้าต้องใช้
+          status: item.status,
+          dueDate: '',
+          image: item.pic,
+          available: item.quantity,
+          specifications: item.description,
+          location: item.location || '',
+          purchaseDate: item.purchaseDate || '',
+          price: item.price || '',
+          unit: item.unit
         }));
         setEquipmentData(mapped);
       })
@@ -120,28 +120,28 @@ const Home = () => {
   const categoryOptions = ['ทั้งหมด', ...new Set(equipmentData.map(item => item.category))];
 
   // Handle quantity increase
-  const handleIncrease = (id) => {
-    const equipment = equipmentData.find(item => item.id === id);
-    if (equipment && (quantities[id] || 0) < equipment.available) {
+  const handleIncrease = (item_code) => {
+    const equipment = equipmentData.find(item => item.id === item_code);
+    if (equipment && (quantities[item_code] || 0) < equipment.available) {
       setQuantities(prev => ({
         ...prev,
-        [id]: (prev[id] || 0) + 1
+        [item_code]: (prev[item_code] || 0) + 1
       }));
     }
   };
 
   // Handle quantity decrease
-  const handleDecrease = (id) => {
+  const handleDecrease = (item_code) => {
     setQuantities(prev => {
-      const newQuantity = (prev[id] || 0) - 1;
+      const newQuantity = (prev[item_code] || 0) - 1;
       if (newQuantity <= 0) {
-        const newState = {...prev};
-        delete newState[id];
+        const newState = { ...prev };
+        delete newState[item_code];
         return newState;
       }
       return {
         ...prev,
-        [id]: newQuantity
+        [item_code]: newQuantity
       };
     });
   };
@@ -230,17 +230,16 @@ const Home = () => {
   // Handle form submission
   const handleSubmitBorrow = (e) => {
     e.preventDefault();
-    const selectedList = Object.entries(quantities).map(([id, qty]) => {
-      const equipment = equipmentData.find(item => item.id === parseInt(id));
+    const selectedList = Object.entries(quantities).map(([item_code, qty]) => {
+      const equipment = equipmentData.find(item => item.id === item_code);
       return {
-        id: equipment.id,
+        item_code: equipment.id, // ส่ง item_code ไป backend
         name: equipment.name,
         qty,
         unit: equipment.unit
       };
     });
     // ส่ง selectedList และ borrowData ไป backend ได้เลย
-    // เช่น
     // fetch('/api/borrow', { method: 'POST', body: JSON.stringify({ items: selectedList, ...borrowData }) })
     setShowBorrowDialog(false);
   };
