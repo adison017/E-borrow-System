@@ -9,7 +9,8 @@ import {
   CheckCircleIcon as CheckCircleSolidIcon,
   XCircleIcon
 } from "@heroicons/react/24/solid";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getAllBorrows } from "../../utils/api";
 
 // Components
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -45,7 +46,7 @@ const TABLE_HEAD = [
 ];
 
 const statusConfig = {
-  "under_review": {
+  "pending": {
     label: "รอตรวจสอบ",
     color: "amber",
     icon: ArrowPathIcon,
@@ -77,117 +78,6 @@ const statusConfig = {
 
 const filterableStatuses = ["under_review", "pending_approval", "rejected"];
 
-const initialBorrows = [
-  {
-    borrow_id: 1,
-    borrow_code: "BR-002",
-    borrower: {
-      name: "Jane Smith",
-      student_id: "64010124",
-      position: "บุคลากร",
-      department: "เทคโนโลยีสารสนเทศ",
-      avatar: "https://randomuser.me/api/portraits/women/2.jpg"
-    },
-    equipment: [
-      {
-        name: "เครื่องพิมพ์ HP LaserJet",
-        code: "EQ-2001",
-        image: "/lo.png",
-        quantity: 1
-      },
-      {
-        name: "MacBook Pro 13\"",
-        code: "EQ-1005",
-        image: "/lo.png",
-        quantity: 1
-      },
-      {
-        name: "จอมอนิเตอร์ Dell 24\"",
-        code: "EQ-3012",
-        image: "/lo.png",
-        quantity: 2
-      }
-    ],
-    borrow_date: "2023-10-05",
-    due_date: "2023-10-20",
-    return_date: null,
-    status: "pending_approval", // รออนุมัติ
-    purpose: "จัดเตรียมเอกสารและข้อมูลสำหรับการประชุมผู้ถือหุ้น",
-    notes: "ต้องการจัดเตรียมอุปกรณ์สำหรับทีมงาน 3 คน",
-    request_date: "2023-10-01"
-  },
-  {
-    borrow_id: 2,
-    borrow_code: "BR-003",
-    borrower: {
-      name: "Robert Johnson",
-      student_id: "64010125",
-      position: "นิสิต",
-      department: "วิทยาการคอมพิวเตอร์",
-      avatar: "https://randomuser.me/api/portraits/men/3.jpg"
-    },
-    equipment: [
-      {
-        name: "กล้อง Canon EOS",
-        code: "EQ-3001",
-        image: "/lo.png",
-        quantity: 1
-      },
-      {
-        name: "ขาตั้งกล้อง",
-        code: "EQ-3008",
-        image: "/lo.png",
-        quantity: 1
-      }
-    ],
-    borrow_date: "2023-10-10",
-    due_date: "2023-10-25",
-    return_date: null,
-    status: "under_review", // รอตรวจสอบ
-    purpose: "ถ่ายภาพงานอีเวนท์",
-    notes: "งานจัดที่โรงแรม Centara Grand",
-    request_date: "2023-10-05"
-  },
-  {
-    borrow_id: 3,
-    borrow_code: "BR-004",
-    borrower: {
-      name: "Somchai Jaidee",
-      student_id: "64010126",
-      position: "บุคลากร",
-      department: "ไอที",
-      avatar: "https://randomuser.me/api/portraits/men/5.jpg"
-    },
-    equipment: [
-      {
-        name: "โปรเจคเตอร์ Epson",
-        code: "EQ-4001",
-        image: "/lo.png",
-        quantity: 1
-      },
-      {
-        name: "ลำโพง Bluetooth",
-        code: "EQ-5002",
-        image: "/lo.png",
-        quantity: 2
-      },
-      {
-        name: "ไมโครโฟนไร้สาย",
-        code: "EQ-5010",
-        image: "/lo.png",
-        quantity: 3
-      }
-    ],
-    borrow_date: "2023-10-12",
-    due_date: "2023-10-18",
-    return_date: null,
-    status: "under_review",
-    purpose: "จัดอบรมพนักงานใหม่",
-    notes: "",
-    request_date: "2023-10-07"
-  }
-];
-
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -198,8 +88,20 @@ const theme = {
   }
 };
 
+// ปรับฟังก์ชันช่วย format วันที่ให้แสดงเฉพาะวัน/เดือน/ปี
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+const API_BASE = "http://localhost:5000";
+
 const BorrowList = () => {
-  const [borrows, setBorrows] = useState(initialBorrows);
+  const [borrows, setBorrows] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -211,6 +113,21 @@ const BorrowList = () => {
     message: "",
     type: "success"
   });
+
+  useEffect(() => {
+    getAllBorrows()
+      .then(data => {
+        console.log('API /api/borrows response:', data);
+        if (Array.isArray(data)) {
+          setBorrows(data);
+          console.log('setBorrows:', data);
+        }
+      })
+      .catch(err => {
+        // สามารถแจ้งเตือนหรือ log error ได้
+        console.error('เกิดข้อผิดพลาดในการโหลดข้อมูลการยืม:', err);
+      });
+  }, []);
 
   const showNotification = (message, type) => {
     setNotification({ show: true, message, type });
@@ -392,9 +309,14 @@ const BorrowList = () => {
                       <td className="w-32 px-4 py-4 whitespace-nowrap font-bold text-gray-900">{item.borrow_code}</td>
                       <td className="w-48 px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <Avatar src={item.borrower.avatar} alt={item.borrower.name} size="sm" className="bg-white shadow-sm rounded-full flex-shrink-0" />
+                          <Avatar
+                            src={item.borrower.avatar?.startsWith('http') ? item.borrower.avatar : `${API_BASE}/uploads/user/${item.borrower.avatar}`}
+                            alt={item.borrower.name}
+                            size="sm"
+                            className="bg-white shadow-sm rounded-full flex-shrink-0"
+                          />
                           <div className="overflow-hidden">
-                            <Typography variant="small" className="font-semibold text-gray-900 truncate">{item.borrower.name}</Typography>
+                             <Typography variant="small" className="font-semibold text-gray-900 truncate">{item.borrower.name}</Typography>
                             <Typography variant="small" className="font-normal text-gray-600 text-xs">
                               {item.borrower.position}
                             </Typography>
@@ -427,8 +349,8 @@ const BorrowList = () => {
                           )}
                         </div>
                       </td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900">{item.borrow_date}</td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900">{item.due_date}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900">{formatDate(item.borrow_date)}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900">{formatDate(item.due_date)}</td>
                       <td className="w-56 px-4 py-4 whitespace-normal break-words text-xs text-gray-700">
                         <Typography variant="small" className="text-xs text-gray-700 whitespace-pre-line break-words">
                           {item.purpose}
@@ -441,7 +363,7 @@ const BorrowList = () => {
                       </td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-center gap-2">
-                          {item.status === "under_review" && (
+                          {item.status === "pending" && (
                             <Tooltip content="ตรวจสอบข้อมูล" placement="top">
                               <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
                                 <CheckCircleIcon className="h-5 w-5" />

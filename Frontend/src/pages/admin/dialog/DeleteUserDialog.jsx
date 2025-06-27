@@ -65,7 +65,7 @@ export default function DeleteUserDialog({
               </div>
               <div className="mt-2 bg-gray-50 p-3 rounded-lg flex items-center gap-3">
                 <img
-                  src={selectedUser?.avatar ? `http://localhost:5000/uploads/${selectedUser.avatar.split('/').pop()}` : (selectedUser?.pic || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png")}
+                  src={selectedUser?.avatar ? `http://localhost:5000/uploads/user/${selectedUser.avatar.split('/').pop()}` : (selectedUser?.pic || "/public/profile.png")}
                   alt={selectedUser?.username}
                   className="w-12 h-12 rounded-full object-cover border border-gray-200 bg-white"
                 />

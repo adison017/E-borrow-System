@@ -6,6 +6,7 @@ import { getCategories, getEquipment } from '../../utils/api'; // เพิ่�
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
+import { globalUserData } from '../../components/Header';
 
 // Sample borrowing and repair history data
 const historyData = {
@@ -89,6 +90,7 @@ const Home = () => {
         // map field ให้ตรงกับ UI เดิม โดยใช้ item_code เป็น string เสมอ
         const mapped = data.map(item => ({
           id: String(item.item_code), // บังคับเป็น string
+          item_id: item.item_id,      // เพิ่มบรรทัดนี้เพื่อให้ payload มี item_id จริง
           name: item.name,
           code: String(item.item_code), // บังคับเป็น string
           category: item.category,
@@ -228,20 +230,44 @@ const Home = () => {
   };
 
   // Handle form submission
-  const handleSubmitBorrow = (e) => {
+  const handleSubmitBorrow = async (e) => {
     e.preventDefault();
-    const selectedList = Object.entries(quantities).map(([item_code, qty]) => {
-      const equipment = equipmentData.find(item => item.id === item_code);
+    // Map item_code (id) -> item_id ที่แท้จริง
+    const items = Object.entries(quantities).map(([item_code, quantity]) => {
+      const equipment = equipmentData.find(eq => String(eq.id) === String(item_code));
       return {
-        item_code: equipment.id, // ส่ง item_code ไป backend
-        name: equipment.name,
-        qty,
-        unit: equipment.unit
+        item_id: equipment?.item_id, // ต้องได้ค่า item_id จริง
+        quantity: Number(quantity)
       };
     });
-    // ส่ง selectedList และ borrowData ไป backend ได้เลย
-    // fetch('/api/borrow', { method: 'POST', body: JSON.stringify({ items: selectedList, ...borrowData }) })
-    setShowBorrowDialog(false);
+    // ดึง user_id จาก globalUserData
+    const user_id = globalUserData?.user_id || 1; // fallback เป็น 1 ถ้าไม่มีข้อมูล
+    const payload = {
+      user_id,
+      reason: borrowData.reason,
+      purpose: borrowData.reason, // เพิ่มบรรทัดนี้เพื่อให้ purpose = เหตุผลการขอยืม
+      borrow_date: borrowData.borrowDate,
+      return_date: borrowData.returnDate,
+      items
+    };
+    try {
+      const response = await fetch('http://localhost:5000/api/borrows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert('ส่งคำขอยืมสำเร็จ รหัส: ' + (data.borrow_code || 'ไม่พบรหัส'));
+        setShowBorrowDialog(false);
+        setQuantities({});
+        setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
+      } else {
+        alert('เกิดข้อผิดพลาด: ' + (data.message || ''));
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
   };
 
   // Calculate max return date (7 days from borrow date)

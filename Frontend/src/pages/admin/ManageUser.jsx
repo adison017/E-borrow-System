@@ -4,8 +4,8 @@ import {
 } from "@heroicons/react/24/outline";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
-import Swal from "sweetalert2";
 import { Toaster, toast } from 'react-hot-toast';
+import Swal from "sweetalert2";
 
 import {
   PencilIcon,
@@ -312,8 +312,8 @@ function ManageUser() {
 
   return (
     <ThemeProvider value={theme}>
-      <Toaster position="bottom-right" 
-      reverseOrder={false} 
+      <Toaster position="bottom-right"
+      reverseOrder={false}
       />
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
         <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-2">
@@ -527,13 +527,13 @@ function ManageUser() {
                         setViewDialogOpen(true);
                       }}>
                         <td className="px-6 py-4 whitespace-nowrap text-md font-bold text-gray-900">{user_code}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-3 w-full h-full whitespace-nowrap">
                           <div className="flex items-center justify-center">
                             <Avatar
-                              src={avatar ? `http://localhost:5000/uploads/${avatar}?t=${Date.now()}` : "/public/profile.png"}
+                              src={avatar ? `http://localhost:5000/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
                               alt={Fullname}
                               size="md"
-                              className="rounded-full w-16 h-16 object-cover"
+                              className="rounded-full w-17 h-17 object-cover"
                             />
                           </div>
                         </td>
