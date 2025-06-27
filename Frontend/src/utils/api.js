@@ -63,3 +63,17 @@ export const updateEquipmentStatus = (item_code, status) => {
     body: JSON.stringify(statusPayload),
   }).then(res => res.json());
 };
+
+// Borrow
+export const getAllBorrows = () => fetch(`${API_BASE}/borrows`).then(res => res.json());
+
+export const updateBorrowStatus = (borrow_id, status, rejection_reason) => {
+  const body = rejection_reason !== undefined
+    ? { status, rejection_reason }
+    : { status };
+  return fetch(`${API_BASE}/borrows/${borrow_id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then(res => res.json());
+};

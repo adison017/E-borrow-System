@@ -49,7 +49,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     tambon_id: undefined
   });
   const fileInputRef = useRef(null);
-  const [previewImage, setPreviewImage] = useState("/logo_it.png");
+  const [previewImage, setPreviewImage] = useState("/profile.png");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showPin, setShowPin] = useState(false);
@@ -241,7 +241,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         postal_no: userData.postal_no || '',
         password: ''
       });
-      setPreviewImage(avatarPath ? `http://localhost:5000/uploads/${avatarPath}` : "/logo_it.png");
+      setPreviewImage(avatarPath ? `http://localhost:5000/uploads/user/${avatarPath}` : "/profile.png");
     }
   }, [userData, provinces]);
 
@@ -309,25 +309,25 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
   const validateForm = (data) => {
     const errors = {};
-    
+
     if (!data.username?.trim()) {
       errors.username = 'Username is required';
     }
-    
+
     if (!data.Fullname?.trim()) {
       errors.Fullname = 'Full name is required';
     }
-    
+
     if (!data.email?.trim()) {
       errors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(data.email)) {
       errors.email = 'Invalid email format';
     }
-    
+
     if (!data.phone?.trim()) {
       errors.phone = 'Phone number is required';
     }
-    
+
     return errors;
   };
 
@@ -442,12 +442,12 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
             </div>
             <div className="w-36 h-36 rounded-full bg-white shadow-lg flex items-center justify-center relative group overflow-hidden border-4 border-white hover:border-blue-200 transition-all duration-300">
               <img
-                src={previewImage || "/logo_it.png"}
+                src={previewImage || "/profile.png"}
                 alt="Profile"
                 className="w-full h-full object-cover rounded-full"
                 onError={e => {
                   e.target.onerror = null;
-                  e.target.src = "/logo_it.png";
+                  e.target.src = "/profile.png";
                 }}
               />
               <label htmlFor="profile-upload-edit" className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer rounded-full">
