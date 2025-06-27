@@ -1,15 +1,15 @@
 import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 
-const BorrowDialog = ({ 
-  showBorrowDialog, 
-  setShowBorrowDialog, 
-  quantities, 
-  equipmentData, 
-  borrowData, 
-  handleInputChange, 
-  handleReturnDateChange, 
-  handleSubmitBorrow, 
+const BorrowDialog = ({
+  showBorrowDialog,
+  setShowBorrowDialog,
+  quantities,
+  equipmentData,
+  borrowData,
+  handleInputChange,
+  handleReturnDateChange,
+  handleSubmitBorrow,
   calculateMaxReturnDate,
   showImageModal
 }) => {
@@ -33,12 +33,12 @@ const BorrowDialog = ({
                 <h3 className="font-semibold text-gray-700 mb-3">รายการที่เลือก</h3>
                 <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
                   {Object.entries(quantities).map(([item_code, qty]) => {
-                    // ใช้ item_code เป็น string ทั้งคู่
+                    // ใช้ item_id เป็น string ทั้งคู่
                     const equipment = equipmentData.find(item => String(item.id) === String(item_code));
                     if (!equipment) return null;
                     return (
                       <div key={item_code} className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <div 
+                        <div
                           className="w-10 h-full rounded-lg overflow-hidden cursor-pointer"
                           onClick={() => showImageModal(equipment.image)}
                         >
@@ -99,8 +99,8 @@ const BorrowDialog = ({
                         })()}
                         required
                       />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
                         onClick={() => document.querySelector('input[name="borrowDate"]').showPicker()}
                       >
@@ -125,8 +125,8 @@ const BorrowDialog = ({
                         max={calculateMaxReturnDate()}
                         required
                       />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
                         onClick={() => document.querySelector('input[name="returnDate"]').showPicker()}
                       >

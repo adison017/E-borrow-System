@@ -109,7 +109,7 @@ function Header({ userRole, changeRole }) {
                 cleanPath = cleanPath.replace(/^imgEborow\//, '');
                 // Add timestamp to force image refresh
                 const timestamp = Date.now();
-                avatarPath = `http://localhost:5000/uploads/${cleanPath}?t=${timestamp}`;
+                avatarPath = `http://localhost:5000/uploads/user/${cleanPath}?t=${timestamp}`;
               }
             }
 

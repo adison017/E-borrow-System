@@ -70,3 +70,12 @@ export const updateEquipmentStatus = async (item_code, status) => {
     throw error;
   }
 };
+
+export const getLastItemCode = async () => {
+  try {
+    const [rows] = await connection.query('SELECT item_code FROM equipment ORDER BY item_code DESC LIMIT 1');
+    return rows.length > 0 ? rows[0].item_code : null;
+  } catch (error) {
+    throw error;
+  }
+};
