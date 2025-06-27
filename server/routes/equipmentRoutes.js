@@ -12,13 +12,14 @@ const router = express.Router();
 // Multer config for image uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, '..', 'uploads');
+    const uploadPath = path.join(__dirname, '../uploads/equipment');
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
     }
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
+    // ตั้งชื่อไฟล์สุ่มก่อน (timestamp + originalname)
     cb(null, Date.now() + '-' + file.originalname);
   }
 });
@@ -29,22 +30,37 @@ router.post('/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  // รับ item_code จาก body (ต้องส่ง item_code มาด้วยตอนอัปโหลด)
   const { item_code } = req.body;
-  if (!item_code) {
-    // ถ้าไม่มี item_code ให้ใช้ชื่อไฟล์เดิม
-    return res.json({ url: `/uploads/${req.file.filename}` });
-  }
-  // หานามสกุลไฟล์
   const ext = path.extname(req.file.originalname) || path.extname(req.file.filename);
-  const newFilename = `${item_code}${ext}`;
-  const uploadPath = path.join(__dirname, '..', 'uploads');
+  const uploadPath = path.join(__dirname, '../uploads/equipment');
   const oldPath = path.join(uploadPath, req.file.filename);
-  const newPath = path.join(uploadPath, newFilename);
-  // เปลี่ยนชื่อไฟล์
+  let newFilename;
+  let newPath;
+  console.log('[UPLOAD] รับไฟล์:', req.file.filename, 'item_code:', item_code);
+  if (!item_code) {
+    // ถ้าไม่มี item_code ให้ลบไฟล์นี้ทิ้ง
+    if (fs.existsSync(oldPath)) {
+      fs.unlinkSync(oldPath);
+      console.log('[UPLOAD] ลบไฟล์ที่ไม่มี item_code:', req.file.filename);
+    }
+    return res.status(400).json({ error: 'item_code is required' });
+  }
+  newFilename = `${item_code}${ext}`;
+  newPath = path.join(uploadPath, newFilename);
+  // ถ้ามีไฟล์ชื่อเดียวกันอยู่แล้ว ให้ลบทิ้งก่อน
+  if (fs.existsSync(newPath)) {
+    fs.unlinkSync(newPath);
+    console.log('[UPLOAD] ลบไฟล์เก่า:', newFilename);
+  }
   fs.renameSync(oldPath, newPath);
+  console.log('[UPLOAD] เปลี่ยนชื่อไฟล์เป็น:', newFilename);
+  // ลบไฟล์สุ่ม (ชื่อเดิม) ถ้ายังเหลือ (ป้องกันกรณี rename ไม่สมบูรณ์)
+  if (fs.existsSync(oldPath) && oldPath !== newPath) {
+    fs.unlinkSync(oldPath);
+    console.log('[UPLOAD] ลบไฟล์สุ่มเดิม:', req.file.filename);
+  }
   // คืน path ใหม่
-  res.json({ url: `/uploads/${newFilename}` });
+  res.json({ url: `/uploads/equipment/${newFilename}` });
 });
 
 // Use item_code as canonical identifier for all CRUD routes
