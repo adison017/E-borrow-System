@@ -25,7 +25,7 @@ export default function AddEquipmentDialog({
     category: "",
     description: "",
     quantity: "",
-    unit: "", 
+    unit: "",
     status: "พร้อมใช้งาน",
     pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
   });
@@ -40,7 +40,7 @@ export default function AddEquipmentDialog({
     "ชำรุด": { color: "red", icon: "XCircleIcon" },
     "ระหว่างซ่อม": { color: "amber", icon: "ClockIcon" },
   };
-  
+
   useEffect(() => {
     if (open) {
       getCategories().then(data => setCategories(data));
@@ -51,7 +51,7 @@ export default function AddEquipmentDialog({
       category: "",
       description: "",
       quantity: "",
-      unit: "", 
+      unit: "",
       status: "พร้อมใช้งาน",
       pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
     });
@@ -132,6 +132,7 @@ export default function AddEquipmentDialog({
     dataToSave.item_id = dataToSave.id;
     const payload = { ...formData, item_code: formData.item_code };
     await onSave(payload);
+    setFormData(prev => ({ ...prev, item_code: "" }));
     onClose();
   };
 
@@ -174,12 +175,12 @@ export default function AddEquipmentDialog({
             <MdClose className="w-5 h-5" />
           </button>
         </div>
-        
+
         {/* Form Content */}
         <div className="space-y-6">
           {/* Prominent Image Upload */}
           <div className="flex flex-col items-center mb-6">
-            <div 
+            <div
               className="w-44 h-44 bg-gradient-to-br from-emerald-50 to-white rounded-2xl border-2 border-dashed border-emerald-200 flex items-center justify-center cursor-pointer relative overflow-hidden group shadow-lg hover:shadow-xl transition-all duration-300"
               onClick={() => fileInputRef.current.click()}
             >
@@ -218,9 +219,9 @@ export default function AddEquipmentDialog({
                 type="text"
                 name="item_code"
                 value={formData.item_code}
-                onChange={handleChange}
                 disabled
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-700 shadow-sm group-hover:shadow-md transition-all duration-300"
+                readOnly
+                className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-700 shadow-sm"
               />
             </div>
             <div className="group">
@@ -332,15 +333,15 @@ export default function AddEquipmentDialog({
                   placeholder="เลือกวันที่"
                   onClick={() => document.querySelector('input[name="purchaseDate"]').showPicker()}
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
                   onClick={() => document.querySelector('input[name="purchaseDate"]').showPicker()}
                 >
                   <FaCalendarAlt />
                 </button>
               </div>
-            </div>              
+            </div>
             <div className="group">
               <label className="block text-sm font-semibold text-gray-800 mb-2">ราคา ฿ <span className="text-rose-500">*</span></label>
               <input
@@ -381,7 +382,7 @@ export default function AddEquipmentDialog({
             </div>
           )}
         </div>
-        
+
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end space-x-4">
           <button

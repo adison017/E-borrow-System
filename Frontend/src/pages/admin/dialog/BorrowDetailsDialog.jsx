@@ -9,6 +9,18 @@ import {
 } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
+import { updateBorrowStatus } from '../../../utils/api';
+
+const API_BASE = "http://localhost:5000";
+
+const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+};
 
 const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,10 +37,14 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
 
     if (!isOpen || !borrow) return null;
 
-    const borrowDates = `${borrow.borrow_date} ถึง ${borrow.due_date}`;
-    
-    const equipmentItems = Array.isArray(borrow.equipment) 
-        ? borrow.equipment 
+    const borrowDates = `${formatDate(borrow.borrow_date)} ถึง ${formatDate(borrow.due_date)}`;
+
+    const equipmentItems = Array.isArray(borrow.equipment)
+        ? borrow.equipment.map(eq => ({
+            ...eq,
+            code: eq.item_code || eq.code,
+            image: eq.image || `/uploads/equipment/${eq.item_code || eq.code}.jpg`,
+        }))
         : [borrow.equipment];
 
     const getStatusBadge = (status) => {
@@ -45,7 +61,7 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                         <ClockIcon className="w-5 h-5" /> รออนุมัติ
                     </div>
                 );
-            case "under_review":
+            case "pending":
                 return (
                     <div className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 px-3 py-1.5 text-yellow-800 text-sm font-semibold">
                         <ArrowPathIcon className="w-5 h-5" /> รอตรวจสอบ
@@ -69,21 +85,23 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
     const handleApprove = async () => {
         setIsSubmitting(true);
         try {
-            await onApprove();
+            await updateBorrowStatus(borrow.borrow_id, 'pending_approval');
+            if (onApprove) await onApprove();
             onClose();
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleReject = () => {
+    const handleReject = async () => {
         if (!rejectReason) {
             alert("กรุณาระบุเหตุผลที่ไม่อนุมัติ");
             return;
         }
         setIsSubmitting(true);
         try {
-            onReject(rejectReason);
+            await updateBorrowStatus(borrow.borrow_id, 'rejected', rejectReason);
+            if (onReject) onReject(rejectReason);
             onClose();
         } finally {
             setIsSubmitting(false);
@@ -122,14 +140,15 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                                         <UserCircleIcon className="h-6 w-6 text-blue-600" />
                                         <h3 className="font-semibold text-gray-800">ข้อมูลผู้ยืม</h3>
                                     </div>
-                                    
+
                                     <div className="flex flex-col items-center gap-4">
                                         {borrow.borrower?.avatar && (
                                             <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
                                                 <img
-                                                    src={borrow.borrower.avatar}
+                                                    src={borrow.borrower.avatar.startsWith('http') ? borrow.borrower.avatar : `${API_BASE}/uploads/user/${borrow.borrower.avatar}`}
                                                     alt={borrow.borrower.name}
                                                     className="w-full h-full object-cover"
+                                                    onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
                                                 />
                                             </div>
                                         )}
@@ -140,7 +159,7 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                                             <p className="text-gray-500 mt-1">{borrow.borrower.department}</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="mt-6 space-y-3">
                                         <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-gray-200">
                                             <span className="text-sm font-medium text-gray-600">สถานะการยืม</span>
@@ -167,7 +186,7 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                                     </div>
                                 )}
 
-                                
+
                             </div>
 
                             <div className="lg:col-span-2 space-y-6">
@@ -178,7 +197,7 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                                         </svg>
                                         รายการครุภัณฑ์ที่ยืม
                                     </h3>
-                                    
+
                                     <div className="bg-gray-50 rounded-2xl p-4 shadow-sm">
                                         <div className="overflow-x-auto">
                                             <div className="min-w-[340px]">
@@ -195,21 +214,13 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                                                             <tr key={index} className="hover:bg-gray-50">
                                                                 <td className="px-2 py-3 align-middle text-center">
                                                                     <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center mx-auto border border-gray-200 bg-white">
-                                                                        {item.image || item.pic ? (
-                                                                            <img
-                                                                                src={item.image || item.pic}
-                                                                                alt={item.name}
-                                                                                className="max-w-full max-h-full object-contain p-1"
-                                                                                style={{ display: 'block', margin: 'auto' }}
-                                                                                onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
-                                                                            />
-                                                                        ) : (
-                                                                            <div className="bg-gray-100 w-full h-full flex items-center justify-center text-gray-400">
-                                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                                                </svg>
-                                                                            </div>
-                                                                        )}
+                                                                        <img
+                                                                            src={item.pic?.startsWith('http') ? item.pic : `${API_BASE}/uploads/equipment/${item.item_code || item.code}.jpg`}
+                                                                            alt={item.name}
+                                                                            className="max-w-full max-h-full object-contain p-1"
+                                                                            style={{ display: 'block', margin: 'auto' }}
+                                                                            onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
+                                                                        />
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-4 py-3 align-middle">
@@ -255,7 +266,7 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                         </div>
                     </div>
 
-                    {borrow.status === "under_review" && (
+                    {borrow.status === "pending" && (
                         <div className="px-6 py-5 mt-auto">
                             <div className="flex flex-col sm:flex-row justify-end gap-3">
                                 {!showRejectReason ? (
@@ -288,11 +299,11 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                                         )}
                                     </button>
                                 )}
-                                 <button
+                                <button
                                     type="button"
                                     className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm disabled:opacity-70"
                                     onClick={handleApprove}
-                                    disabled={isSubmitting || borrow.status !== "under_review"}
+                                    disabled={isSubmitting}
                                 >
                                     {isSubmitting ? (
                                         <>

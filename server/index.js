@@ -14,6 +14,7 @@ import express from 'express';
 import categoryRoutes from './routes/categoryRoutes.js';
 import equipmentRoutes from './routes/equipmentRoutes.js';
 import repairRequestRoutes from './routes/repairRequestRoutes.js';
+import borrowRoutes from './routes/borrowRoutes.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -76,6 +77,7 @@ app.use((err, req, res, next) => {
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/repair-requests', repairRequestRoutes);
+app.use('/api/borrows', borrowRoutes);
 
 // เสิร์ฟไฟล์ static จาก uploads (ใช้ absolute path)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

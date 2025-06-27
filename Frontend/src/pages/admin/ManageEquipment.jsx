@@ -447,7 +447,7 @@ function ManageEquipment() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedEquipment.length > 0 ? (
                   paginatedEquipment.map((item, index) => {
-                    const { pic, item_code, name, category, quantity, status, created_at, unit } = item;
+                    const { pic, item_code, name, category, quantity, status, unit } = item;
                     return (
                       <tr key={item_code} className="hover:bg-gray-50">
                         <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
@@ -524,9 +524,9 @@ function ManageEquipment() {
             แสดง {filteredEquipment.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} ถึง {Math.min(currentPage * itemsPerPage, filteredEquipment.length)} จากทั้งหมด {equipmentList.length} รายการ
           </Typography>
           <div className="flex gap-2 items-center">
-            <Button 
-              variant="outlined" 
-              size="sm" 
+            <Button
+              variant="outlined"
+              size="sm"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case disabled:opacity-50"
@@ -534,9 +534,9 @@ function ManageEquipment() {
               ก่อนหน้า
             </Button>
             <span className="text-sm text-gray-700">{currentPage} / {totalPages}</span>
-            <Button 
-              variant="outlined" 
-              size="sm" 
+            <Button
+              variant="outlined"
+              size="sm"
               disabled={currentPage === totalPages || totalPages === 0}
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case disabled:opacity-50"

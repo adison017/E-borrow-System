@@ -263,7 +263,7 @@ export default function RepairApprovalList() {
                         <div className="flex-shrink-0 h-8 w-8">
                           <img
                             className="h-8 w-8 rounded-full object-cover"
-                            src={request.avatar ? `http://localhost:5000/uploads/${request.avatar}` : "/placeholder-user.png"}
+                            src={request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png"}
                             alt={request.requester_name}
                           />
                         </div>

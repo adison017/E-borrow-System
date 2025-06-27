@@ -35,6 +35,22 @@ export const getEquipmentByCode = async (req, res) => {
 export const addEquipment = async (req, res) => {
   try {
     const data = req.body;
+    // Generate item_code อัตโนมัติ
+    let lastCode = await Equipment.getLastItemCode();
+    let nextNumber = 1;
+    if (lastCode) {
+      const match = lastCode.match(/EQ-(\d{3})/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    const newItemCode = `EQ-${String(nextNumber).padStart(3, '0')}`;
+    // ตรวจสอบซ้ำอีกชั้น
+    const exist = await Equipment.getEquipmentByCode(newItemCode);
+    if (exist && exist.length > 0) {
+      return res.status(400).json({ error: 'item_code ซ้ำในระบบ' });
+    }
+    data.item_code = newItemCode;
     if (data.pic && typeof data.pic === 'string') {
       if (!data.pic.startsWith('http')) {
         data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
