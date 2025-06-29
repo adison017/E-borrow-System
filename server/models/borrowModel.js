@@ -76,14 +76,66 @@ LEFT JOIN roles r ON u.role_id = r.role_id;`
 };
 
 export const getBorrowById = async (borrow_id) => {
-  const [[borrow]] = await db.query(
-    'SELECT * FROM borrow_transactions WHERE borrow_id = ?', [borrow_id]
+  // Join users, equipment, branch, ... เหมือน getAllBorrows
+  const [rows] = await db.query(
+    `SELECT
+      bt.borrow_id,
+      bt.borrow_code,
+      u.fullname,
+      b.branch_name,
+      p.position_name,
+      r.role_name,
+      u.avatar,
+      e.name,
+      e.item_id,
+      e.item_code,
+      e.pic,
+      bi.quantity,
+      bt.borrow_date,
+      bt.return_date,
+      bt.status,
+      bt.purpose,
+      bt.approvalNotes,
+      bt.approvalDate,
+      bt.rejection_reason
+    FROM borrow_transactions bt
+    JOIN users u ON bt.user_id = u.user_id
+    JOIN borrow_items bi ON bt.borrow_id = bi.borrow_id
+    JOIN equipment e ON bi.item_id = e.item_id
+    LEFT JOIN branches b ON u.branch_id = b.branch_id
+    LEFT JOIN positions p ON u.position_id = p.position_id
+    LEFT JOIN roles r ON u.role_id = r.role_id
+    WHERE bt.borrow_id = ?`,
+    [borrow_id]
   );
-  if (!borrow) return null;
-  const [items] = await db.query(
-    'SELECT * FROM borrow_items WHERE borrow_id = ?', [borrow_id]
-  );
-  return { ...borrow, items };
+  if (!rows || rows.length === 0) return null;
+  // Group
+  const row = rows[0];
+  return {
+    borrow_id: row.borrow_id,
+    borrow_code: row.borrow_code,
+    borrower: {
+      name: row.fullname,
+      position: row.position_name,
+      department: row.branch_name,
+      avatar: row.avatar,
+      role: row.role_name,
+    },
+    equipment: rows.map(r => ({
+      item_id: r.item_id,
+      item_code: r.item_code,
+      name: r.name,
+      quantity: r.quantity,
+      pic: r.pic,
+    })),
+    borrow_date: row.borrow_date,
+    due_date: row.return_date,
+    status: row.status,
+    purpose: row.purpose,
+    approvalNotes: row.approvalNotes,
+    approvalDate: row.approvalDate,
+    rejection_reason: row.rejection_reason
+  };
 };
 
 export const updateBorrowStatus = async (borrow_id, status, rejection_reason = null) => {
