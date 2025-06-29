@@ -66,6 +66,7 @@ export const updateEquipmentStatus = (item_code, status) => {
 
 // Borrow
 export const getAllBorrows = () => fetch(`${API_BASE}/borrows`).then(res => res.json());
+export const getBorrowById = (id) => fetch(`${API_BASE}/borrows/${id}`).then(res => res.json());
 
 export const updateBorrowStatus = (borrow_id, status, rejection_reason) => {
   const body = rejection_reason !== undefined

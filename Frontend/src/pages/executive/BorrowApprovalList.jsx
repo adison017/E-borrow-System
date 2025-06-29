@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
-
 import {
   CheckCircleIcon,
   MagnifyingGlassIcon,
   XCircleIcon
 } from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
+import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
 import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
 
+const API_BASE = "http://localhost:5000";
 
 export default function BorrowApprovalList() {
   const [borrowRequests, setBorrowRequests] = useState([]);
@@ -14,7 +15,7 @@ export default function BorrowApprovalList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState("pending_approval");
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -25,6 +26,7 @@ export default function BorrowApprovalList() {
   // สถานะของคำขอยืม
   const statusOptions = [
     { value: "all", label: "ทั้งหมด", count: 0 },
+    { value: "pending_approval", label: "รออนุมัติ (ใหม่)", count: 0 },
     { value: "pending", label: "รอการอนุมัติ", count: 0 },
     { value: "approved", label: "อนุมัติแล้ว", count: 0 },
     { value: "rejected", label: "ปฏิเสธ", count: 0 },
@@ -33,6 +35,7 @@ export default function BorrowApprovalList() {
   ];
 
   const statusBadgeStyle = {
+    pending_approval: "bg-orange-50 text-orange-800 border-orange-200",
     pending: "bg-yellow-50 text-yellow-800 border-yellow-200",
     approved: "bg-green-50 text-green-800 border-green-200",
     rejected: "bg-red-50 text-red-800 border-red-200",
@@ -49,6 +52,7 @@ export default function BorrowApprovalList() {
   };
 
   const statusTranslation = {
+    pending_approval: "รออนุมัติ",
     pending: "รอการอนุมัติ",
     approved: "อนุมัติแล้ว",
     rejected: "ปฏิเสธ",
@@ -57,161 +61,16 @@ export default function BorrowApprovalList() {
   };
 
   useEffect(() => {
-    // ข้อมูลตัวอย่าง - ในโปรเจ็กต์จริงควรดึงจาก API
-    const mockData = [
-      {
-        borrowId: "BOR-2025-0001",
-      equipments: [ // เปลี่ยนเป็น array
-        {
-          id: "EQP-001",
-          code: "LT-001",
-          name: "โน๊ตบุ๊ค Dell XPS 15",
-          category: "อุปกรณ์คอมพิวเตอร์",
-          image: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
-        },
-        {
-          id: "EQP-002",
-          code: "PR-005",
-          name: "เครื่องพิมพ์ HP LaserJet",
-          category: "อุปกรณ์สำนักงาน",
-          image: "https://cdn-icons-png.flaticon.com/512/4299/4299443.png"
-        }
-      ],
-      requester: {
-        id: "USR-001",
-        name: "ชัยวัฒน์ มีสุข",
-        department: "แผนกไอที"
-      },
-      purpose: "ใช้งานนอกสถานที่สำหรับงานประชุมที่ต่างจังหวัด",
-      status: "pending",
-      borrowDate: "2025-05-05",
-      dueDate: "2025-05-12",
-    },
-      {
-        borrowId: "BOR-2025-0002",
-        equipment: {
-          id: "EQP-002",
-          code: "PR-005",
-          name: "เครื่องพิมพ์ HP LaserJet",
-          category: "อุปกรณ์สำนักงาน",
-          image: "https://cdn-icons-png.flaticon.com/512/4299/4299443.png"
-        },
-        requester: {
-          id: "USR-002",
-          name: "สุดารัตน์ แสงทอง",
-          department: "แผนกบัญชี",
-          avatar: "https://randomuser.me/api/portraits/women/44.jpg"
-        },
-        purpose: "พิมพ์เอกสารสำคัญในงานประชุม",
-        status: "pending",
-        borrowDate: "2025-05-06",
-        dueDate: "2025-05-09",
-      },
-      {
-        borrowId: "BOR-2025-0003",
-        equipment: {
-          id: "EQP-003",
-          code: "PJ-010",
-          name: "โปรเจคเตอร์ Epson",
-          category: "อุปกรณ์การประชุม",
-          image: "https://cdn-icons-png.flaticon.com/512/3474/3474348.png"
-        },
-        requester: {
-          id: "USR-003",
-          name: "วิชัย รักเรียน",
-          department: "แผนกทรัพยากรบุคคล",
-          avatar: "https://randomuser.me/api/portraits/men/67.jpg"
-        },
-        purpose: "ใช้นำเสนองานในการประชุมผู้บริหาร",
-        status: "approved",
-        borrowDate: "2025-05-02",
-        dueDate: "2025-05-03",
-        approvalDate: "2025-04-29",
-        approvalNotes: "อนุมัติตามคำขอ",
-      },
-      {
-        borrowId: "BOR-2025-0004",
-        equipment: {
-          id: "EQP-004",
-          code: "CAM-007",
-          name: "กล้องถ่ายรูป Canon",
-          category: "อุปกรณ์มัลติมีเดีย",
-          image: "https://cdn-icons-png.flaticon.com/512/3063/3063190.png"
-        },
-        requester: {
-          id: "USR-001",
-          name: "ชัยวัฒน์ มีสุข",
-          department: "แผนกไอที",
-          avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-        },
-        purpose: "ถ่ายภาพกิจกรรมประจำเดือนของบริษัทและงานสัมมนา",
-        status: "borrowing",
-        borrowDate: "2025-04-28",
-        dueDate: "2025-05-10",
-        approvalDate: "2025-04-26",
-        approvalNotes: "อนุมัติตามคำขอ และขอให้ดูแลรักษาอุปกรณ์เป็นอย่างดี",
-      },
-      {
-        borrowId: "BOR-2025-0005",
-        equipment: {
-          id: "EQP-005",
-          code: "IPAD-023",
-          name: "iPad Pro",
-          category: "อุปกรณ์พกพา",
-          image: "https://cdn-icons-png.flaticon.com/512/149/149427.png"
-        },
-        requester: {
-          id: "USR-004",
-          name: "มานะ ใจดี",
-          department: "แผนกบริหาร",
-          avatar: "https://randomuser.me/api/portraits/men/45.jpg"
-        },
-        purpose: "ขอยืมใช้ในการเดินทางไปอบรมต่างประเทศ",
-        status: "rejected",
-        borrowDate: "2025-05-05",
-        dueDate: "2025-05-20",
-        approvalDate: "2025-05-01",
-        approvalNotes: "ขออนุญาตปฏิเสธ เนื่องจากมีการจองใช้งานในช่วงเวลาเดียวกันแล้ว กรุณาเลือกอุปกรณ์อื่นหรือเปลี่ยนวันที่ยืม",
-      },
-      {
-        borrowId: "BOR-2025-0006",
-        equipment: {
-          id: "EQP-006",
-          code: "MIC-012",
-          name: "ไมโครโฟนไร้สาย",
-          category: "อุปกรณ์เสียง",
-          image: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png"
-        },
-        requester: {
-          id: "USR-005",
-          name: "สมหญิง จริงใจ",
-          department: "แผนกการตลาด",
-          avatar: "https://randomuser.me/api/portraits/women/65.jpg"
-        },
-        purpose: "ใช้ในการจัดงานสัมมนาลูกค้า",
-        status: "returned",
-        borrowDate: "2025-04-22",
-        dueDate: "2025-04-25",
-        returnDate: "2025-04-24",
-        approvalDate: "2025-04-21",
-        approvalNotes: "อนุมัติตามคำขอ",
-      }
-    ];
-
-    // Calculate counts for each status
-    const counts = mockData.reduce((acc, request) => {
-      acc[request.status] = (acc[request.status] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Update status options with counts
-    const updatedOptions = statusOptions.map(option => ({
-      ...option,
-      count: counts[option.value] || 0
-    }));
-
-    setBorrowRequests(mockData);
-    setLoading(false);
+    setLoading(true);
+    getAllBorrows()
+      .then(data => {
+        setBorrowRequests(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setLoading(false);
+        showNotification("เกิดข้อผิดพลาดในการโหลดข้อมูล", "error");
+      });
   }, []);
 
   const handleOpenDialog = (request) => {
@@ -219,38 +78,36 @@ export default function BorrowApprovalList() {
     setIsDialogOpen(true);
   };
 
-  const handleApproveRequest = (approvedData) => {
-    // ในโปรเจ็กต์จริงควรส่งข้อมูลไปยัง API
-    console.log("อนุมัติคำขอยืม:", approvedData);
-
-    // อัปเดตสถานะในรายการ
-    setBorrowRequests(prevRequests =>
-      prevRequests.map(req =>
-        req.borrowId === approvedData.borrowId
-          ? { ...req, ...approvedData, status: "approved" }
-          : req
-      )
-    );
-
-    // แสดงการแจ้งเตือน
-    showNotification("อนุมัติคำขอยืมเรียบร้อยแล้ว", "success");
+  const handleApproveRequest = async (approvedData) => {
+    try {
+      await updateBorrowStatus(approvedData.borrow_id, "approved", approvedData.approvalNotes);
+      setBorrowRequests(prevRequests =>
+        prevRequests.map(req =>
+          req.borrow_id === approvedData.borrow_id
+            ? { ...req, ...approvedData, status: "approved" }
+            : req
+        )
+      );
+      showNotification("อนุมัติคำขอยืมเรียบร้อยแล้ว", "success");
+    } catch (err) {
+      showNotification("เกิดข้อผิดพลาดในการอนุมัติ", "error");
+    }
   };
 
-  const handleRejectRequest = (rejectedData) => {
-    // ในโปรเจ็กต์จริงควรส่งข้อมูลไปยัง API
-    console.log("ปฏิเสธคำขอยืม:", rejectedData);
-
-    // อัปเดตสถานะในรายการ
-    setBorrowRequests(prevRequests =>
-      prevRequests.map(req =>
-        req.borrowId === rejectedData.borrowId
-          ? { ...req, ...rejectedData, status: "rejected" }
-          : req
-      )
-    );
-
-    // แสดงการแจ้งเตือน
-    showNotification("ปฏิเสธคำขอยืมเรียบร้อยแล้ว", "error");
+  const handleRejectRequest = async (rejectedData) => {
+    try {
+      await updateBorrowStatus(rejectedData.borrow_id, "rejected", rejectedData.rejectReason);
+      setBorrowRequests(prevRequests =>
+        prevRequests.map(req =>
+          req.borrow_id === rejectedData.borrow_id
+            ? { ...req, ...rejectedData, status: "rejected" }
+            : req
+        )
+      );
+      showNotification("ปฏิเสธคำขอยืมเรียบร้อยแล้ว", "error");
+    } catch (err) {
+      showNotification("เกิดข้อผิดพลาดในการปฏิเสธ", "error");
+    }
   };
 
   // แสดงการแจ้งเตือน
@@ -268,13 +125,18 @@ export default function BorrowApprovalList() {
 
   // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ
   const filteredRequests = borrowRequests.filter(request => {
+    // รองรับ equipment เป็น array หรือ object
+    let equipmentNames = [];
+    if (Array.isArray(request.equipment)) {
+      equipmentNames = request.equipment.map(eq => eq?.name || "");
+    } else if (request.equipment && request.equipment.name) {
+      equipmentNames = [request.equipment.name];
+    }
     const matchSearch =
-      request.borrowId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requester.name.toLowerCase().includes(searchTerm.toLowerCase());
-
+      (request.borrow_code && request.borrow_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      equipmentNames.some(name => name && name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (request.borrower?.name && request.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchStatus = statusFilter === "all" || request.status === statusFilter;
-
     return matchSearch && matchStatus;
   });
 
@@ -338,57 +200,69 @@ export default function BorrowApprovalList() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredRequests.map((request) => (
-                  <tr key={request.borrowId} className="hover:bg-gray-50">
+                  <tr key={request.borrow_id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{request.borrowId}</div>
-                      <div className="text-xs text-gray-500">{request.requestDate}</div>
+                      <div className="text-sm font-medium text-gray-900">{request.borrow_code}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
+                        <div className="flex-shrink-0 h-18 w-18 rounded-lg">
                           <img
-                            className="h-10 w-10 object-contain p-1 bg-gray-100 rounded"
-                            src={request.equipment?.image || "/placeholder-equipment.png"}
-                            alt={request.equipment?.name}
+                            className="h-full w-full object-contain"
+                            src={Array.isArray(request.equipment) && request.equipment[0]?.pic ? `${request.equipment[0].pic.startsWith('http') ? request.equipment[0].pic : '/lo.png'}` : '/placeholder-equipment.png'}
+                            alt={Array.isArray(request.equipment) && request.equipment[0]?.name}
                           />
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{request.equipment?.name}</div>
-                          <div className="text-xs text-gray-500">{request.equipment?.category}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {Array.isArray(request.equipment) && request.equipment.length > 0 ? request.equipment[0].name : '-'}
+                            {Array.isArray(request.equipment) && request.equipment.length > 1 && (
+                              <span className="ml-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0">
+                                +{request.equipment.length - 1} รายการ
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {Array.isArray(request.equipment) && request.equipment[0]?.item_code}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
+                        <div className="flex-shrink-0 h-13 w-13">
                           <img
-                            className="h-8 w-8 rounded-full"
-                            src={request.requester?.avatar || "/placeholder-user.png"}
-                            alt={request.requester?.name}
+                            className="h-full w-full rounded-full bg-white shadow-sm"
+                            src={
+                              request.borrower?.avatar
+                                ? (request.borrower.avatar.startsWith('http')
+                                    ? request.borrower.avatar
+                                    : `${API_BASE}/uploads/user/${request.borrower.avatar}`)
+                                : "/profile.png"
+                            }
+                            alt={request.borrower?.name}
+                            onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
                           />
                         </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{request.requester?.name}</div>
-                          <div className="text-xs text-gray-500">{request.requester?.department}</div>
+                        <div className="ml-3 overflow-hidden">
+                          <div className="text-sm font-medium text-gray-900 truncate">{request.borrower?.name}</div>
+                          <div className="text-xs text-gray-500">{request.borrower?.department}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.borrowDate}</div>
+                      <div className="text-sm text-gray-900">{request.borrow_date ? new Date(request.borrow_date).toLocaleDateString('th-TH') : '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.dueDate}</div>
+                      <div className="text-sm text-gray-900">{request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH') : '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
-                        {request.status === "pending" }
-                        {request.status === "approved"}
-                        {request.status === "rejected"}
                         {statusTranslation[request.status]}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      {request.status === "pending" ? (
+                      {request.status === "pending_approval" ? (
                         <button
                           onClick={() => handleOpenDialog(request)}
                           className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
