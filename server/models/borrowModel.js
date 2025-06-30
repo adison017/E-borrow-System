@@ -28,7 +28,7 @@ export const getAllBorrows = async () => {
   e.name,
   e.item_id,
   e.item_code,
-  e.pic,              -- ✅ เพิ่มตรงนี้
+  e.pic,            
   bi.quantity,
   bt.borrow_date,
   bt.return_date,
@@ -95,8 +95,6 @@ export const getBorrowById = async (borrow_id) => {
       bt.return_date,
       bt.status,
       bt.purpose,
-      bt.approvalNotes,
-      bt.approvalDate,
       bt.rejection_reason
     FROM borrow_transactions bt
     JOIN users u ON bt.user_id = u.user_id
@@ -132,24 +130,24 @@ export const getBorrowById = async (borrow_id) => {
     due_date: row.return_date,
     status: row.status,
     purpose: row.purpose,
-    approvalNotes: row.approvalNotes,
-    approvalDate: row.approvalDate,
     rejection_reason: row.rejection_reason
   };
 };
 
-export const updateBorrowStatus = async (borrow_id, status, rejection_reason = null) => {
-  if (rejection_reason !== null && rejection_reason !== undefined) {
-    const [result] = await db.query(
-      'UPDATE borrow_transactions SET status = ?, rejection_reason = ? WHERE borrow_id = ?', [status, rejection_reason, borrow_id]
-    );
-    return result.affectedRows;
+export const updateBorrowStatus = async (borrow_id, status, rejection_reason = null, signature_image = null) => {
+  let query, params;
+  if (signature_image && typeof signature_image === 'string' && signature_image.trim() !== '') {
+    query = 'UPDATE borrow_transactions SET status = ?, signature_image = ?, rejection_reason = ? WHERE borrow_id = ?';
+    params = [status, signature_image, rejection_reason, borrow_id];
+  } else if (rejection_reason !== null && rejection_reason !== undefined) {
+    query = 'UPDATE borrow_transactions SET status = ?, rejection_reason = ? WHERE borrow_id = ?';
+    params = [status, rejection_reason, borrow_id];
   } else {
-    const [result] = await db.query(
-      'UPDATE borrow_transactions SET status = ? WHERE borrow_id = ?', [status, borrow_id]
-    );
-    return result.affectedRows;
+    query = 'UPDATE borrow_transactions SET status = ? WHERE borrow_id = ?';
+    params = [status, borrow_id];
   }
+  const [result] = await db.query(query, params);
+  return result.affectedRows;
 };
 
 export const deleteBorrow = async (borrow_id) => {

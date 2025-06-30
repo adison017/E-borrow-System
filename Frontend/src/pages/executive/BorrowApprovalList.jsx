@@ -27,7 +27,7 @@ export default function BorrowApprovalList() {
   const statusOptions = [
     { value: "all", label: "ทั้งหมด", count: 0 },
     { value: "pending_approval", label: "รออนุมัติ (ใหม่)", count: 0 },
-    { value: "pending", label: "รอการอนุมัติ", count: 0 },
+    { value: "carry", label: "รอส่งมอบ", count: 0 },
     { value: "approved", label: "อนุมัติแล้ว", count: 0 },
     { value: "rejected", label: "ปฏิเสธ", count: 0 },
     { value: "borrowing", label: "กำลังยืม", count: 0 },
@@ -36,7 +36,7 @@ export default function BorrowApprovalList() {
 
   const statusBadgeStyle = {
     pending_approval: "bg-orange-50 text-orange-800 border-orange-200",
-    pending: "bg-yellow-50 text-yellow-800 border-yellow-200",
+    carry: "bg-yellow-50 text-yellow-800 border-yellow-200",
     approved: "bg-green-50 text-green-800 border-green-200",
     rejected: "bg-red-50 text-red-800 border-red-200",
     borrowing: "bg-blue-50 text-blue-800 border-blue-200",
@@ -44,7 +44,7 @@ export default function BorrowApprovalList() {
   };
 
   const statusIconStyle = {
-    pending: "text-yellow-500",
+    carry: "text-yellow-500",
     approved: "text-green-500",
     rejected: "text-red-500",
     borrowing: "text-blue-500",
@@ -53,7 +53,7 @@ export default function BorrowApprovalList() {
 
   const statusTranslation = {
     pending_approval: "รออนุมัติ",
-    pending: "รอการอนุมัติ",
+    carry: "รอส่งมอบ",
     approved: "อนุมัติแล้ว",
     rejected: "ปฏิเสธ",
     borrowing: "กำลังยืม",
@@ -75,20 +75,23 @@ export default function BorrowApprovalList() {
 
   const handleOpenDialog = (request) => {
     setSelectedRequest(request);
-    setIsDialogOpen(true);
+    setIsDialogOpen(false); // ปิด dialog ก่อนเพื่อ reset state
+    setTimeout(() => {
+      setIsDialogOpen(true); // เปิดใหม่หลังปิด เพื่อ trigger re-mount
+    }, 0);
   };
 
   const handleApproveRequest = async (approvedData) => {
     try {
-      await updateBorrowStatus(approvedData.borrow_id, "approved", approvedData.approvalNotes);
+      await updateBorrowStatus(approvedData.borrow_id, "carry", approvedData.approvalNotes);
       setBorrowRequests(prevRequests =>
         prevRequests.map(req =>
           req.borrow_id === approvedData.borrow_id
-            ? { ...req, ...approvedData, status: "approved" }
+            ? { ...req, ...approvedData, status: "carry" }
             : req
         )
       );
-      showNotification("อนุมัติคำขอยืมเรียบร้อยแล้ว", "success");
+      showNotification("อนุมัติคำขอยืมเรียบร้อยแล้ว (รอส่งมอบ)", "success");
     } catch (err) {
       showNotification("เกิดข้อผิดพลาดในการอนุมัติ", "error");
     }
