@@ -6,7 +6,6 @@ import {
     DocumentCheckIcon,
     PencilSquareIcon,
     QuestionMarkCircleIcon,
-    TruckIcon,
     UserCircleIcon,
     XCircleIcon
 } from "@heroicons/react/24/solid";
@@ -37,12 +36,11 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
 
     if (!isOpen || !borrow) return null;
 
-    const borrowDates = `${borrow.borrow_date} ถึง ${borrow.due_date}`;
+    const borrowDates = `${borrow.borrow_date ? borrow.borrow_date.slice(0, 10) : ''} ถึง ${borrow.due_date ? borrow.due_date.slice(0, 10) : ''}`;
 
     const getStatusBadge = (status) => {
         const baseClasses = "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-all";
         const iconSize = "w-5 h-5";
-
         switch (status) {
             case "delivered":
                 return (
@@ -52,27 +50,19 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                         <div className="absolute -right-1 -top-1 w-2.5 h-2.5 bg-green-500 rounded-full border border-white"></div>
                     </div>
                 );
-            case "pending_delivery":
+            case "carry":
                 return (
-                    <div className={`${baseClasses} bg-amber-100 text-amber-700 border border-amber-200 relative`}>
-                        <ClockIcon className={`${iconSize} text-amber-600`} />
+                    <div className={`${baseClasses} bg-yellow-100 text-yellow-700 border border-yellow-200 relative`}>
+                        <ClockIcon className={`${iconSize} text-yellow-600`} />
                         <span>รอส่งมอบ</span>
-                        <div className="absolute -right-1 -top-1 w-2.5 h-2.5 bg-amber-500 rounded-full border border-white animate-pulse"></div>
+                        <div className="absolute -right-1 -top-1 w-2.5 h-2.5 bg-yellow-500 rounded-full border border-white animate-pulse"></div>
                     </div>
                 );
             case "cancelled":
                 return (
-                    <div className={`${baseClasses} bg-red-100 text-red-700 border border-red-200`}>
-                        <XCircleIcon className={`${iconSize} text-red-600`} />
-                        <span>ยกเลิกแล้ว</span>
-                    </div>
-                );
-            case "in_transit":
-                return (
-                    <div className={`${baseClasses} bg-blue-100 text-blue-700 border border-blue-200 relative`}>
-                        <TruckIcon className={`${iconSize} text-blue-600`} />
-                        <span>กำลังขนส่ง</span>
-                        <div className="absolute -right-1 -top-1 w-2.5 h-2.5 bg-blue-500 rounded-full border border-white animate-ping"></div>
+                    <div className={`${baseClasses} bg-gray-200 text-gray-500 border border-gray-300`}>
+                        <XCircleIcon className={`${iconSize} text-gray-400`} />
+                        <span>ยกเลิก</span>
                     </div>
                 );
             default:
@@ -94,11 +84,18 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
     const handleDelivery = async () => {
         setIsSubmitting(true);
         try {
+            // ตรวจสอบว่า borrow มี property อะไรบ้าง (debug)
+            console.log('DEBUG borrow object:', borrow);
+            const id = borrow && (borrow.borrow_id || borrow.id);
+            if (!id) {
+                setIsSubmitting(false);
+                alert('ไม่พบรหัสการยืม (borrow_id)');
+                return;
+            }
             await onConfirm({
-                borrowId: borrow.id,
-                deliveryNote,
-                signature,
-                status: "delivered"
+                borrow_id: id,
+                signature_image: signature && !signature.startsWith('data:image/') ? signature : '',
+                status: "approved"
             });
             onClose();
         } finally {
@@ -143,7 +140,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                     {borrow.borrower?.avatar && (
                                         <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
                                             <img
-                                                src={borrow.borrower.avatar}
+                                                src={borrow.borrower.avatar ? `http://localhost:5000/uploads/user/${borrow.borrower.avatar}` : '/profile.png'}
                                                 alt={borrow.borrower.name}
                                                 className="w-full h-full object-cover"
                                             />
@@ -227,7 +224,12 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3 align-middle"><span className="font-semibold text-gray-800 text-base leading-tight">{item.name}</span><div className="text-xs text-gray-500 italic mt-1 leading-tight">{item.code}</div></td>
+                                                        <td className="px-4 py-3 align-middle">
+                                                            <span className="font-semibold text-gray-800 text-base leading-tight">{item.name}</span>
+                                                            <div className="text-xs text-gray-500 italic mt-1 leading-tight">
+                                                                {item.code || item.item_code}
+                                                            </div>
+                                                        </td>
                                                         <td className="px-4 py-3 text-right align-middle"><span className="font-medium text-blue-700 text-base">{item.quantity || 1}</span></td>
                                                     </tr>
                                                 ))}

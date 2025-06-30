@@ -9,7 +9,7 @@ import {
   CheckCircleIcon as CheckCircleSolidIcon,
   XCircleIcon
 } from "@heroicons/react/24/solid";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getAllBorrows } from "../../utils/api";
 
 // Components
@@ -191,12 +191,13 @@ const BorrowList = () => {
         (borrow.borrower?.name && borrow.borrower.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (borrow.borrower?.department && borrow.borrower.department.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchesStatus = statusFilter === "ทั้งหมด" || borrow.status === statusFilter;
+      // แสดงเฉพาะสถานะ pending_approval หรือ pending
+      const matchesStatus = borrow.status === "pending_approval" || borrow.status === "pending";
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       const statusPriority = {
-        "under_review": 0,
+        "pending": 0,
         "pending_approval": 1,
         "approved": 2,
         "rejected": 3
