@@ -94,7 +94,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
             }
             await onConfirm({
                 borrow_id: id,
-                signature_image: signature && !signature.startsWith('data:image/') ? signature : '',
+                signature_image: signature, // ต้องเป็น base64 เท่านั้น
                 status: "approved"
             });
             onClose();

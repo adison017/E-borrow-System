@@ -528,16 +528,16 @@ function ManageUser() {
                       }}>
                         <td className="px-6 py-4 whitespace-nowrap text-md font-bold text-gray-900">{user_code}</td>
                         <td className="px-6 py-3 w-full h-full whitespace-nowrap">
-                          <div className="flex items-center justify-center">
+                          <div className="flex items-center justify-center object-cover">
                             <Avatar
                               src={avatar ? `http://localhost:5000/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
                               alt={Fullname}
                               size="md"
-                              className="rounded-full w-17 h-17 object-cover"
+                              className="rounded-full w-15 h-15 object-cover"
                             />
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-md font-semibold text-gray-900">{Fullname}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{Fullname}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{email}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{phone}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900 text-center">{position_name}</td>
