@@ -233,23 +233,20 @@ export default function BorrowDetailsDialog({
       <div data-theme="light" className="modal-box max-w-[95vw] w-full h-full max-h-[95vh] rounded-xl shadow-lg ">
         {detailsLoading ? (
           <div className="flex flex-col items-center justify-center h-96">
-            <span className="loading loading-spinner loading-lg mb-4"></span>
+            <span className="loading loading-spinner loading-lg mb-4 "></span>
             <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
           </div>
         ) : data ? (
           <div className="flex flex-col h-full ">
-            <div className="sticky top-0 z-10 p-4 bg-gray-100 rounded-2xl">
+            <div className="sticky top-0 z-10 p-5 rounded-full bg-blue-700 shadow-sm">
               <div className="flex justify-between items-center">
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 px-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 ">
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2 ">
                       {getDialogTitle(data.status)}
-                      {renderStatusBadge(data.status)}
                     </h2>
-                    <p className="text-sm mt-2 ">
-                      สถานะปัจจุบัน: <span className="font-bold">{statusTranslation[data.status]}</span>
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
+
+                    <p className="text-xs text-white mt-1">
                       รหัสคำขอ: <span className="font-medium">{data.borrow_code || '-'}</span>
                       {borrowDate && <span> | วันที่ขอ: {new Date(borrowDate).toLocaleDateString('th-TH')}</span>}
                     </p>
@@ -257,7 +254,7 @@ export default function BorrowDetailsDialog({
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-500 hover:text-white p-2 rounded-full hover:bg-gray-600 transition-colors duration-150"
+                  className="text-black bg-white hover:text-white p-3 rounded-full hover:bg-black/50 transition-colors duration-150"
                 >
                   <MdClose className="w-5 h-5" />
                 </button>
@@ -326,11 +323,11 @@ export default function BorrowDetailsDialog({
                     <div className="overflow-x-auto  rounded-lg">
                       <div className="min-w-[340px]">
                         <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-blue-200">
+                          <thead className="bg-blue-700">
                             <tr>
-                              <th className="px-2 py-3 text-center text-xs font-semibold text-gray-800 uppercase tracking-wider">รูป</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">ครุภัณฑ์</th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-800 uppercase tracking-wider">จำนวน</th>
+                              <th className="px-2 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider">รูป</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-white  uppercase tracking-wider">ครุภัณฑ์</th>
+                              <th className="px-4 py-3 text-right text-xs font-semibold text-white  uppercase tracking-wider">จำนวน</th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
@@ -366,7 +363,7 @@ export default function BorrowDetailsDialog({
                     </div>
                   </div>
                   {showConfirm && (
-                  <div className="md:max-w-xl w-full mt-5">
+                  <div className="w-full mt-5">
                     <div
                       className={`p-4 rounded-lg shadow-sm border ${
                         actionType === "approve"
