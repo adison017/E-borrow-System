@@ -30,6 +30,7 @@ import {
 import ConfirmDialog from "../../components/ConfirmDialog";
 import Notification from "../../components/Notification";
 import ScannerDialog from "../../components/ScannerDialog";
+import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
 import EquipmentDeliveryDialog from "./dialog/EquipmentDeliveryDialog";
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
@@ -53,137 +54,15 @@ const TABLE_HEAD = [
   "จัดการ"
 ];
 
-const initialPendingDeliveries = [
-  {
-    borrow_id: 1,
-    borrow_code: "BR-001",
-    borrower: {
-      name: "John Doe",
-      student_id: "64010123",
-      position: "นิสิต",
-      department: "วิทยาการคอมพิวเตอร์",
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg"
-    },
-    equipment: [
-      {
-        name: "โน๊ตบุ๊ค Dell XPS 15",
-        code: "EQ-1001",
-        image: "/lo.png",
-        quantity: 3
-      },
-      {
-        name: "จอมอนิเตอร์ Dell 24\"",
-        code: "EQ-3012",
-        image: "/lo.png",
-        quantity: 5
-      }
-    ],
-    borrow_date: "2023-10-01",
-    due_date: "2023-10-15",
-    purpose: "ใช้ในการนำเสนองาน",
-    status: "pending_delivery",
-    delivery_date: null
-  },
-  {
-    borrow_id: 2,
-    borrow_code: "BR-002",
-    borrower: {
-      name: "Jane Smith",
-      student_id: "64010124",
-      position: "บุคลากร",
-      department: "เทคโนโลยีสารสนเทศ",
-      avatar: "https://randomuser.me/api/portraits/women/2.jpg"
-    },
-    equipment: [
-      {
-        name: "เครื่องพิมพ์ HP LaserJet",
-        code: "EQ-2001",
-        image: "/lo.png",
-        quantity: 2
-      }
-    ],
-    borrow_date: "2023-10-05",
-    due_date: "2023-10-20",
-    purpose: "พิมพ์รายงานประจำเดือน",
-    status: "pending_delivery",
-    delivery_date: null
-  },
-  {
-    borrow_id: 3,
-    borrow_code: "BR-003",
-    borrower: {
-      name: "Robert Johnson",
-      student_id: "64010125",
-      position: "นิสิต",
-      department: "วิทยาการคอมพิวเตอร์",
-      avatar: "https://randomuser.me/api/portraits/men/3.jpg"
-    },
-    equipment: [
-      {
-        name: "กล้อง Canon EOS",
-        code: "EQ-3001",
-        image: "/lo.png",
-        quantity: 2
-      },
-      {
-        name: "ขาตั้งกล้อง",
-        code: "EQ-3008",
-        image: "/lo.png",
-        quantity: 3
-      }
-    ],
-    borrow_date: "2023-10-10",
-    due_date: "2023-10-25",
-    purpose: "ถ่ายภาพงานอีเวนท์",
-    status: "pending_delivery",
-    delivery_date: null
-  }
-];
-
-const initialCompletedDeliveries = [
-  {
-    borrow_id: 4,
-    borrow_code: "BR-004",
-    borrower: {
-      name: "Mary Williams",
-      student_id: "64010126",
-      position: "บุคลากร",
-      department: "ทรัพยากรบุคคล",
-      avatar: "https://randomuser.me/api/portraits/women/4.jpg"
-    },
-    equipment: [
-      {
-        name: "โปรเจคเตอร์ Epson",
-        code: "EQ-4001",
-        image: "/lo.png",
-        quantity: 2
-      },
-      {
-        name: "ลำโพง Bluetooth",
-        code: "EQ-5002",
-        image: "/lo.png",
-        quantity: 4
-      }
-    ],
-    borrow_date: "2023-10-15",
-    due_date: "2023-10-30",
-    purpose: "ใช้ในการอบรมพนักงานใหม่",
-    status: "delivered",
-    delivery_date: "2023-10-15",
-    delivery_note: "ส่งมอบเรียบร้อย",
-    receiver_signature: "signature.png"
-  }
-];
-
 const statusConfig = {
-  "pending_delivery": {
+  carry: {
     label: "รอส่งมอบ",
     color: "yellow",
     icon: ClockIcon,
     backgroundColor: "bg-yellow-50",
     borderColor: "border-yellow-100"
   },
-  "delivered": {
+  delivered: {
     label: "ส่งมอบแล้ว",
     color: "green",
     icon: CheckCircleSolidIcon,
@@ -193,12 +72,10 @@ const statusConfig = {
 };
 
 const ReceiveItem = () => {
-  const [pendingDeliveries, setPendingDeliveries] = useState(initialPendingDeliveries);
-  const [completedDeliveries, setCompletedDeliveries] = useState(initialCompletedDeliveries);
-  const [allDeliveries, setAllDeliveries] = useState([...initialPendingDeliveries, ...initialCompletedDeliveries]);
-  const [filteredDeliveries, setFilteredDeliveries] = useState([...initialPendingDeliveries, ...initialCompletedDeliveries]);
+  const [borrows, setBorrows] = useState([]);
+  const [filteredDeliveries, setFilteredDeliveries] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("pending_delivery");
+  const [statusFilter, setStatusFilter] = useState("carry");
 
   // Dialog states
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -217,77 +94,65 @@ const ReceiveItem = () => {
   });
 
   useEffect(() => {
-    // รวมรายการทั้งหมดเข้าด้วยกัน
-    const combined = [...pendingDeliveries, ...completedDeliveries];
-    setAllDeliveries(combined);
-
-    // กรองตาม tab ที่เลือก
-    if (statusFilter === "pending_delivery") {
-      setFilteredDeliveries(pendingDeliveries);
-    } else {
-      setFilteredDeliveries(completedDeliveries);
-    }
-  }, [pendingDeliveries, completedDeliveries, statusFilter]);
+    // Fetch borrows from backend
+    getAllBorrows().then(data => {
+      setBorrows(Array.isArray(data) ? data : []);
+    });
+  }, []);
 
   useEffect(() => {
-    // กรองตามคำค้นหา
+    // Filter by status
+    const filtered = borrows.filter(b => b.status === statusFilter);
+    setFilteredDeliveries(filtered);
+  }, [borrows, statusFilter]);
+
+  useEffect(() => {
+    // Filter by search term
     if (searchTerm.trim() === "") {
-      if (statusFilter === "pending_delivery") {
-        setFilteredDeliveries(pendingDeliveries);
-      } else {
-        setFilteredDeliveries(completedDeliveries);
-      }
+      setFilteredDeliveries(borrows.filter(b => b.status === statusFilter));
     } else {
-      const toFilter = statusFilter === "pending_delivery" ? pendingDeliveries : completedDeliveries;
-      const filtered = toFilter.filter(item =>
-        item.borrow_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.equipment.code.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = borrows.filter(item =>
+        item.status === statusFilter && (
+          item.borrow_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.borrower?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (Array.isArray(item.equipment) && item.equipment.some(eq =>
+            eq.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            eq.code?.toLowerCase().includes(searchTerm.toLowerCase())
+          ))
+        )
       );
       setFilteredDeliveries(filtered);
     }
-  }, [searchTerm, statusFilter, pendingDeliveries, completedDeliveries]);
+  }, [searchTerm, statusFilter, borrows]);
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-  };
+  const handleSearch = (e) => setSearchTerm(e.target.value);
 
   const handleScanComplete = (code) => {
     setIsScannerOpen(false);
-
-    // ตรวจสอบว่ารหัสที่สแกนตรงกับรายการยืมหรือไม่ (ทั้ง borrow_code และ equipment.code ทุกชิ้น)
-    const borrowedItem = allDeliveries.find(item =>
+    const borrowedItem = filteredDeliveries.find(item =>
       item.borrow_code === code ||
       (Array.isArray(item.equipment) && item.equipment.some(eq => eq.code === code))
     );
-
     if (borrowedItem) {
       setSelectedBorrow(borrowedItem);
       setIsDeliveryDialogOpen(true);
     } else {
-      // ถ้าไม่พบ แสดงข้อความแจ้งเตือน
       showNotification("ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่สแกน", "error");
     }
   };
 
   const handleManualSearch = (code) => {
     setIsScannerOpen(false);
-
     if (!code.trim()) return;
-
-    // ตรวจสอบว่ารหัสที่ป้อนตรงกับรายการยืมหรือไม่ (ทั้ง borrow_code และ equipment.code ทุกชิ้น)
-    const borrowedItem = allDeliveries.find(item =>
+    const borrowedItem = filteredDeliveries.find(item =>
       item.borrow_code.toLowerCase() === code.toLowerCase() ||
       (Array.isArray(item.equipment) && item.equipment.some(eq => eq.code.toLowerCase() === code.toLowerCase()))
     );
-
     if (borrowedItem) {
       setSelectedBorrow(borrowedItem);
       setIsDeliveryDialogOpen(true);
     } else {
-      // ถ้าไม่พบ แสดงข้อความแจ้งเตือน
-      showNotification("ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่ป้อน", "error");
+      showNotification("ไม่พบข้อมูลการยืมที่ป้อน", "error");
     }
   };
 
@@ -296,57 +161,39 @@ const ReceiveItem = () => {
     setIsDeliveryDialogOpen(true);
   };
 
-  const handleDeliveryConfirm = (deliveryData) => {
-    // อัปเดตสถานะรายการยืม
-    const updatedItem = {
-      ...deliveryData.borrowItem,
-      status: "delivered",
-      delivery_date: new Date().toISOString().split('T')[0], // วันที่ปัจจุบัน
-      delivery_note: deliveryData.deliveryNote,
-      receiver_signature: deliveryData.signature || "signature.png" // สมมติว่ามีการเซ็นต์รับ
-    };
-
-    // ลบรายการจาก pending และเพิ่มเข้า completed
-    const updatedPending = pendingDeliveries.filter(
-      item => item.borrow_id !== updatedItem.borrow_id
+  const handleDeliveryConfirm = async (deliveryData) => {
+    // ตรวจสอบว่า signature_image เป็น base64 หรือ path
+    let signatureToSend = deliveryData.signature_image;
+    // ถ้า signature_image เป็น path (ไม่ใช่ base64) และไม่ใช่ค่าว่าง ให้ส่ง "" (เพื่อบังคับให้ backend ไม่อัปเดต signature_image ซ้ำ)
+    if (signatureToSend && !signatureToSend.startsWith('data:image/')) {
+      // ถ้าเป็น path (เช่น uploads/signature/xxx.png) ให้ส่ง ""
+      signatureToSend = '';
+    }
+    await updateBorrowStatus(
+      deliveryData.borrow_id,
+      "approved",
+      signatureToSend
     );
-    setPendingDeliveries(updatedPending);
-    setCompletedDeliveries([updatedItem, ...completedDeliveries]);
-
-    // ปิด dialog
+    // Refresh borrows
+    getAllBorrows().then(data => setBorrows(Array.isArray(data) ? data : []));
     setIsDeliveryDialogOpen(false);
-
-    // แสดงข้อความแจ้งเตือนสำเร็จ
     showNotification("ส่งมอบครุภัณฑ์เรียบร้อยแล้ว", "success");
   };
 
-  const handleCancelBorrow = (borrowId) => {
+  const handleCancelBorrow = async (borrowId) => {
     setSelectedBorrowId(borrowId);
     setIsConfirmDialogOpen(true);
   };
 
-  const confirmCancel = () => {
-    // ลบรายการยืมออกจากระบบ
-    const updatedPending = pendingDeliveries.filter(
-      item => item.borrow_id !== selectedBorrowId
-    );
-    setPendingDeliveries(updatedPending);
-
-    // ปิด dialog
+  const confirmCancel = async () => {
+    await updateBorrowStatus(selectedBorrowId, "cancelled");
+    getAllBorrows().then(data => setBorrows(Array.isArray(data) ? data : []));
     setIsConfirmDialogOpen(false);
-
-    // แสดงข้อความแจ้งเตือนสำเร็จ
     showNotification("ยกเลิกการยืมเรียบร้อยแล้ว", "success");
   };
 
   const showNotification = (message, type) => {
-    setNotification({
-      show: true,
-      message,
-      type
-    });
-
-    // ซ่อนการแจ้งเตือนอัตโนมัติหลังจาก 5 วินาที
+    setNotification({ show: true, message, type });
     setTimeout(() => {
       setNotification(prev => ({ ...prev, show: false }));
     }, 5000);
@@ -354,8 +201,8 @@ const ReceiveItem = () => {
 
   const handleStatusFilter = (status) => setStatusFilter(status);
   const countByStatus = {
-    pending_delivery: pendingDeliveries.length,
-    delivered: completedDeliveries.length
+    carry: borrows.filter(b => b.status === "carry").length,
+    delivered: borrows.filter(b => b.status === "delivered").length
   };
 
   return (
@@ -447,7 +294,7 @@ const ReceiveItem = () => {
                       <td className="w-48 px-4 py-4 whitespace-nowrap text-left">
                         <div className="flex items-center gap-3">
                           <img
-                            src={item.borrower.avatar}
+                            src={item.borrower.avatar ? `http://localhost:5000/uploads/user/${item.borrower.avatar}` : '/profile.png'}
                             alt={item.borrower.name}
                             className="w-10 h-10 rounded-full object-cover bg-white border border-gray-200 shadow-sm"
                           />
@@ -485,8 +332,8 @@ const ReceiveItem = () => {
                           )}
                         </div>
                       </td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date}</td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date ? item.borrow_date.slice(0, 10) : "-"}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date ? item.due_date.slice(0, 10) : "-"}</td>
                       <td className="w-56 px-4 py-4 whitespace-nowrap truncate text-gray-900 text-left">
                         <Typography variant="small" className="text-xs text-gray-700 whitespace-pre-line break-words">
                           {item.purpose}
@@ -504,7 +351,7 @@ const ReceiveItem = () => {
                               <EyeIcon className="h-4 w-4" />
                             </IconButton>
                           </Tooltip>
-                          {item.status === "pending_delivery" && (
+                          {item.status === "carry" && (
                             <Tooltip content="ยกเลิกการยืม" placement="top">
                               <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleCancelBorrow(item.borrow_id)}>
                                 <TrashIcon className="h-4 w-4" />
@@ -536,7 +383,7 @@ const ReceiveItem = () => {
         </CardBody>
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
           <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
-            แสดง {filteredDeliveries.length > 0 ? '1' : '0'} ถึง {filteredDeliveries.length} จากทั้งหมด {statusFilter === "pending_delivery" ? pendingDeliveries.length : completedDeliveries.length} รายการ
+            แสดง {filteredDeliveries.length > 0 ? '1' : '0'} ถึง {filteredDeliveries.length} จากทั้งหมด {statusFilter === "carry" ? borrows.filter(b => b.status === "carry").length : borrows.filter(b => b.status === "delivered").length} รายการ
           </Typography>
           <div className="flex gap-2">
             <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
