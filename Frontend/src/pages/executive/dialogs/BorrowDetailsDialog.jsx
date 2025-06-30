@@ -42,7 +42,7 @@ export default function BorrowDetailsDialog({
 
   const statusBadgeStyle = {
     pending_approval: "bg-orange-100 text-orange-800 border-orange-200",
-    pending: "bg-amber-100 text-amber-800 border-amber-200",
+    carry: "bg-amber-100 text-amber-800 border-amber-200",
     approved: "bg-emerald-100 text-emerald-800 border-emerald-200",
     rejected: "bg-red-100 text-red-800 border-red-200",
     borrowing: "bg-blue-100 text-blue-800 border-blue-200",
@@ -51,7 +51,7 @@ export default function BorrowDetailsDialog({
 
   const statusTranslation = {
     pending_approval: "รออนุมัติ",
-    pending: "รอการอนุมัติ",
+    carry: "รอส่งมอบ",
     approved: "อนุมัติแล้ว",
     rejected: "ปฏิเสธ",
     borrowing: "กำลังยืม",
@@ -60,7 +60,7 @@ export default function BorrowDetailsDialog({
 
   const statusIcons = {
     pending_approval: <ClockIcon className="w-4 h-4" />,
-    pending: <ClockIcon className="w-4 h-4" />,
+    carry: <ClockIcon className="w-4 h-4" />,
     approved: <CheckCircleIcon className="w-4 h-4" />,
     rejected: <XCircleIcon className="w-4 h-4" />,
     borrowing: <ArrowPathIcon className="w-4 h-4" />,
@@ -156,7 +156,7 @@ export default function BorrowDetailsDialog({
   const getDialogTitle = () => {
     const titles = {
       pending_approval: "อนุมัติคำขอยืมอุปกรณ์",
-      pending: "อนุมัติคำขอยืมอุปกรณ์",
+      carry: "รอส่งมอบอุปกรณ์",
       approved: "รายละเอียดคำขอยืม (อนุมัติแล้ว)",
       rejected: "รายละเอียดคำขอยืม (ปฏิเสธ)",
       borrowing: "รายละเอียดคำขอยืม (กำลังยืม)",
@@ -167,6 +167,13 @@ export default function BorrowDetailsDialog({
 
   useEffect(() => {
     if (open && borrowRequest?.borrow_id) {
+      setApprovalNotes("");
+      setIsSubmitting(false);
+      setActionType(null);
+      setShowConfirm(false);
+      setShowRejectDialog(false);
+      setRejectReason("");
+      setFormErrors({ rejectReason: "" });
       setDetailsLoading(true);
       getBorrowById(borrowRequest.borrow_id)
         .then(data => {
@@ -192,9 +199,8 @@ export default function BorrowDetailsDialog({
   // Helper: ใช้ borrowDetails ถ้ามี, fallback เป็น borrowRequest
   const data = borrowDetails || borrowRequest;
 
-  // --- Fallback: If no user/equipment from backend, fetch from borrowRequest ---
   const API_BASE = "http://localhost:5000";
-  // User info mapping (robust fallback)
+  // User info mapping (ใช้เฉพาะข้อมูลจาก backend เท่านั้น)
   let borrower = null;
   if (data?.borrower && typeof data.borrower === 'object' && Object.keys(data.borrower).length > 0) {
     borrower = {
@@ -212,34 +218,9 @@ export default function BorrowDetailsDialog({
       position: data.position || data.position_name || '',
       department: data.department || data.branch_name || '',
     };
-  } else if (borrowRequest?.borrower && typeof borrowRequest.borrower === 'object') {
-    borrower = {
-      name: borrowRequest.borrower.name || borrowRequest.borrower.Fullname || borrowRequest.borrower.fullname || borrowRequest.borrower.username || '-',
-      avatar: borrowRequest.borrower.avatar || '',
-      student_id: borrowRequest.borrower.student_id || borrowRequest.borrower.user_code || borrowRequest.borrower.user_id || '',
-      position: borrowRequest.borrower.position || borrowRequest.borrower.position_name || '',
-      department: borrowRequest.borrower.department || borrowRequest.borrower.branch_name || '',
-    };
-  } else if (borrowRequest?.user_fullname || borrowRequest?.Fullname || borrowRequest?.username || borrowRequest?.name) {
-    borrower = {
-      name: borrowRequest.user_fullname || borrowRequest.Fullname || borrowRequest.username || borrowRequest.name || '-',
-      avatar: borrowRequest.avatar || '',
-      student_id: borrowRequest.student_id || borrowRequest.user_code || borrowRequest.user_id || '',
-      position: borrowRequest.position || borrowRequest.position_name || '',
-      department: borrowRequest.department || borrowRequest.branch_name || '',
-    };
   }
-  // Equipment mapping
+  // Equipment mapping (ใช้เฉพาะข้อมูลจาก backend เท่านั้น)
   let equipmentList = Array.isArray(data?.equipment) ? data.equipment : [];
-  if (equipmentList.length === 0 && Array.isArray(borrowRequest?.equipment)) {
-    equipmentList = borrowRequest.equipment.map(eq => ({
-      ...eq,
-      name: eq.name || eq.equipment_name || eq.item_name || '-',
-      item_code: eq.item_code || eq.code || eq.itemCode || '-',
-      quantity: eq.quantity || eq.item_quantity || eq.qty || 1,
-      pic: eq.pic || eq.pic_filename || eq.picture || '',
-    }));
-  }
 
   const borrowDate = data.borrow_date || data.created_at || data.request_date || null;
   const dueDate = data.due_date || data.return_date || data.due || null;
@@ -466,7 +447,7 @@ export default function BorrowDetailsDialog({
                 <div className="flex justify-end gap-3 w-full md:w-auto md:ml-auto">
                   {!showConfirm ? (
                     <>
-                      {(borrowRequest.status === "pending" || borrowRequest.status === "pending_approval") && (
+                      {(borrowRequest.status === "carry" || borrowRequest.status === "pending_approval") && (
                         <>
                           <button
                             className="btn bg-red-600 hover:bg-red-700 hover:opacity-90 text-white rounded-2xl"

@@ -1,4 +1,5 @@
 import * as BorrowModel from '../models/borrowModel.js';
+import { saveBase64Image } from '../utils/saveBase64Image.js';
 
 // สร้างรายการยืมใหม่
 export const createBorrow = async (req, res) => {
@@ -57,10 +58,18 @@ export const getBorrowById = async (req, res) => {
 // อัปเดตสถานะ
 export const updateBorrowStatus = async (req, res) => {
   const { id } = req.params;
-  const { status, rejection_reason } = req.body;
+  const { status, rejection_reason, signature_image } = req.body;
   try {
-    const affectedRows = await BorrowModel.updateBorrowStatus(id, status, rejection_reason);
-    res.json({ affectedRows });
+    let signaturePath = null;
+    if (signature_image) {
+      if (typeof signature_image === 'string' && signature_image.startsWith('data:image/')) {
+        signaturePath = await saveBase64Image(signature_image);
+      } else {
+        signaturePath = signature_image; // already a path
+      }
+    }
+    const affectedRows = await BorrowModel.updateBorrowStatus(id, status, rejection_reason, signaturePath);
+    res.json({ affectedRows, signaturePath });
   } catch (err) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
