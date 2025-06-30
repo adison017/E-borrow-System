@@ -345,7 +345,7 @@ export default function RepairApprovalDialog({
 
   return (
     <div data-theme="light" className={`modal ${open ? 'modal-open ' : ''}`}>
-      <div className="modal-box max-w-5xl max-h-[95vh] overflow-y-auto bg-white ">
+      <div className="modal-box max-w-8xl max-h-[95vh] overflow-y-auto bg-white ">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
           <h3 className="text-lg font-bold flex items-center gap-2">
@@ -359,13 +359,13 @@ export default function RepairApprovalDialog({
             ) : (
               <div className="flex flex-col items-start">
                 <span className="text-blue-600">รายละเอียดการแจ้งซ่อม</span>
-                <span className="mt-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold border border-blue-200">
-                {repairRequest.repair_code || '-'}
+                <span className="mt-1 px-3 py-1 bg-blue-700 text-white rounded-full text-sm font-semibold border border-blue-200">
+                รหัสคำขอซ่อม: {repairRequest.repair_code || '-'}
                 </span>
               </div>
             )}
           </h3>
-          <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:opacity-70">
+          <button onClick={onClose} className="btn bg-black text-white  btn-circle btn-ghost hover:opacity-70">
             ✕
           </button>
         </div>
@@ -373,9 +373,9 @@ export default function RepairApprovalDialog({
         {/* Main Content */}
         <div className="space-y-4">
           {/* ข้อมูลผู้แจ้งและครุภัณฑ์ */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-blue-50 p-4 rounded-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-blue-700 p-4 rounded-xl">
             {/* ข้อมูลผู้แจ้ง */}
-            <div className="flex items-start gap-3 bg-white py-5 px-8 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+            <div className="flex items-start gap-3 bg-white py-5 px-8 rounded-lg shadow-sm  transition-colors">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                 <FaUser className="text-xl" />
               </div>
@@ -394,7 +394,7 @@ export default function RepairApprovalDialog({
             </div>
 
             {/* ข้อมูลครุภัณฑ์ */}
-            <div className="bg-white px-10 py-3 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+            <div className="bg-white px-10 py-3 rounded-lg shadow-sm transition-colors">
               <h4 className="font-medium text-blue-600 flex items-center gap-2 mb-2">
                 <FaTools className="text-blue-600" />
                 ข้อมูลครุภัณฑ์
@@ -418,7 +418,7 @@ export default function RepairApprovalDialog({
 
           {/* รูปภาพอุปกรณ์ */}
           {repairRequest.equipment_pic || repairRequest.equipment_pic_filename ? (
-            <div className="bg-white p-4 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="bg-white p-4 rounded-lg  transition-colors">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-medium flex items-center gap-2">
                   <FaImage className="text-gray-600" />
@@ -451,7 +451,7 @@ export default function RepairApprovalDialog({
 
           {/* รูปภาพความเสียหาย */}
           {repairImages.length > 0 ? (
-            <div className="bg-white p-4 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="shadow-sm p-4 rounded-2xl bg-blue-50 transition-colors">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-medium flex items-center gap-2">
                   <FaImage className="text-gray-600" />
@@ -479,14 +479,14 @@ export default function RepairApprovalDialog({
                       <img
                         src={image.url || `http://localhost:5000/${image.file_path}`}
                         alt={`รูปภาพความเสียหาย ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
+                        className="w-full h-32 object-cover rounded-lg shadow-lg hover:opacity-80 transition-opacity"
                         onClick={e => {
                           e.stopPropagation();
                           setActiveImageIndex(index);
                           setIsZoomed(true);
                         }}
                       />
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-3 py-1 rounded-2xl">
                         รูปที่ {index + 1}
                       </div>
                     </div>
@@ -530,34 +530,34 @@ export default function RepairApprovalDialog({
           )}
 
           {/* รายละเอียดปัญหา */}
-          <div className="bg-white p-3 hover:bg-gray-50 transition-colors">
-            <h4 className="font-medium mb-2 flex items-center gap-2 text-blue-600">
+          <div className="bg-white p-3 transition-colors">
+            <h4 className="font-medium mb-2 flex items-center gap-2 text-gray-600">
               <FaClipboardList />
               รายละเอียดปัญหา
             </h4>
-            <div className="bg-amber-50 p-3 rounded-2xl whitespace-pre-line text-sm">
-              <div className="pl-2 py-3 border-l-4 border-amber-400">
+            <div className="bg-yellow-300 p-3 rounded-lg whitespace-pre-line text-sm font-bold">
+              <div className="pl-2 py-3 border-l-4 border-black ">
                 {repairRequest.problem_description || '-'}
               </div>
             </div>
 
             {/* ข้อมูลเพิ่มเติม */}
             <div className="grid grid-cols-2 gap-4 mt-3">
-              <div className="bg-blue-50 p-3 rounded-lg hover:bg-blue-100 transition-colors">
-                <div className="mb-1 flex items-center text-blue-800">
-                  <BsFillCalendarDateFill size={16} className="text-blue-600" />
-                  <span className="px-2 text-sm"> วันที่แจ้ง </span>
+              <div className="bg-blue-700 p-3 rounded-lg transition-colors">
+                <div className="mb-1 flex items-center text-white">
+                  <BsFillCalendarDateFill size={16} className="text-white" />
+                  <span className="px-2 text-sm "> วันที่แจ้ง </span>
                 </div>
-                <span className="text-sm font-bold">
+                <span className="text-sm font-bold text-white">
                   {new Date(repairRequest.request_date).toLocaleDateString('th-TH')}
                 </span>
               </div>
-              <div className="bg-blue-50 p-3 rounded-lg hover:bg-blue-100 transition-colors">
-                <div className="mb-1 flex items-center text-blue-800">
-                  <RiCoinsFill size={16} className="text-blue-600" />
+              <div className="bg-blue-700 p-3 rounded-lg transition-colors">
+                <div className="mb-1 flex items-center text-white">
+                  <RiCoinsFill size={16} className="text-white" />
                   <span className="px-2 text-sm"> ค่าใช้จ่ายประมาณ </span>
                 </div>
-                <span className="text-sm font-bold">
+                <span className="text-sm font-bold text-white">
                   {Number(repairRequest.estimated_cost).toLocaleString()} บาท
                 </span>
               </div>
@@ -566,8 +566,8 @@ export default function RepairApprovalDialog({
 
           {/* การดำเนินการ */}
           {(repairRequest.status === 'รออนุมัติซ่อม' || !repairRequest.status || repairRequest.status === 'pending') && (
-            <div className="bg-white p-4">
-              <h4 className="font-medium mb-3 flex items-center gap-2 text-blue-600">
+            <div className="shadow-lg p-4 rounded-2xl transition-colors">
+              <h4 className="font-medium mb-3 flex items-center gap-2 text-gray-600">
                 <MdAssignment />
                 การดำเนินการ
               </h4>
