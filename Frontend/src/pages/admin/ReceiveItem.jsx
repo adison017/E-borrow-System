@@ -162,17 +162,16 @@ const ReceiveItem = () => {
   };
 
   const handleDeliveryConfirm = async (deliveryData) => {
-    // ตรวจสอบว่า signature_image เป็น base64 หรือ path
-    let signatureToSend = deliveryData.signature_image;
-    // ถ้า signature_image เป็น path (ไม่ใช่ base64) และไม่ใช่ค่าว่าง ให้ส่ง "" (เพื่อบังคับให้ backend ไม่อัปเดต signature_image ซ้ำ)
-    if (signatureToSend && !signatureToSend.startsWith('data:image/')) {
-      // ถ้าเป็น path (เช่น uploads/signature/xxx.png) ให้ส่ง ""
-      signatureToSend = '';
+    // ต้องเป็น base64 เท่านั้น (กรณีเซ็นใหม่) ถ้าไม่ใช่ให้แจ้งเตือน
+    if (!deliveryData.signature_image || !deliveryData.signature_image.startsWith('data:image/')) {
+      showNotification("กรุณาเซ็นชื่อก่อนยืนยันการส่งมอบ", "error");
+      return;
     }
     await updateBorrowStatus(
       deliveryData.borrow_id,
       "approved",
-      signatureToSend
+      undefined, // ไม่มี rejection_reason
+      deliveryData.signature_image
     );
     // Refresh borrows
     getAllBorrows().then(data => setBorrows(Array.isArray(data) ? data : []));
@@ -399,24 +398,22 @@ const ReceiveItem = () => {
           isOpen={isScannerOpen}
           onClose={() => setIsScannerOpen(false)}
           onScanComplete={handleScanComplete}
-          onManualInput={handleManualSearch}
+          onManualSearch={handleManualSearch}
         />
-
-        {/* Delivery Dialog */}
+        {/* Dialog for delivery */}
         <EquipmentDeliveryDialog
           borrow={selectedBorrow}
           isOpen={isDeliveryDialogOpen}
           onClose={() => setIsDeliveryDialogOpen(false)}
           onConfirm={handleDeliveryConfirm}
         />
-
-        {/* Confirm Dialog */}
+        {/* Confirm Dialog for cancel */}
         <ConfirmDialog
-          isOpen={isConfirmDialogOpen}
+          open={isConfirmDialogOpen}
+          title="ยืนยันการยกเลิกการยืม"
+          content="คุณต้องการยกเลิกการยืมนี้ใช่หรือไม่?"
           onClose={() => setIsConfirmDialogOpen(false)}
           onConfirm={confirmCancel}
-          title="ยืนยันการยกเลิก"
-          message="คุณต้องการยกเลิกการยืมรายการนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
         />
       </Card>
     </ThemeProvider>
