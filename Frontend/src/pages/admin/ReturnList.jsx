@@ -5,12 +5,13 @@ import {
   QrCodeIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import {
   CheckCircleIcon as CheckCircleSolidIcon,
   ClockIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  BanknotesIcon
 } from "@heroicons/react/24/solid"; // ไอคอนแบบทึบ (ใช้กับ badge สถานะ)
 
 import {
@@ -40,6 +41,7 @@ import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
 
 // Import services
 import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
+import { getAllBorrows, UPLOAD_BASE } from "../../utils/api";
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
@@ -52,122 +54,14 @@ const theme = {
 };
 
 const TABLE_HEAD = [
-  "รหัสการคืน",
   "รหัสการยืม",
   "ผู้ยืม",
   "ครุภัณฑ์",
   "วันที่ยืม",
   "กำหนดคืน",
-  "วันที่คืนจริง",
   "สถานะ",
-  "ค่าปรับ",
+  "วัตถุประสงค์",
   "จัดการ"
-];
-
-const initialReturns = [
-  {
-    return_id: 1,
-    return_code: "RT-001",
-    borrow_code: "BR-001",
-    borrower: {
-      name: "John Doe",
-      position: "นิสิต",
-      department: "วิทยาการคอมพิวเตอร์",
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg"
-    },
-    equipment: [
-      { name: "โน๊ตบุ๊ค Dell XPS 15", code: "EQ-1001", image: "/lo.png", quantity: 1 },
-      { name: "Wireless Mouse", code: "EQ-1002", image: "/lo.png", quantity: 2 }
-    ],
-    borrow_date: "2023-10-01",
-    due_date: "2023-10-15",
-    return_date: "2023-10-14",
-    status: "completed",
-    condition: "ปกติ",
-    fine_amount: 0,
-    notes: ""
-  },
-  {
-    return_id: 2,
-    return_code: "RT-002",
-    borrow_code: "BR-002",
-    borrower: {
-      name: "Jane Smith",
-      position: "บุคลากร",
-      department: "เทคโนโลยีสารสนเทศ",
-      avatar: "https://randomuser.me/api/portraits/women/2.jpg"
-    },
-    equipment: [
-      { name: "เครื่องพิมพ์ HP LaserJet", code: "EQ-2001", image: "/lo.png", quantity: 1 }
-    ],
-    borrow_date: "2023-10-05",
-    due_date: "2023-10-20",
-    return_date: "2023-10-25",
-    status: "overdue",
-    condition: "ชำรุดเล็กน้อย",
-    fine_amount: 250,
-    notes: "คืนช้า 5 วัน"
-  },
-  {
-    return_id: 3,
-    return_code: "RT-003",
-    borrow_code: "BR-003",
-    borrower: {
-      name: "Robert Johnson",
-      position: "นิสิต",
-      department: "วิทยาการคอมพิวเตอร์",
-      avatar: "https://randomuser.me/api/portraits/men/3.jpg"
-    },
-    equipment: [
-      { name: "กล้อง Canon EOS", code: "EQ-3001", image: "/lo.png", quantity: 1 },
-      { name: "ขาตั้งกล้อง", code: "EQ-3008", image: "/lo.png", quantity: 1 },
-      { name: "LED Light", code: "EQ-3003", image: "/lo.png", quantity: 2 }
-    ],
-    borrow_date: "2023-10-10",
-    due_date: "2023-10-25",
-    return_date: null,
-    status: "pending",
-    condition: null,
-    fine_amount: 0,
-    notes: ""
-  }
-];
-
-const initialBorrowedItems = [
-  {
-    borrow_id: 3,
-    borrow_code: "BR-003",
-    borrower: {
-      name: "Robert Johnson",
-      department: "แผนกการตลาด",
-      avatar: "https://randomuser.me/api/portraits/men/3.jpg"
-    },
-    equipment: {
-      name: "กล้อง Canon EOS",
-      code: "EQ-3001",
-      image: "/lo.png"
-    },
-    borrow_date: "2023-10-10",
-    due_date: "2023-10-25",
-    status: "active"
-  },
-  {
-    borrow_id: 4,
-    borrow_code: "BR-004",
-    borrower: {
-      name: "Mary Williams",
-      department: "แผนกทรัพยากรบุคคล",
-      avatar: "https://randomuser.me/api/portraits/women/4.jpg"
-    },
-    equipment: {
-      name: "โปรเจคเตอร์ Epson",
-      code: "EQ-4001",
-      image: "/lo.png"
-    },
-    borrow_date: "2023-10-15",
-    due_date: "2023-10-30",
-    status: "active"
-  }
 ];
 
 const statusConfig = {
@@ -185,22 +79,30 @@ const statusConfig = {
     backgroundColor: "bg-red-50",
     borderColor: "border-red-100"
   },
-  pending: {
+  approved: {
     label: "รอคืน",
     color: "yellow",
     icon: ClockIcon,
     backgroundColor: "bg-yellow-50",
     borderColor: "border-yellow-100"
+  },
+  waiting_payment: {
+    label: "รอชำระเงิน",
+    color: "amber",
+    icon: ClockIcon,
+    backgroundColor: "bg-amber-50",
+    borderColor: "border-amber-100"
   }
 };
 
-const displayableStatusKeys = ["pending", "overdue"]; // For filter dropdown
+const displayableStatusKeys = ["approved", "overdue", "waiting_payment"];
 
 const ReturnList = () => {
-  const [returns, setReturns] = useState(initialReturns);
-  const [borrowedItems, setBorrowedItems] = useState(initialBorrowedItems);
+  const [returns, setReturns] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 4;
 
   // Dialog states
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -227,50 +129,96 @@ const ReturnList = () => {
     type: "success"
   });
 
+  useEffect(() => {
+    fetch(`${UPLOAD_BASE}/api/returns`)
+      .then(res => res.json())
+      .then(data => {
+        console.log("API returns:", data);
+
+        // Mapping: ให้แน่ใจว่ามี field borrower และ equipment เป็น array
+        const mapped = data.map(item => ({
+          ...item,
+          borrower: item.borrower
+            ? item.borrower
+            : {
+                name: item.fullname,
+                position: item.position_name,
+                department: item.branch_name,
+                avatar: item.avatar,
+                role: item.role_name,
+              },
+          equipment: Array.isArray(item.equipment)
+            ? item.equipment
+            : item.equipment
+              ? [item.equipment]
+              : [],
+        }));
+
+        setReturns(mapped);
+      });
+  }, []);
+
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
 
-  const handleScanComplete = (code) => {
-    setIsScannerOpen(false);
+  const fetchReturnDetails = async (borrow_id) => {
+    const res = await fetch(`${UPLOAD_BASE}/api/returns/by-borrow/${borrow_id}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    // คืน return ล่าสุด (ถ้ามีหลาย record)
+    if (Array.isArray(data) && data.length > 0) {
+      // sort by return_date desc
+      return data.sort((a, b) => new Date(b.return_date) - new Date(a.return_date))[0];
+    }
+    return null;
+  };
 
-    // Check if code matches a borrowed item
-    const borrowedItem = borrowedItems.find(item =>
+  const handleScanComplete = async (code) => {
+    setIsScannerOpen(false);
+    let borrowedItem = returns.find(item =>
       item.borrow_code === code || item.equipment.code === code
     );
-
     if (borrowedItem) {
-      // Calculate overdue status
+      if (!borrowedItem.user_id && borrowedItem.borrower?.user_id) {
+        borrowedItem = { ...borrowedItem, user_id: borrowedItem.borrower.user_id };
+      }
+      let paymentDetails = null;
+      if (borrowedItem.status === 'waiting_payment') {
+        paymentDetails = await fetchReturnDetails(borrowedItem.borrow_id);
+      }
       const status = calculateReturnStatus(borrowedItem);
       setReturnStatus(status);
       setSelectedBorrowedItem(borrowedItem);
+      setSelectedReturnItem({ ...borrowedItem, paymentDetails });
       setIsReturnFormOpen(true);
     } else {
-      // If no match, show error notification
-      showNotification("ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่สแกน", "error");
+      showNotification('ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่สแกน', 'error');
     }
   };
 
-  const handleManualSearch = (code) => {
+  const handleManualSearch = async (code) => {
     setIsScannerOpen(false);
-
     if (!code.trim()) return;
-
-    // Check if code matches a borrowed item
-    const borrowedItem = borrowedItems.find(item =>
+    let borrowedItem = returns.find(item =>
       (item.borrow_code && item.borrow_code.toLowerCase() === code.toLowerCase()) ||
       (item.equipment?.code && String(item.equipment.code).toLowerCase() === code.toLowerCase())
     );
-
     if (borrowedItem) {
-      // Calculate overdue status
+      if (!borrowedItem.user_id && borrowedItem.borrower?.user_id) {
+        borrowedItem = { ...borrowedItem, user_id: borrowedItem.borrower.user_id };
+      }
+      let paymentDetails = null;
+      if (borrowedItem.status === 'waiting_payment') {
+        paymentDetails = await fetchReturnDetails(borrowedItem.borrow_id);
+      }
       const status = calculateReturnStatus(borrowedItem);
       setReturnStatus(status);
       setSelectedBorrowedItem(borrowedItem);
+      setSelectedReturnItem({ ...borrowedItem, paymentDetails });
       setIsReturnFormOpen(true);
     } else {
-      // If no match, show error notification
-      showNotification("ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่ป้อน", "error");
+      showNotification('ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่ค้นหา', 'error');
     }
   };
 
@@ -285,12 +233,6 @@ const ReturnList = () => {
     // Add new return to returns list
     setReturns([newReturn, ...returns]);
 
-    // Remove returned item from borrowed items list
-    const updatedBorrowedItems = borrowedItems.filter(
-      item => item.borrow_code !== returnData.borrowedItem.borrow_code
-    );
-    setBorrowedItems(updatedBorrowedItems);
-
     // Close return form
     setIsReturnFormOpen(false);
 
@@ -299,6 +241,8 @@ const ReturnList = () => {
   };
 
   const handleViewDetails = (returnItem) => {
+    console.log('DEBUG returnItem:', returnItem);
+    console.log('DEBUG returnItem.status:', returnItem?.status);
     setSelectedReturnItem(returnItem);
     setIsDetailsOpen(true);
   };
@@ -310,30 +254,11 @@ const ReturnList = () => {
 
   const confirmDelete = () => {
     // Find the deleted return item
-    const deletedItem = returns.find(item => item.return_id === selectedReturnId);
+    const deletedItem = returns.find(item => item.borrow_id === selectedReturnId);
 
     // Filter out the deleted item
-    const updatedReturns = returns.filter(item => item.return_id !== selectedReturnId);
+    const updatedReturns = returns.filter(item => item.borrow_id !== selectedReturnId);
     setReturns(updatedReturns);
-
-    // Add the item back to borrowed items if it's not in there already
-    const isAlreadyInBorrowed = borrowedItems.some(
-      item => item.borrow_code === deletedItem.borrow_code
-    );
-
-    if (!isAlreadyInBorrowed) {
-      const returnedToBorrowed = {
-        borrow_id: deletedItem.return_id,
-        borrow_code: deletedItem.borrow_code,
-        borrower: deletedItem.borrower,
-        equipment: deletedItem.equipment,
-        borrow_date: deletedItem.borrow_date,
-        due_date: deletedItem.due_date,
-        status: "active"
-      };
-
-      setBorrowedItems([...borrowedItems, returnedToBorrowed]);
-    }
 
     // Close confirm dialog
     setIsDeleteConfirmOpen(false);
@@ -369,18 +294,20 @@ const ReturnList = () => {
             <ExclamationTriangleIcon className="w-4 h-4" /> เกินกำหนด
           </div>
         );
-      case "pending":
+      case "approved":
         return (
           <div className="inline-flex items-center gap-1 rounded-lg bg-yellow-100 px-2 py-1 text-yellow-800 text-xs font-semibold">
             <ClockIcon className="w-4 h-4" /> รอคืน
           </div>
         );
-      default:
+      case "waiting_payment":
         return (
-          <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-gray-700 text-xs font-semibold">
-            ไม่ทราบสถานะ
+          <div className="inline-flex items-center gap-1 rounded-lg bg-blue-100 px-2 py-1 text-blue-800 text-xs font-semibold animate-pulse border border-blue-200">
+            <BanknotesIcon className="w-4 h-4" /> รอชำระเงิน
           </div>
         );
+      default:
+        return <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-gray-700 text-xs font-semibold">ไม่ทราบสถานะ</div>;
     }
   };
 
@@ -390,34 +317,21 @@ const ReturnList = () => {
     return acc;
   }, {});
 
-  const filteredReturns = returns
-    .filter(item => {
-      // Primary filter: only "pending" or "overdue" statuses
-      if (item.status !== "pending" && item.status !== "overdue") {
-        return false;
-      }
-
-      // Filter by search term (if searchTerm is present)
-      if (searchTerm.trim() !== "") {
-        const searchTermLower = searchTerm.toLowerCase();
-        const matchesSearch =
-          (item.return_code && item.return_code.toLowerCase().includes(searchTermLower)) ||
-          (item.borrow_code && item.borrow_code.toLowerCase().includes(searchTermLower)) ||
-          (item.borrower?.name && item.borrower.name.toLowerCase().includes(searchTermLower)) ||
-          (item.equipment?.name && item.equipment.name.toLowerCase().includes(searchTermLower)) ||
-          (item.equipment?.code && String(item.equipment.code).toLowerCase().includes(searchTermLower));
-        if (!matchesSearch) {
-          return false;
-        }
-      }
-
-      // Filter by status dropdown (if not "ทั้งหมด")
-      if (statusFilter !== "ทั้งหมด" && item.status !== statusFilter) {
-        return false;
-      }
-
-      return true;
-    });
+  const filteredReturns = returns.filter(item => {
+    const searchTermLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      (item.borrow_code && item.borrow_code.toLowerCase().includes(searchTermLower)) ||
+      (item.borrower?.name && item.borrower.name.toLowerCase().includes(searchTermLower)) ||
+      (item.borrower?.department && item.borrower.department.toLowerCase().includes(searchTermLower)) ||
+      (Array.isArray(item.equipment) && item.equipment.some(
+        eq => (eq.name && eq.name.toLowerCase().includes(searchTermLower)) ||
+              (eq.code && String(eq.code).toLowerCase().includes(searchTermLower))
+      ));
+    const matchesStatus = statusFilter === "ทั้งหมด" || item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+  const totalPages = Math.ceil(filteredReturns.length / rowsPerPage);
+  const paginatedReturns = filteredReturns.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   return (
     <ThemeProvider value={theme}>
@@ -518,16 +432,14 @@ const ReturnList = () => {
                     <th
                       key={head}
                       className={`px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
-                        index === 0 ? "w-24 text-left" : // รหัสการคืน
-                        index === 1 ? "w-24 text-left" : // รหัสการยืม
-                        index === 2 ? "w-48 text-left" : // ผู้ยืม
-                        index === 3 ? "w-64 text-left" : // ครุภัณฑ์
-                        index === 4 ? "w-28 text-left" : // วันที่ยืม
-                        index === 5 ? "w-28 text-left" : // กำหนดคืน
-                        index === 6 ? "w-28 text-left" : // วันที่คืนจริง
-                        index === 7 ? "w-32 text-center" : // สถานะ
-                        index === 8 ? "w-22 text-left" : // ค่าปรับ
-                        index === 9 ? "w-40 text-center" : ""
+                        index === 0 ? "w-24 text-left" : // รหัสการยืม
+                        index === 1 ? "w-48 text-left" : // ผู้ยืม
+                        index === 2 ? "w-64 text-left" : // ครุภัณฑ์
+                        index === 3 ? "w-28 text-left" : // วันที่ยืม
+                        index === 4 ? "w-28 text-left" : // กำหนดคืน
+                        index === 5 ? "w-32 text-center" : // สถานะ
+                        index === 6 ? "w-22 text-left" : // วัตถุประสงค์
+                        index === 7 ? "w-40 text-center" : ""
                       }`}
                     >
                       {head}
@@ -536,14 +448,24 @@ const ReturnList = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredReturns.length > 0 ? (
-                  filteredReturns.map((item, index) => (
-                    <tr key={item.return_id} className="hover:bg-gray-50">
-                      <td className="w-24 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{item.return_code}</td>
+                {paginatedReturns.length > 0 ? (
+                  paginatedReturns.map((item, idx) => (
+                    (console.log('DEBUG item.status:', item.status),
+                    <tr key={item.borrow_id} className="hover:bg-gray-50">
                       <td className="w-24 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{item.borrow_code}</td>
                       <td className="w-48 px-6 py-4 whitespace-nowrap text-left">
                         <div className="flex items-center gap-3">
-                          <img src={item.borrower.avatar} alt={item.borrower.name} className="w-10 h-10 rounded-full object-cover bg-white border border-gray-200 shadow-sm flex-shrink-0" />
+                          <img
+                            src={
+                              item.borrower.avatar
+                                ? item.borrower.avatar.startsWith('http')
+                                  ? item.borrower.avatar
+                                  : `${UPLOAD_BASE}/uploads/user/${item.borrower.avatar}`
+                                : '/default-avatar.png'
+                            }
+                            alt={item.borrower.name}
+                            className="w-10 h-10 rounded-full object-cover bg-white border border-gray-200 shadow-sm flex-shrink-0"
+                          />
                           <div className="overflow-hidden">
                             <Typography variant="small" className="font-semibold text-gray-900 truncate">{item.borrower.name}</Typography>
                             <Typography variant="small" className="font-normal text-gray-600 text-xs">
@@ -578,15 +500,13 @@ const ReturnList = () => {
                           )}
                         </div>
                       </td>
-                      <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date}</td>
-                      <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date}</td>
-                      <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.return_date || "-"}</td>
+                      <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date ? new Date(item.borrow_date).toLocaleDateString('th-TH') : "-"}</td>
+                      <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date ? new Date(item.due_date).toLocaleDateString('th-TH') : "-"}</td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
-                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
-                          {statusConfig[item.status]?.label || "-"}
-                        </span>
+
+                        {getStatusBadge(item.status)}
                       </td>
-                      <td className="w-22 px-4 py-4 whitespace-nowrap text-center text-gray-900">{item.fine_amount > 0 ? `${item.fine_amount} บาท` : "-"}</td>
+                      <td className="w-22 px-4 py-4 whitespace-nowrap text-center text-gray-900">{item.purpose || '-'}</td>
                       <td className="w-40 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           <Tooltip content="ดูรายละเอียด" placement="top">
@@ -594,14 +514,26 @@ const ReturnList = () => {
                               <EyeIcon className="h-4 w-4" />
                             </IconButton>
                           </Tooltip>
+                          {item.status !== 'waiting_payment' && (
+                            <Tooltip content="คืนครุภัณฑ์" placement="top">
+                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => {
+                                const status = calculateReturnStatus(item);
+                                setReturnStatus(status);
+                                setSelectedBorrowedItem(item);
+                                setIsReturnFormOpen(true);
+                              }}>
+                                <CheckCircleSolidIcon className="h-4 w-4" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                           <Tooltip content="ลบ" placement="top">
-                            <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteReturn(item.return_id)}>
+                            <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteReturn(item.borrow_id)}>
                               <TrashIcon className="h-4 w-4" />
                             </IconButton>
                           </Tooltip>
                         </div>
                       </td>
-                    </tr>
+                    </tr>)
                   ))
                 ) : (
                   <tr>
@@ -624,13 +556,13 @@ const ReturnList = () => {
         </CardBody>
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
           <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
-            แสดง {filteredReturns.length > 0 ? '1' : '0'} ถึง {filteredReturns.length} จากทั้งหมด {returns.length} รายการ
+            แสดง {paginatedReturns.length > 0 ? '1' : '0'} ถึง {paginatedReturns.length} จากทั้งหมด {returns.length} รายการ
           </Typography>
           <div className="flex gap-2">
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <Button variant="outlined" size="sm" className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case" onClick={() => setPage(page - 1)} disabled={page === 1}>
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <Button variant="outlined" size="sm" className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
               ถัดไป
             </Button>
           </div>
@@ -653,13 +585,20 @@ const ReturnList = () => {
           overdayCount={returnStatus.overdayCount}
           fineAmount={returnStatus.fineAmount}
           setFineAmount={(amount) => setReturnStatus(prev => ({ ...prev, fineAmount: amount }))}
+          showNotification={showNotification}
+          paymentDetails={selectedReturnItem?.paymentDetails}
+          onViewStatus={() => {
+            setIsReturnFormOpen(false);
+            setIsDetailsOpen(true);
+          }}
         />
 
         {/* Return Details Dialog */}
         <ReturndetailsDialog
-          returnItem={selectedReturnItem}
           isOpen={isDetailsOpen}
           onClose={() => setIsDetailsOpen(false)}
+          returnItem={selectedReturnItem}
+          paymentDetails={selectedReturnItem?.paymentDetails}
         />
 
         {/* Delete Confirm Dialog */}

@@ -5,7 +5,8 @@ import {
 import {
   CheckCircleIcon as CheckCircleSolidIcon
 } from "@heroicons/react/24/solid";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { UPLOAD_BASE } from '../../utils/api';
 
 // Components
 import Notification from "../../components/Notification";
@@ -26,79 +27,12 @@ import {
 
 const TABLE_HEAD = [
   "รหัสการยืม",
-  "รหัสการคืน",
   "ผู้ยืม",
   "ครุภัณฑ์",
   "วันที่ยืม",
   "วันที่คืน",
   "สถานะ",
   "จัดการ"
-];
-
-const initialBorrows = [
-  {
-    borrow_id: 1,
-    borrow_code: "BR-001",
-    borrower: {
-      name: "John Doe",
-      position: "นิสิต",
-      department: "วิทยาการคอมพิวเตอร์",
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg"
-    },
-    equipment: [
-      { name: "Laptop Dell XPS 13", code: "EQ-1001", image: "/lo.png", quantity: 1 },
-      { name: "Wireless Mouse", code: "EQ-1002", image: "/lo.png", quantity: 1 }
-    ],
-    borrow_date: "2024-03-01",
-    due_date: "2024-03-15",
-    return_date: "2024-03-15",
-    status: "completed",
-    purpose: "ใช้งานประจำวัน",
-    notes: "",
-    request_date: "2024-02-28"
-  },
-  {
-    borrow_id: 2,
-    borrow_code: "BR-002",
-    borrower: {
-      name: "Jane Smith",
-      position: "บุคลากร",
-      department: "เทคโนโลยีสารสนเทศ",
-      avatar: "https://randomuser.me/api/portraits/women/2.jpg"
-    },
-    equipment: [
-      { name: "Projector Epson", code: "EQ-2001", image: "/lo.png", quantity: 1 }
-    ],
-    borrow_date: "2024-03-05",
-    due_date: "2024-03-20",
-    return_date: "2024-03-20",
-    status: "completed",
-    purpose: "นำเสนองาน",
-    notes: "",
-    request_date: "2024-03-01"
-  },
-  {
-    borrow_id: 3,
-    borrow_code: "BR-003",
-    borrower: {
-      name: "Alex Brown",
-      position: "นิสิต",
-      department: "วิทยาการคอมพิวเตอร์",
-      avatar: "https://randomuser.me/api/portraits/men/3.jpg"
-    },
-    equipment: [
-      { name: "Camera Canon EOS", code: "EQ-3001", image: "/lo.png", quantity: 1 },
-      { name: "Tripod", code: "EQ-3002", image: "/lo.png", quantity: 1 },
-      { name: "LED Light", code: "EQ-3003", image: "/lo.png", quantity: 2 }
-    ],
-    borrow_date: "2024-03-10",
-    due_date: "2024-03-25",
-    return_date: "2024-03-25",
-    status: "completed",
-    purpose: "ถ่ายภาพงานอีเวนท์",
-    notes: "",
-    request_date: "2024-03-05"
-  }
 ];
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
@@ -118,21 +52,40 @@ const statusConfig = {
     icon: CheckCircleSolidIcon,
     backgroundColor: "bg-green-50",
     borderColor: "border-green-100"
+  },
+  rejected: {
+    label: "ไม่อนุมัติ",
+    color: "red",
+    icon: EyeIcon, // หรือเปลี่ยนเป็น icon อื่นที่เหมาะสม
+    backgroundColor: "bg-red-50",
+    borderColor: "border-red-100"
   }
 };
 
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "-";
+  return d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 function Success() {
-  const [borrows, setBorrows] = useState(initialBorrows);
+  const [borrows, setBorrows] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedBorrow, setSelectedBorrow] = useState(null);
+  const [notification, setNotification] = useState({ show: false, message: "", type: "success" });
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 4;
 
-  // Notification state
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "success"
-  });
+  useEffect(() => {
+    fetch(`${UPLOAD_BASE}/api/returns/success-borrows`)
+      .then(res => res.json())
+      .then(data => setBorrows(data))
+      .catch(err => {
+        setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", type: "error" });
+      });
+  }, []);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -148,7 +101,7 @@ function Success() {
       borrow_date: borrow.borrow_date,
       due_date: borrow.due_date,
       return_date: borrow.return_date,
-      status: "completed",
+      status: borrow.status,
       condition: "good",
       fine_amount: 0
     };
@@ -169,24 +122,23 @@ function Success() {
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case "completed":
-        return (
-          <div className="inline-flex items-center gap-1 rounded-lg bg-green-100 px-2 py-1 text-green-700 text-xs font-semibold">
-            <CheckCircleSolidIcon className="w-4 h-4" /> เสร็จสิ้น
-          </div>
-        );
-      default:
-        return (
-          <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-gray-700 text-xs font-semibold">
-            ไม่ทราบสถานะ
-          </div>
-        );
-    }
+    const config = statusConfig[status];
+    if (!config) return (
+      <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-gray-700 text-xs font-semibold">
+        ไม่ทราบสถานะ
+      </div>
+    );
+    const Icon = config.icon;
+    return (
+      <div className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold ${config.backgroundColor} text-${config.color}-700`}>
+        <Icon className="w-4 h-4" /> {config.label}
+      </div>
+    );
   };
 
   // Compute filtered borrows
   const filteredBorrows = borrows
+    .filter(borrow => ['completed', 'rejected'].includes(borrow.status))
     .filter(borrow => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch =
@@ -199,6 +151,9 @@ function Success() {
         ));
       return matchesSearch;
     });
+
+  const totalPages = Math.ceil(filteredBorrows.length / rowsPerPage);
+  const paginatedBorrows = filteredBorrows.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   return (
     <ThemeProvider value={theme}>
@@ -249,13 +204,12 @@ function Success() {
                       key={head}
                       className={`px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
                         index === 0 ? "w-28 text-left" : // รหัสการยืม
-                        index === 1 ? "w-28 text-left" : // รหัสการคืน
-                        index === 2 ? "w-48 text-left" : // ผู้ยืม
-                        index === 3 ? "w-64 text-left" : // ครุภัณฑ์
-                        index === 4 ? "w-32 text-left" : // วันที่ยืม
-                        index === 5 ? "w-32 text-left" : // วันที่คืน
-                        index === 6 ? "w-32 text-center" : // สถานะ
-                        index === 7 ? "w-32 text-center" : ""
+                        index === 1 ? "w-48 text-left" : // ผู้ยืม
+                        index === 2 ? "w-64 text-left" : // ครุภัณฑ์
+                        index === 3 ? "w-32 text-left" : // วันที่ยืม
+                        index === 4 ? "w-32 text-left" : // วันที่คืน
+                        index === 5 ? "w-32 text-center" : // สถานะ
+                        index === 6 ? "w-32 text-center" : ""
                       }`}
                     >
                       {head}
@@ -264,14 +218,23 @@ function Success() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredBorrows.length > 0 ? (
-                  filteredBorrows.map((borrow, index) => (
+                {paginatedBorrows.length > 0 ? (
+                  paginatedBorrows.map((borrow, idx) => (
+                    (console.log('DEBUG borrow.status:', borrow.status),
                     <tr key={borrow.borrow_id} className="hover:bg-gray-50">
-                      <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{borrow.borrow_code}</td>
                       <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{borrow.borrow_code}</td>
                       <td className="w-48 px-4 py-4 whitespace-nowrap text-left">
                         <div className="flex items-center gap-3">
-                          <Avatar src={borrow.borrower.avatar} alt={borrow.borrower.name} size="sm" className="bg-white shadow-sm rounded-full flex-shrink-0" />
+                          <Avatar
+                            src={borrow.borrower.avatar
+                              ? borrow.borrower.avatar.startsWith('http')
+                                ? borrow.borrower.avatar
+                                : `${UPLOAD_BASE}/uploads/user/${borrow.borrower.avatar}`
+                              : '/default-avatar.png'}
+                            alt={borrow.borrower.name}
+                            size="sm"
+                            className="bg-white shadow-sm rounded-full flex-shrink-0"
+                          />
                           <div className="overflow-hidden">
                             <Typography variant="small" className="font-semibold text-gray-900 truncate">
                               {borrow.borrower.name}
@@ -308,12 +271,10 @@ function Success() {
                           )}
                         </div>
                       </td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{borrow.borrow_date}</td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{borrow.return_date}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{formatDate(borrow.borrow_date)}</td>
+                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{formatDate(borrow.return_date)}</td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
-                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[borrow.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[borrow.status]?.borderColor || "border-gray-200"} text-${statusConfig[borrow.status]?.color || "gray"}-800`}>
-                          {statusConfig[borrow.status]?.label || "-"}
-                        </span>
+                        {getStatusBadge(borrow.status)}
                       </td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
                         <Tooltip content="ดูรายละเอียด" placement="top">
@@ -322,7 +283,7 @@ function Success() {
                           </IconButton>
                         </Tooltip>
                       </td>
-                    </tr>
+                    </tr>)
                   ))
                 ) : (
                   <tr>
@@ -345,13 +306,13 @@ function Success() {
         </CardBody>
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
           <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
-            แสดง {filteredBorrows.length > 0 ? '1' : '0'} ถึง {filteredBorrows.length} จากทั้งหมด {borrows.length} รายการ
+            แสดง {paginatedBorrows.length > 0 ? '1' : '0'} ถึง {paginatedBorrows.length} จากทั้งหมด {filteredBorrows.length} รายการ
           </Typography>
           <div className="flex gap-2">
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <Button variant="outlined" size="sm" className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case" onClick={() => setPage(page - 1)} disabled={page === 1}>
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <Button variant="outlined" size="sm" className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
               ถัดไป
             </Button>
           </div>
