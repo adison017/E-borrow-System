@@ -17,7 +17,8 @@ import {
   Typography
 } from "@material-tailwind/react";
 import { useEffect, useState } from "react";
-import Notification from "../../components/Notification";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { addCategory, deleteCategory, getCategories, updateCategory } from "../../utils/api";
 import AddCategoryDialog from "./dialog/AddCategoryDialog";
 import DeleteCategoryDialog from "./dialog/DeleteCategoryDialog";
@@ -45,11 +46,7 @@ function ManageCategory() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "success"
-  });
+  // ลบ state notification เดิม (ใช้ react-toastify แทน)
 
   const [editFormData, setEditFormData] = useState({
     category_id: "",
@@ -68,11 +65,46 @@ function ManageCategory() {
     getCategories().then(setCategoryList);
   }, []);
 
-  const showNotification = (message, type = "success") => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }));
-    }, 3000);
+  // ฟังก์ชันกลางสำหรับแจ้งเตือน (รวมคำอธิบาย)
+  const showNotification = (action, name = "") => {
+    let message = "";
+    let type = "success";
+    switch (action) {
+      case "add":
+        message = `เพิ่มหมวดหมู่${name ? ` ${name}` : ""} เรียบร้อยแล้ว`;
+        type = "success";
+        break;
+      case "edit":
+        message = `แก้ไขหมวดหมู่${name ? ` ${name}` : ""} เรียบร้อยแล้ว`;
+        type = "success";
+        break;
+      case "delete":
+        message = `ลบหมวดหมู่${name ? ` ${name}` : ""} เรียบร้อยแล้ว`;
+        type = "success";
+        break;
+      case "add_error":
+        message = "เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่";
+        type = "error";
+        break;
+      case "edit_error":
+        message = "เกิดข้อผิดพลาดในการแก้ไขหมวดหมู่";
+        type = "error";
+        break;
+      case "delete_error":
+        message = "เกิดข้อผิดพลาดในการลบหมวดหมู่";
+        type = "error";
+        break;
+      default:
+        message = action;
+        type = "info";
+    }
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast.info(message);
+    }
   };
 
   const handleDeleteClick = (category) => {
@@ -81,10 +113,12 @@ function ManageCategory() {
   };
 
   const confirmDelete = () => {
-    deleteCategory(selectedCategory.category_id).then(() => getCategories().then(setCategoryList));
+    deleteCategory(selectedCategory.category_id)
+      .then(() => getCategories().then(setCategoryList))
+      .then(() => showNotification("delete", selectedCategory.name))
+      .catch(() => showNotification("delete_error"));
     setDeleteDialogOpen(false);
     setSelectedCategory(null);
-    showNotification(`ลบหมวดหมู่ ${selectedCategory.name} เรียบร้อยแล้ว`);
   };
 
   const handleEditClick = (category) => {
@@ -106,9 +140,11 @@ function ManageCategory() {
   };
 
   const saveEdit = () => {
-    updateCategory(editFormData.category_id, editFormData).then(() => getCategories().then(setCategoryList));
+    updateCategory(editFormData.category_id, editFormData)
+      .then(() => getCategories().then(setCategoryList))
+      .then(() => showNotification("edit", editFormData.name))
+      .catch(() => showNotification("edit_error"));
     setEditDialogOpen(false);
-    showNotification(`แก้ไขหมวดหมู่ ${editFormData.name} เรียบร้อยแล้ว`);
   };
 
   const handleAddClick = () => {
@@ -129,15 +165,24 @@ function ManageCategory() {
   };
 
   const handleAddCategory = (data) => {
-    addCategory(data).then(() => getCategories().then(setCategoryList));
+    addCategory(data)
+      .then(() => getCategories().then(setCategoryList))
+      .then(() => showNotification("add", data.name))
+      .catch(() => showNotification("add_error"));
   };
 
   const handleEditCategory = (data) => {
-    updateCategory(data.category_id, data).then(() => getCategories().then(setCategoryList));
+    updateCategory(data.category_id, data)
+      .then(() => getCategories().then(setCategoryList))
+      .then(() => showNotification("edit", data.name))
+      .catch(() => showNotification("edit_error"));
   };
 
   const handleDeleteCategory = (category) => {
-    deleteCategory(category.category_id).then(() => getCategories().then(setCategoryList));
+    deleteCategory(category.category_id)
+      .then(() => getCategories().then(setCategoryList))
+      .then(() => showNotification("delete", category.name))
+      .catch(() => showNotification("delete_error"));
   };
 
   const filteredCategories = categoryList.filter(
@@ -270,12 +315,18 @@ function ManageCategory() {
             </Button>
           </div>
         </CardFooter>
-        {/* Notification Component */}
-        <Notification
-          show={notification.show}
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(prev => ({ ...prev, show: false }))}
+        {/* Notification Component (react-toastify) */}
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
         />
         {/* Delete Confirmation Modal */}
         <DeleteCategoryDialog

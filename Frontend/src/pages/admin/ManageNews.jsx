@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
 import { MdAddCircle, MdDelete, MdEdit } from 'react-icons/md';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import DeleteNewsDialog from './dialog/DeleteNewsDialog';
 import NewsFormDialog from './dialog/NewsFormDialog';
-import axios from 'axios';
 
 // Helper function to get category color
 const getCategoryColor = (category) => {
@@ -28,7 +30,52 @@ const ManageNews = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newsToDelete, setNewsToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // ลบ state error เดิม (ใช้ react-toastify แทน)
+  // ฟังก์ชันกลางสำหรับแจ้งเตือน (เหมือน borrowlist)
+  const notifyNewsAction = (action, extra) => {
+    let message = "";
+    let type = "info";
+    switch (action) {
+      case "add":
+        message = `เพิ่มข่าวใหม่เรียบร้อยแล้ว`;
+        type = "success";
+        break;
+      case "edit":
+        message = `แก้ไขข่าวเรียบร้อยแล้ว`;
+        type = "success";
+        break;
+      case "delete":
+        message = `ลบข่าวเรียบร้อยแล้ว`;
+        type = "success";
+        break;
+      case "add_error":
+        message = "เกิดข้อผิดพลาดในการเพิ่มข่าว";
+        type = "error";
+        break;
+      case "edit_error":
+        message = "เกิดข้อผิดพลาดในการแก้ไขข่าว";
+        type = "error";
+        break;
+      case "delete_error":
+        message = "เกิดข้อผิดพลาดในการลบข่าว";
+        type = "error";
+        break;
+      case "fetch_error":
+        message = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+        type = "error";
+        break;
+      default:
+        message = action;
+        type = "info";
+    }
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast.info(message);
+    }
+  };
 
   const [formData, setFormData] = useState({
     title: '',
@@ -47,7 +94,7 @@ const ManageNews = () => {
       setNewsItems(response.data);
       setLoading(false);
     } catch (err) {
-      setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      notifyNewsAction("fetch_error");
       setLoading(false);
     }
   };
@@ -87,8 +134,9 @@ const ManageNews = () => {
         setNewsItems(prevItems => prevItems.filter(item => item.id !== newsToDelete.id));
         setShowDeleteModal(false);
         setNewsToDelete(null);
+        notifyNewsAction("delete");
       } catch (err) {
-        setError('เกิดข้อผิดพลาดในการลบข่าว');
+        notifyNewsAction("delete_error");
       }
     }
   };
@@ -104,23 +152,41 @@ const ManageNews = () => {
             item.id === currentItem.id ? response.data : item
           )
         );
+        notifyNewsAction("edit");
       } else {
         // Add new item
         const response = await axios.post('http://localhost:5000/api/news', formData);
         setNewsItems(prevItems => [response.data, ...prevItems]);
+        notifyNewsAction("add");
       }
       setShowModal(false);
       setFormData({ title: '', content: '', category: 'ประกาศ' });
     } catch (err) {
-      setError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      if (isEditing) {
+        notifyNewsAction("edit_error");
+      } else {
+        notifyNewsAction("add_error");
+      }
     }
   };
 
   if (loading) return <div className="p-6">กำลังโหลด...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
     <div className="p-6 flex-grow text-black">
+      {/* Notification Component (react-toastify) */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">จัดการข่าวสาร</h1>
         <button
