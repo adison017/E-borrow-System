@@ -4,8 +4,8 @@ import {
 } from "@heroicons/react/24/outline";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
-import { Toaster, toast } from 'react-hot-toast';
-import Swal from "sweetalert2";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import {
   PencilIcon,
@@ -104,6 +104,40 @@ function ManageUser() {
   const [branches, setBranches] = useState([]);
   const [positions, setPositions] = useState([]);
 
+  // ฟังก์ชันรวมคำอธิบายแจ้งเตือน (เหมือน borrowlist/news)
+  const getUserNotifyMessage = (action, extra) => {
+    switch (action) {
+      case "add":
+        return { message: `เพิ่มผู้ใช้เรียบร้อยแล้ว`, type: "success" };
+      case "edit":
+        return { message: `แก้ไขข้อมูลผู้ใช้เรียบร้อยแล้ว`, type: "success" };
+      case "delete":
+        return { message: `ลบผู้ใช้${extra ? ` ${extra}` : ''} เรียบร้อยแล้ว`, type: "success" };
+      case "add_error":
+        return { message: "เกิดข้อผิดพลาดในการเพิ่มผู้ใช้", type: "error" };
+      case "edit_error":
+        return { message: "เกิดข้อผิดพลาดในการแก้ไขข้อมูลผู้ใช้", type: "error" };
+      case "delete_error":
+        return { message: "เกิดข้อผิดพลาดในการลบผู้ใช้", type: "error" };
+      case "fetch_error":
+        return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้งาน", type: "error" };
+      default:
+        return { message: action, type: "info" };
+    }
+  };
+
+  // ฟังก์ชันกลางสำหรับแจ้งเตือน
+  const notifyUserAction = (action, extra) => {
+    const { message, type } = getUserNotifyMessage(action, extra);
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast.info(message);
+    }
+  };
+
   // Function to fetch users
   const fetchUsers = async () => {
     try {
@@ -114,7 +148,7 @@ function ManageUser() {
       setUserList(data);
     } catch (error) {
       console.error('Error fetching users:', error);
-      showAlertMessage('เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้งาน', 'error');
+      notifyUserAction('fetch_error');
     } finally {
       setIsLoading(false);
     }
@@ -188,10 +222,10 @@ function ManageUser() {
       setUserList(prevList => prevList.filter(item => item.user_id !== selectedUser.user_id));
       setDeleteDialogOpen(false);
       setSelectedUser(null);
-      showAlertMessage(`ลบผู้ใช้ ${selectedUser.Fullname} เรียบร้อยแล้ว`, "success");
+      notifyUserAction("delete", selectedUser.Fullname);
     } catch (error) {
       console.error('Error deleting user:', error);
-      showAlertMessage('เกิดข้อผิดพลาดในการลบผู้ใช้งาน', 'error');
+      notifyUserAction('delete_error');
     }
   };
 
@@ -232,7 +266,7 @@ function ManageUser() {
     );
     setEditDialogOpen(false);
     setSelectedUser(null);
-    showAlertMessage('อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว', 'success');
+    notifyUserAction('edit');
   };
 
   const handleEditChange = (e) => {
@@ -275,19 +309,14 @@ function ManageUser() {
       const response = await axios.get('http://localhost:5000/users');
       if (response.data) {
         setUserList(response.data);
-        console.log('User list updated successfully');
+        notifyUserAction('add');
       } else {
+        notifyUserAction('add_error');
         throw new Error('ไม่ได้รับข้อมูลผู้ใช้งานจาก server');
       }
     } catch (error) {
       console.error('Error in handleAddUser:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด',
-        text: 'ไม่สามารถอัพเดทรายการผู้ใช้งานได้',
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#3085d6'
-      });
+      notifyUserAction('add_error');
     }
   };
 
@@ -312,8 +341,17 @@ function ManageUser() {
 
   return (
     <ThemeProvider value={theme}>
-      <Toaster position="bottom-right"
-      reverseOrder={false}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
       />
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
         <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-2">

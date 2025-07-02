@@ -13,8 +13,9 @@ import { useEffect, useState } from "react";
 import { getAllBorrows } from "../../utils/api";
 
 // Components
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import Notification from "../../components/Notification";
 import BorrowDetailsDialog from "./dialog/BorrowDetailsDialog";
 
 import {
@@ -108,11 +109,7 @@ const BorrowList = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedBorrow, setSelectedBorrow] = useState(null);
   const [selectedBorrowId, setSelectedBorrowId] = useState(null);
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "success"
-  });
+  // ลบ state notification เดิม (ใช้ react-toastify แทน)
 
   useEffect(() => {
     getAllBorrows()
@@ -129,11 +126,34 @@ const BorrowList = () => {
       });
   }, []);
 
-  const showNotification = (message, type) => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }));
-    }, 5000);
+  // ฟังก์ชันกลางสำหรับแจ้งเตือน
+  const notifyBorrowAction = (action, extra) => {
+    let message = "";
+    let type = "info";
+    switch (action) {
+      case "approve":
+        message = "ส่งคำขอยืมไปยังผู้บริหารเพื่ออนุมัติเรียบร้อยแล้ว";
+        type = "success";
+        break;
+      case "reject":
+        message = `ไม่อนุมัติคำขอยืมเรียบร้อยแล้ว${extra ? `เหตุผล: ${extra}` : ""}`;
+        type = "error";
+        break;
+      case "review":
+        message = "ส่งคำขอยืมไปยังผู้บริหารเพื่ออนุมัติเรียบร้อยแล้ว";
+        type = "success";
+        break;
+      default:
+        message = extra || "ดำเนินการสำเร็จ";
+        type = "info";
+    }
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast(message);
+    }
   };
 
   const handleSearch = (e) => setSearchTerm(e.target.value);
@@ -145,7 +165,7 @@ const BorrowList = () => {
     );
     setBorrows(updatedBorrows);
     setIsConfirmOpen(false);
-    showNotification("ส่งคำขอยืมไปยังผู้บริหารเพื่ออนุมัติเรียบร้อยแล้ว", "success");
+    notifyBorrowAction("review");
   };
   const handleApproveDetails = () => {
     if (selectedBorrow) {
@@ -153,7 +173,7 @@ const BorrowList = () => {
         item.borrow_id === selectedBorrow.borrow_id ? { ...item, status: "pending_approval" } : item
       );
       setBorrows(updatedBorrows);
-      showNotification("ส่งคำขอยืมไปยังผู้บริหารเพื่ออนุมัติเรียบร้อยแล้ว", "success");
+      notifyBorrowAction("approve");
       return Promise.resolve();
     }
     return Promise.reject();
@@ -166,7 +186,7 @@ const BorrowList = () => {
           : item
       );
       setBorrows(updatedBorrows);
-      showNotification(`ไม่อนุมัติคำขอยืมเรียบร้อยแล้ว - เหตุผล: ${reason}`, "error");
+      notifyBorrowAction("reject", reason);
     }
   };
 
@@ -211,11 +231,17 @@ const BorrowList = () => {
   return (
     <ThemeProvider value={theme}>
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
-        <Notification
-          show={notification.show}
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(prev => ({ ...prev, show: false }))}
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
         />
         <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-6">
           <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
