@@ -202,23 +202,31 @@ export default function RepairApprovalDialog({
     try {
       console.log('Preparing approval payload for request ID:', normalizedRepairRequest.requestId);
 
-      // Prepare payload for approval
-      const payload = {
-        requester_name: normalizedRepairRequest.requester_name,
-        equipment_name: normalizedRepairRequest.equipment_name,
-        equipment_code: normalizedRepairRequest.equipment_code,
-        equipment_category: normalizedRepairRequest.equipment_category,
-        problem_description: normalizedRepairRequest.problem_description,
-        request_date: normalizedRepairRequest.request_date,
-        estimated_cost: budgetApproved,
-        status: "approved",
-        pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
-        note: notes,
-        budget: budgetApproved,
-        responsible_person: assignedToName,
-        approval_date: new Date().toISOString(),
-        images: normalizedRepairRequest.repair_pic || []
-      };
+    // Format request_date to MySQL DATETIME (YYYY-MM-DD HH:MM:SS)
+    let formattedRequestDate = normalizedRepairRequest.request_date;
+    if (formattedRequestDate) {
+      const d = new Date(formattedRequestDate);
+      if (!isNaN(d)) {
+        formattedRequestDate = d.toISOString().slice(0, 19).replace('T', ' ');
+      }
+    }
+    // Prepare payload for approval
+    const payload = {
+      requester_name: normalizedRepairRequest.requester_name,
+      equipment_name: normalizedRepairRequest.equipment_name,
+      equipment_code: normalizedRepairRequest.equipment_code,
+      equipment_category: normalizedRepairRequest.equipment_category,
+      problem_description: normalizedRepairRequest.problem_description,
+      request_date: formattedRequestDate,
+      estimated_cost: budgetApproved,
+      status: "approved",
+      pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
+      note: notes,
+      budget: budgetApproved,
+      responsible_person: assignedToName,
+      approval_date: new Date().toISOString(),
+      images: normalizedRepairRequest.repair_pic || []
+    };
 
       console.log('Approval payload:', payload);
 
@@ -288,23 +296,31 @@ export default function RepairApprovalDialog({
     try {
       console.log('Preparing rejection payload for request ID:', normalizedRepairRequest.requestId);
 
-      // Prepare payload for rejection
-      const payload = {
-        requester_name: normalizedRepairRequest.requester_name,
-        equipment_name: normalizedRepairRequest.equipment_name,
-        equipment_code: normalizedRepairRequest.equipment_code,
-        equipment_category: normalizedRepairRequest.equipment_category,
-        problem_description: normalizedRepairRequest.problem_description,
-        request_date: normalizedRepairRequest.request_date,
-        estimated_cost: normalizedRepairRequest.estimated_cost,
-        status: "rejected",
-        pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
-        note: rejectReason ? `${rejectReason} ${notes}` : notes,
-        budget: normalizedRepairRequest.estimated_cost,
-        responsible_person: assignedToName,
-        approval_date: new Date().toISOString(),
-        images: normalizedRepairRequest.repair_pic || []
-      };
+    // Format request_date to MySQL DATETIME (YYYY-MM-DD HH:MM:SS)
+    let formattedRequestDate = normalizedRepairRequest.request_date;
+    if (formattedRequestDate) {
+      const d = new Date(formattedRequestDate);
+      if (!isNaN(d)) {
+        formattedRequestDate = d.toISOString().slice(0, 19).replace('T', ' ');
+      }
+    }
+    // Prepare payload for rejection
+    const payload = {
+      requester_name: normalizedRepairRequest.requester_name,
+      equipment_name: normalizedRepairRequest.equipment_name,
+      equipment_code: normalizedRepairRequest.equipment_code,
+      equipment_category: normalizedRepairRequest.equipment_category,
+      problem_description: normalizedRepairRequest.problem_description,
+      request_date: formattedRequestDate,
+      estimated_cost: normalizedRepairRequest.estimated_cost,
+      status: "rejected",
+      pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
+      note: rejectReason ? `${rejectReason} ${notes}` : notes,
+      budget: normalizedRepairRequest.estimated_cost,
+      responsible_person: assignedToName,
+      approval_date: new Date().toISOString(),
+      images: normalizedRepairRequest.repair_pic || []
+    };
 
       console.log('Rejection payload:', payload);
 
@@ -451,7 +467,7 @@ export default function RepairApprovalDialog({
 
           {/* รูปภาพความเสียหาย */}
           {repairImages.length > 0 ? (
-            <div className="shadow-sm p-4 rounded-2xl bg-blue-50 transition-colors">
+            <div className="shadow-sm p-4 rounded-2xl bg-gray-100/50 transition-colors">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-medium flex items-center gap-2">
                   <FaImage className="text-gray-600" />
@@ -548,7 +564,7 @@ export default function RepairApprovalDialog({
                   <BsFillCalendarDateFill size={16} className="text-white" />
                   <span className="px-2 text-sm "> วันที่แจ้ง </span>
                 </div>
-                <span className="text-sm font-bold text-white">
+                <span className="text-sm font-bold text-black bg-blue-100 rounded-lg px-2 py-0.5">
                   {new Date(repairRequest.request_date).toLocaleDateString('th-TH')}
                 </span>
               </div>
@@ -557,7 +573,7 @@ export default function RepairApprovalDialog({
                   <RiCoinsFill size={16} className="text-white" />
                   <span className="px-2 text-sm"> ค่าใช้จ่ายประมาณ </span>
                 </div>
-                <span className="text-sm font-bold text-white">
+                <span className="text-sm font-bold text-black bg-blue-100 rounded-lg px-2 py-0.5">
                   {Number(repairRequest.estimated_cost).toLocaleString()} บาท
                 </span>
               </div>
@@ -566,7 +582,7 @@ export default function RepairApprovalDialog({
 
           {/* การดำเนินการ */}
           {(repairRequest.status === 'รออนุมัติซ่อม' || !repairRequest.status || repairRequest.status === 'pending') && (
-            <div className="shadow-lg p-4 rounded-2xl transition-colors">
+            <div className="shadow-sm bg-gray-100/50 p-3 rounded-2xl transition-colors">
               <h4 className="font-medium mb-3 flex items-center gap-2 text-gray-600">
                 <MdAssignment />
                 การดำเนินการ
