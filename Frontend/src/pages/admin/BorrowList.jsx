@@ -1,5 +1,4 @@
 import {
-  CheckCircleIcon,
   ClockIcon,
   FunnelIcon,
   MagnifyingGlassIcon
@@ -319,22 +318,22 @@ const BorrowList = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">รหัสการยืม</th>
-                  <th className="w-48 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ผู้ยืม</th>
-                  <th className="w-64 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ครุภัณฑ์</th>
-                  <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วันที่ยืม</th>
-                  <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">กำหนดคืน</th>
-                  <th className="w-56 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วัตถุประสงค์</th>
-                  <th className="w-32 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
-                  <th className="w-32 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">จัดการ</th>
+                  <th className="w-28 px-3 py-2 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">รหัสการยืม</th>
+                  <th className="w-40 px-3 py-2 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ผู้ยืม</th>
+                  <th className="w-56 px-3 py-2 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ครุภัณฑ์</th>
+                  <th className="w-28 px-3 py-2 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วันที่ยืม</th>
+                  <th className="w-28 px-3 py-2 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">กำหนดคืน</th>
+                  <th className="w-40 px-3 py-2 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วัตถุประสงค์</th>
+                  <th className="w-28 px-3 py-2 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
+                  <th className="w-28 px-3 py-2 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredBorrows.length > 0 ? (
                   filteredBorrows.map((item, index) => (
                     <tr key={item.borrow_id} className="hover:bg-gray-50">
-                      <td className="w-32 px-4 py-4 whitespace-nowrap font-bold text-gray-900">{item.borrow_code}</td>
-                      <td className="w-48 px-4 py-4 whitespace-nowrap">
+                      <td className="w-28 px-3 py-3 whitespace-nowrap font-bold text-gray-900">{item.borrow_code}</td>
+                      <td className="w-40 px-3 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <Avatar
                             src={item.borrower.avatar?.startsWith('http') ? item.borrower.avatar : `${API_BASE}/uploads/user/${item.borrower.avatar}`}
@@ -353,7 +352,7 @@ const BorrowList = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="w-64 px-4 py-4 whitespace-normal">
+                      <td className="w-56 px-3 py-3 whitespace-normal">
                         <div className="space-y-1 overflow-hidden">
                           {Array.isArray(item.equipment) && item.equipment.length > 0 ? (
                             <>
@@ -376,24 +375,26 @@ const BorrowList = () => {
                           )}
                         </div>
                       </td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900">{formatDate(item.borrow_date)}</td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900">{formatDate(item.due_date)}</td>
-                      <td className="w-56 px-4 py-4 whitespace-normal break-words text-xs text-gray-700">
-                        <Typography variant="small" className="text-xs text-gray-700 whitespace-pre-line break-words">
+                      <td className="w-28 px-3 py-3 whitespace-nowrap text-gray-900">{formatDate(item.borrow_date)}</td>
+                      <td className="w-28 px-3 py-3 whitespace-nowrap text-gray-900">{formatDate(item.due_date)}</td>
+                      <td className="w-40 px-3 py-3 whitespace-normal break-words text-xs text-gray-700">
+                        <Typography variant="small" className="text-xs text-gray-700 whitespace-pre-line break-words bg-gray-100 rounded-full p-2">
                           {item.purpose}
                         </Typography>
                       </td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center justify-center flex">
-                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
-                          {statusConfig[item.status]?.label || "-"}
-                        </span>
+                      <td className="w-28 px-3 py-3 whitespace-nowrap text-center align-middle">
+                        <div className="flex items-center justify-center h-full">
+                          <span className={`px-3 py-1 inline-flex justify-center items-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
+                            {statusConfig[item.status]?.label || "-"}
+                          </span>
+                        </div>
                       </td>
-                      <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
+                      <td className="w-28 px-3 py-3 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-center gap-2">
                           {item.status === "pending" && (
                             <Tooltip content="ตรวจสอบข้อมูล" placement="top">
-                              <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
-                                <CheckCircleIcon className="h-5 w-5" />
+                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
+                                <CheckCircleSolidIcon className="h-6 w-6" />
                               </IconButton>
                             </Tooltip>
                           )}

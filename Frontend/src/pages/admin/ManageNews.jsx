@@ -191,7 +191,7 @@ const ManageNews = () => {
         <h1 className="text-3xl font-bold">จัดการข่าวสาร</h1>
         <button
           onClick={handleAddNew}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center transition duration-150 ease-in-out"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full flex items-center transition duration-150 ease-in-out"
         >
           <MdAddCircle className="mr-2" size={20} />
           เพิ่มข่าวใหม่
@@ -206,17 +206,17 @@ const ManageNews = () => {
           newsItems.map((item) => (
             <div
               key={item.id}
-              className="bg-white p-6 rounded-lg shadow-md"
+              className="bg-blue-100/20 p-6 rounded-4xl shadow-md"
             >
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <span className={`text-xs font-semibold p-3 rounded-full ${getCategoryColor(item.category)}`}>
+                  <span className={`text-xs font-semibold p-2 rounded-full ${getCategoryColor(item.category)}`}>
                     {item.category}
                   </span>
-                  <h2 className="text-2xl font-semibold text-blue-600 mt-4">{item.title}</h2>
-                  <p className="text-sm text-gray-500">เผยแพร่เมื่อ: {new Date(item.date).toLocaleDateString('th-TH')}</p>
+                  <h2 className="ml-2 text-2xl font-semibold text-blue-600 mt-4">{item.title}</h2>
+                  <p className="ml-2  text-sm text-gray-500">เผยแพร่เมื่อ: {new Date(item.date).toLocaleDateString('th-TH')}</p>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 ">
                   <button
                     onClick={() => handleEdit(item)}
                     className="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-100 transition duration-150"
@@ -233,7 +233,7 @@ const ManageNews = () => {
                   </button>
                 </div>
               </div>
-              <p className="text-gray-700 leading-relaxed mt-3">{item.content}</p>
+              <p className="text-gray-700 leading-relaxed mt-3 ml-2 ">{item.content}</p>
             </div>
           ))
         )}
