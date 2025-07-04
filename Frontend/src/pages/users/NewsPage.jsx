@@ -112,7 +112,7 @@ const NewsPage = () => {
           newsItems.map((item) => (
             <motion.div
               key={item.id}
-              className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow"
+              className="bg-blue-100/20 p-6 rounded-4xl shadow-md hover:shadow-xl transition-shadow"
               variants={itemVariants}
               whileHover={{ scale: 1.02 }}
             >
