@@ -6,23 +6,25 @@ import {
   MagnifyingGlassIcon,
   XCircleIcon
 } from "@heroicons/react/24/outline";
+import axios from "axios";
 import { useEffect, useState } from "react";
 import { BiSearchAlt2 } from "react-icons/bi";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
 
-export default function RepairApprovalList() {
+export default function HistoryRepair() {
   const [repairRequests, setRepairRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState(["inprogress", "rejected", "completed"]);
+  const [statusFilter, setStatusFilter] = useState(["inprogress", "rejected", "completed"]); // default: show all 3
   const [notification, setNotification] = useState({
     show: false,
     message: "",
     type: "success"
   });
+  // ...existing code...
 
   // สถานะของคำขอซ่อม
   const statusOptions = [
@@ -56,153 +58,41 @@ export default function RepairApprovalList() {
   };
 
   useEffect(() => {
-    // ข้อมูลตัวอย่าง - ในโปรเจ็กต์จริงควรดึงจาก API
-    const mockData = [
-      {
-        requestId: "REP-2025-0001",
-        equipment: {
-          id: "EQP-001",
-          code: "MN-001",
-          name: "เครื่องคอมพิวเตอร์ Dell",
-          category: "อุปกรณ์คอมพิวเตอร์",
-          image: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
-        },
-        requester: {
-          id: "USR-001",
-          name: "ชัยวัฒน์ มีสุข",
-          department: "แผนกไอที",
-          avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-        },
-        description: "เครื่องคอมพิวเตอร์เปิดไม่ติด หน้าจอขึ้นข้อความ Error Code 0x0000098",
-        status: "pending",
-        requestDate: "2025-05-01",
-        estimatedCost: 2500,
-        priority: "medium",
-        images: [
-          "https://media.istockphoto.com/id/1458149697/photo/pc-error-on-blue-screen-hardware-problem-during-windows-installation-close-up.jpg?s=1024x1024&w=is&k=20&c=1Uc7-VHUo8G4Q08XJjvIlWCYCDI9NMlwK1wn2QAEhak="
-        ]
-      },
-      {
-        requestId: "REP-2025-0002",
-        equipment: {
-          id: "EQP-002",
-          code: "PR-005",
-          name: "เครื่องพิมพ์ HP LaserJet",
-          category: "อุปกรณ์สำนักงาน",
-          image: "https://cdn-icons-png.flaticon.com/512/4299/4299443.png"
-        },
-        requester: {
-          id: "USR-002",
-          name: "สุดารัตน์ แสงทอง",
-          department: "แผนกบัญชี",
-          avatar: "https://randomuser.me/api/portraits/women/44.jpg"
-        },
-        description: "เครื่องพิมพ์มีเสียงดังผิดปกติเวลาพิมพ์งาน และกระดาษติดบ่อยมาก",
-        status: "pending",
-        requestDate: "2025-05-03",
-        estimatedCost: 1200,
-        priority: "low",
-        images: [
-          "https://media.istockphoto.com/id/1340549421/photo/multifunction-printer-or-copy-machine-with-paper-jam-error-in-office.jpg?s=1024x1024&w=is&k=20&c=5AZ5MXRNGrVDv8rGSUKbkfmFiYQcxk8zNIZGXkVHuQA="
-        ]
-      },
-      {
-        requestId: "REP-2025-0003",
-        equipment: {
-          id: "EQP-003",
-          code: "AC-010",
-          name: "เครื่องปรับอากาศ Mitsubishi",
-          category: "เครื่องใช้ไฟฟ้า",
-          image: "https://cdn-icons-png.flaticon.com/512/1530/1530297.png"
-        },
-        requester: {
-          id: "USR-003",
-          name: "วิชัย รักเรียน",
-          department: "แผนกทรัพยากรบุคคล",
-          avatar: "https://randomuser.me/api/portraits/men/67.jpg"
-        },
-        description: "แอร์ไม่เย็น มีน้ำหยดจากเครื่อง และมีกลิ่นอับชื้นเวลาเปิดเครื่อง",
-        status: "approved",
-        requestDate: "2025-04-28",
-        estimatedCost: 4500,
-        approvalDate: "2025-04-29",
-        assignedTo: "ช่างวิชัย",
-        budgetApproved: 5000,
-        priority: "high",
-        images: [
-          "https://media.istockphoto.com/id/521811168/photo/air-conditioner-with-water-leaking.jpg?s=1024x1024&w=is&k=20&c=vZPBSxeB4x9lsEhAQUjVVVw2HEOKiEw_vPzzzq73k0k="
-        ]
-      },
-      {
-        requestId: "REP-2025-0004",
-        equipment: {
-          id: "EQP-004",
-          code: "NET-007",
-          name: "อุปกรณ์กระจายสัญญาณ",
-          category: "อุปกรณ์เครือข่าย",
-          image: "https://cdn-icons-png.flaticon.com/512/2329/2329087.png"
-        },
-        requester: {
-          id: "USR-001",
-          name: "ชัยวัฒน์ มีสุข",
-          department: "แผนกไอที",
-          avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-        },
-        description: "อุปกรณ์กระจายสัญญาณ Switch ชั้น 2 ทำงานไม่เสถียร สัญญาณขาดหายเป็นช่วงๆ",
-        status: "inprogress",
-        requestDate: "2025-04-25",
-        estimatedCost: 8500,
-        approvalDate: "2025-04-26",
-        assignedTo: "ทีมเน็ตเวิร์ค",
-        budgetApproved: 9000,
-        priority: "urgent",
-        estimatedCompletionDate: "2025-05-10",
-        images: [
-          "https://media.istockphoto.com/id/1333772625/photo/internet-router-with-ethernet-cables-connected-networking-equipment-with-blinking-lights.jpg?s=1024x1024&w=is&k=20&c=UNkRMrm0HkiBHXRZSEiYwdxufTM5Bkz5ftGXwQqxh2E="
-        ]
-      },
-      {
-        requestId: "REP-2025-0005",
-        equipment: {
-          id: "EQP-005",
-          code: "FUR-023",
-          name: "โต๊ะประชุม",
-          category: "เฟอร์นิเจอร์",
-          image: "https://cdn-icons-png.flaticon.com/512/7798/7798347.png"
-        },
-        requester: {
-          id: "USR-004",
-          name: "มานะ ใจดี",
-          department: "แผนกบริหาร",
-          avatar: "https://randomuser.me/api/portraits/men/45.jpg"
-        },
-        description: "โต๊ะประชุมห้องประชุมใหญ่มีรอยแตกที่ขอบโต๊ะ และขาโต๊ะไม่มั่นคง",
-        status: "rejected",
-        requestDate: "2025-04-30",
-        estimatedCost: 12000,
-        approvalDate: "2025-05-02",
-        approvalNotes: "งบประมาณจำกัด ให้ใช้โต๊ะสำรองไปก่อน",
-        priority: "low",
-        images: [
-          "https://media.istockphoto.com/id/1213066789/photo/broken-wooden-table-with-cracks.jpg?s=1024x1024&w=is&k=20&c=d5-I4W5Sfk9BRoFBlPyP7XU9O79oNgkKLbgrxMGZzSE="
-        ]
+    // ดึงข้อมูลจาก API ทั้งหมด (เหมือน RepairApprovalList)
+    const fetchRepairRequests = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get('http://localhost:5000/api/repair-requests');
+        // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component (เหมือน RepairApprovalList)
+        const formattedData = response.data.map(request => ({
+          requestId: request.id?.toString() || request.repair_code || "",
+          equipment: {
+            id: request.equipment_id,
+            code: request.equipment_code,
+            name: request.equipment_name,
+            category: request.equipment_category,
+            image: request.equipment_pic ? `http://localhost:5000/uploads/${request.equipment_pic}` : "/placeholder-equipment.png"
+          },
+          requester: {
+            id: request.requester_id,
+            name: request.requester_name,
+            department: request.branch_name,
+            avatar: request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png"
+          },
+          description: request.problem_description,
+          status: request.status === "approved" ? "inprogress" : request.status, // map approved => inprogress
+          requestDate: request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : "-",
+          estimatedCost: request.estimated_cost,
+          images: request.repair_pic ? request.repair_pic.split(",") : [],
+        }));
+        setRepairRequests(formattedData);
+      } catch (err) {
+        setRepairRequests([]);
+      } finally {
+        setLoading(false);
       }
-    ];
-
-    // Calculate counts for each status
-    const counts = mockData.reduce((acc, request) => {
-      acc[request.status] = (acc[request.status] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Update status options with counts
-    const updatedOptions = statusOptions.map(option => ({
-      ...option,
-      count: counts[option.value] || 0
-    }));
-
-    setRepairRequests(mockData);
-    setLoading(false);
+    };
+    fetchRepairRequests();
   }, []);
 
   const handleOpenDialog = (request) => {
