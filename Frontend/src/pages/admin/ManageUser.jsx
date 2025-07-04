@@ -565,13 +565,13 @@ function ManageUser() {
                         setViewDialogOpen(true);
                       }}>
                         <td className="px-6 py-4 whitespace-nowrap text-md font-bold text-gray-900">{user_code}</td>
-                        <td className="px-6 py-3 w-full h-full whitespace-nowrap">
+                        <td className="px-6 py-4 w-full h-full whitespace-nowrap">
                           <div className="flex items-center justify-center object-cover">
                             <Avatar
                               src={avatar ? `http://localhost:5000/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
                               alt={Fullname}
                               size="md"
-                              className="rounded-full w-15 h-15 object-cover"
+                              className="rounded-full w-13 h-13 object-cover"
                             />
                           </div>
                         </td>

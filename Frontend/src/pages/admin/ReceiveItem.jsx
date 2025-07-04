@@ -1,14 +1,13 @@
 import {
-  EyeIcon,
   MagnifyingGlassIcon,
   QrCodeIcon
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 
 import {
+  CheckCircleIcon,
   CheckCircleIcon as CheckCircleSolidIcon,
-  ClockIcon,
-  CheckCircleIcon
+  ClockIcon
 } from "@heroicons/react/24/solid";
 
 import {
@@ -308,8 +307,8 @@ const ReceiveItem = () => {
                   <th className="w-64 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ครุภัณฑ์</th>
                   <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วันที่ยืม</th>
                   <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">กำหนดส่งคืน</th>
-                  <th className="w-56 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วัตถุประสงค์</th>
-                  <th className="w-20 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
+                  <th className="w-44 max-w-xs px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วัตถุประสงค์</th>
+                  <th className="w-20 px-4 py-3 text-center align-middle text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
                   <th className="w-32 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">จัดการ</th>
                 </tr>
               </thead>
@@ -361,21 +360,23 @@ const ReceiveItem = () => {
                       </td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date ? item.borrow_date.slice(0, 10) : "-"}</td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date ? item.due_date.slice(0, 10) : "-"}</td>
-                      <td className="w-56 px-4 py-4 whitespace-nowrap truncate text-gray-900 text-left">
-                        <Typography variant="small" className="text-xs text-gray-700 whitespace-pre-line break-words">
-                          {item.purpose}
+                      <td className="w-44 max-w-xs px-4 py-4 whitespace-nowrap text-gray-900 text-left overflow-hidden">
+                        <Typography variant="small" className="bg-gray-100 p-2 rounded-2xl text-xs text-gray-700 whitespace-pre-line break-words overflow-hidden text-ellipsis max-w-xs block">
+                            {item.purpose}
                         </Typography>
                       </td>
-                      <td className="w-20 px-4 py-4 whitespace-nowrap text-center">
-                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
-                          {statusConfig[item.status]?.label || "-"}
-                        </span>
+                      <td className="w-20 px-4 py-4 whitespace-nowrap text-center align-middle">
+                        <div className="flex items-center justify-center h-full">
+                          <span className={`px-3 py-1 inline-flex justify-center items-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
+                            {statusConfig[item.status]?.label || "-"}
+                          </span>
+                        </div>
                       </td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-center gap-2">
                           <Tooltip content="ดูรายละเอียด" placement="top">
-                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
-                              <CheckCircleIcon className="h-4 w-4" />
+                            <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
+                              <CheckCircleSolidIcon className="h-6 w-6" />
                             </IconButton>
                           </Tooltip>
                           {/* ปุ่มยกเลิกการยืมถูกลบตามคำขอ */}
@@ -420,7 +421,7 @@ const ReceiveItem = () => {
           isOpen={isScannerOpen}
           onClose={() => setIsScannerOpen(false)}
           onScanComplete={handleScanComplete}
-          onManualSearch={handleManualSearch}
+          onManualInput={handleManualSearch}
         />
         {/* Dialog for delivery */}
         <EquipmentDeliveryDialog

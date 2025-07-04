@@ -2,219 +2,78 @@ import {
   CheckCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  FunnelIcon,
   MagnifyingGlassIcon,
   XCircleIcon
 } from "@heroicons/react/24/outline";
+import { BsFillFilterCircleFill } from "react-icons/bs";
+
 import { useEffect, useState } from "react";
 import { BiSearchAlt2 } from "react-icons/bi";
+import { UPLOAD_BASE } from '../../utils/api';
 import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
 
-export default function BorrowApprovalList() {
+export default function HistoryBorrow() {
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState(["returned" , "rejected" , "borrowing"]);
+  // Default: show all statuses
+  const [statusFilter, setStatusFilter] = useState(["approved", "rejected", "completed", "waiting_payment"]);
   const [notification, setNotification] = useState({
     show: false,
     message: "",
     type: "success"
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 5;
+  // ...existing code...
 
-  // สถานะของคำขอยืม
+  // นับจำนวนแต่ละสถานะจากข้อมูลจริง
+  const statusCounts = borrowRequests.reduce((acc, request) => {
+    if (acc[request.status] === undefined) acc[request.status] = 0;
+    acc[request.status]++;
+    return acc;
+  }, {});
+
+  // สถานะของคำขอยืม (พร้อม count จริง)
   const statusOptions = [
-    { value: "rejected", label: "ปฏิเสธ", count: 0 },
-    { value: "borrowing", label: "กำลังยืม", count: 0 },
-    { value: "returned", label: "คืนแล้ว", count: 0 }
+    { value: "approved", label: "ถูกยืม", count: statusCounts["approved"] || 0 },
+    { value: "rejected", label: "ปฏิเสธ", count: statusCounts["rejected"] || 0 },
+    { value: "completed", label: "คืนแล้ว", count: statusCounts["completed"] || 0 },
+    { value: "waiting_payment", label: "ค้างชำระ", count: statusCounts["waiting_payment"] || 0 }
   ];
 
   const statusBadgeStyle = {
-    pending: "bg-yellow-50 text-yellow-800 border-yellow-200",
-    approved: "bg-green-50 text-green-800 border-green-200",
+    approved: "bg-blue-50 text-blue-800 border-blue-200",
     rejected: "bg-red-50 text-red-800 border-red-200",
-    borrowing: "bg-blue-50 text-blue-800 border-blue-200",
-    returned: "bg-purple-50 text-purple-800 border-purple-200"
+    completed: "bg-green-50 text-green-800 border-green-200",
+    waiting_payment: "bg-yellow-50 text-yellow-800 border-yellow-200"
   };
 
-  const statusIconStyle = {
-    pending: "text-yellow-500",
-    approved: "text-green-500",
-    rejected: "text-red-500",
-    borrowing: "text-blue-500",
-    returned: "text-purple-500"
-  };
 
   const statusTranslation = {
-    pending: "รอการอนุมัติ",
-    approved: "อนุมัติแล้ว",
+    approved: "ถูกยืม",
     rejected: "ปฏิเสธ",
-    borrowing: "กำลังยืม",
-    returned: "คืนแล้ว"
+    completed: "คืนแล้ว",
+    waiting_payment: "ค้างชำระ"
   };
 
   useEffect(() => {
-    // ข้อมูลตัวอย่าง - ในโปรเจ็กต์จริงควรดึงจาก API
-    const mockData = [
-      {
-        borrowId: "BOR-2025-0001",
-        equipment: {
-          id: "EQP-001",
-          code: "LT-001",
-          name: "โน๊ตบุ๊ค Dell XPS 15",
-          category: "อุปกรณ์คอมพิวเตอร์",
-          image: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
-        },
-        requester: {
-          id: "USR-001",
-          name: "ชัยวัฒน์ มีสุข",
-          department: "แผนกไอที",
-          avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-        },
-        purpose: "ใช้งานนอกสถานที่สำหรับงานประชุมที่ต่างจังหวัด",
-        status: "pending",
-        requestDate: "2025-05-01",
-        borrowDate: "2025-05-05",
-        dueDate: "2025-05-12",
-        priority: "medium"
-      },
-      {
-        borrowId: "BOR-2025-0002",
-        equipment: {
-          id: "EQP-002",
-          code: "PR-005",
-          name: "เครื่องพิมพ์ HP LaserJet",
-          category: "อุปกรณ์สำนักงาน",
-          image: "https://cdn-icons-png.flaticon.com/512/4299/4299443.png"
-        },
-        requester: {
-          id: "USR-002",
-          name: "สุดารัตน์ แสงทอง",
-          department: "แผนกบัญชี",
-          avatar: "https://randomuser.me/api/portraits/women/44.jpg"
-        },
-        purpose: "พิมพ์เอกสารสำคัญในงานประชุม",
-        status: "pending",
-        requestDate: "2025-05-03",
-        borrowDate: "2025-05-06",
-        dueDate: "2025-05-09",
-        priority: "low"
-      },
-      {
-        borrowId: "BOR-2025-0003",
-        equipment: {
-          id: "EQP-003",
-          code: "PJ-010",
-          name: "โปรเจคเตอร์ Epson",
-          category: "อุปกรณ์การประชุม",
-          image: "https://cdn-icons-png.flaticon.com/512/3474/3474348.png"
-        },
-        requester: {
-          id: "USR-003",
-          name: "วิชัย รักเรียน",
-          department: "แผนกทรัพยากรบุคคล",
-          avatar: "https://randomuser.me/api/portraits/men/67.jpg"
-        },
-        purpose: "ใช้นำเสนองานในการประชุมผู้บริหาร",
-        status: "approved",
-        requestDate: "2025-04-28",
-        borrowDate: "2025-05-02",
-        dueDate: "2025-05-03",
-        approvalDate: "2025-04-29",
-        approvalNotes: "อนุมัติตามคำขอ",
-        priority: "high"
-      },
-      {
-        borrowId: "BOR-2025-0004",
-        equipment: {
-          id: "EQP-004",
-          code: "CAM-007",
-          name: "กล้องถ่ายรูป Canon",
-          category: "อุปกรณ์มัลติมีเดีย",
-          image: "https://cdn-icons-png.flaticon.com/512/3063/3063190.png"
-        },
-        requester: {
-          id: "USR-001",
-          name: "ชัยวัฒน์ มีสุข",
-          department: "แผนกไอที",
-          avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-        },
-        purpose: "ถ่ายภาพกิจกรรมประจำเดือนของบริษัทและงานสัมมนา",
-        status: "borrowing",
-        requestDate: "2025-04-25",
-        borrowDate: "2025-04-28",
-        dueDate: "2025-05-10",
-        approvalDate: "2025-04-26",
-        approvalNotes: "อนุมัติตามคำขอ และขอให้ดูแลรักษาอุปกรณ์เป็นอย่างดี",
-        priority: "medium"
-      },
-      {
-        borrowId: "BOR-2025-0005",
-        equipment: {
-          id: "EQP-005",
-          code: "IPAD-023",
-          name: "iPad Pro",
-          category: "อุปกรณ์พกพา",
-          image: "https://cdn-icons-png.flaticon.com/512/149/149427.png"
-        },
-        requester: {
-          id: "USR-004",
-          name: "มานะ ใจดี",
-          department: "แผนกบริหาร",
-          avatar: "https://randomuser.me/api/portraits/men/45.jpg"
-        },
-        purpose: "ขอยืมใช้ในการเดินทางไปอบรมต่างประเทศ",
-        status: "rejected",
-        requestDate: "2025-04-30",
-        borrowDate: "2025-05-05",
-        dueDate: "2025-05-20",
-        approvalDate: "2025-05-01",
-        approvalNotes: "ขออนุญาตปฏิเสธ เนื่องจากมีการจองใช้งานในช่วงเวลาเดียวกันแล้ว กรุณาเลือกอุปกรณ์อื่นหรือเปลี่ยนวันที่ยืม",
-        priority: "low"
-      },
-      {
-        borrowId: "BOR-2025-0006",
-        equipment: {
-          id: "EQP-006",
-          code: "MIC-012",
-          name: "ไมโครโฟนไร้สาย",
-          category: "อุปกรณ์เสียง",
-          image: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png"
-        },
-        requester: {
-          id: "USR-005",
-          name: "สมหญิง จริงใจ",
-          department: "แผนกการตลาด",
-          avatar: "https://randomuser.me/api/portraits/women/65.jpg"
-        },
-        purpose: "ใช้ในการจัดงานสัมมนาลูกค้า",
-        status: "returned",
-        requestDate: "2025-04-20",
-        borrowDate: "2025-04-22",
-        dueDate: "2025-04-25",
-        returnDate: "2025-04-24",
-        approvalDate: "2025-04-21",
-        approvalNotes: "อนุมัติตามคำขอ",
-        priority: "medium"
-      }
-    ];
-
-    // Calculate counts for each status
-    const counts = mockData.reduce((acc, request) => {
-      acc[request.status] = (acc[request.status] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Update status options with counts
-    const updatedOptions = statusOptions.map(option => ({
-      ...option,
-      count: counts[option.value] || 0
-    }));
-
-    setBorrowRequests(mockData);
-    setLoading(false);
+    setLoading(true);
+    // ดึงข้อมูลจาก API (เหมือนหน้า success)
+    fetch(`${UPLOAD_BASE}/api/borrows/history`)
+      .then(res => res.json())
+      .then(data => {
+        setBorrowRequests(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", type: "error" });
+        setLoading(false);
+      });
   }, []);
 
   const handleOpenDialog = (request) => {
@@ -269,23 +128,36 @@ export default function BorrowApprovalList() {
     }, 5000);
   };
 
+  // ฟังก์ชันแปลงวันที่เป็น วัน/เดือน/ปี (ไทย)
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    if (isNaN(d)) return "-";
+    return d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
   // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ
   const filteredRequests = borrowRequests.filter(request => {
-    const matchSearch =
-      request.borrowId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requester.name.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchStatus = statusFilter.includes(request.status);
-
-    return matchSearch && matchStatus;
+    // เฉพาะสถานะที่เลือก
+    if (!statusFilter.includes(request.status)) return false;
+    // ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้ขอยืม
+    const search = searchTerm.toLowerCase();
+    return (
+      (request.borrow_code && request.borrow_code.toLowerCase().includes(search)) ||
+      (Array.isArray(request.equipment) && request.equipment.some(eq => eq.name && eq.name.toLowerCase().includes(search))) ||
+      (request.borrower && request.borrower.name && request.borrower.name.toLowerCase().includes(search))
+    );
   });
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredRequests.length / rowsPerPage);
+  const paginatedRequests = filteredRequests.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
   const handleStatusFilterChange = (status) => {
-    setStatusFilter(prev => 
+    setStatusFilter(prev =>
       prev.includes(status)
-        ? prev.filter(s => s !== status) // ถ้ามีอยู่แล้วให้ลบออก
-        : [...prev, status] // ถ้าไม่มีให้เพิ่มเข้าไป
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
     );
   };
 
@@ -301,22 +173,6 @@ export default function BorrowApprovalList() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอยืมอุปกรณ์</h1>
           <p className="text-gray-500 text-sm">จัดการคำขอยืมอุปกรณ์ทั้งหมดขององค์กร</p>
-        </div>
-      </div>
-
-      {/* สรุปข้อมูล */}
-      <div className="grid grid-cols-3 gap-5 mb-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-400">
-          <p className="text-gray-500 text-sm">กำลังยืม</p>
-          <p className="text-2xl font-semibold text-gray-800">{countByStatus.borrowing || 0}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-400">
-          <p className="text-gray-500 text-sm">ปฏิเสธ</p>
-          <p className="text-2xl font-semibold text-gray-800">{countByStatus.rejected || 0}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-400">
-          <p className="text-gray-500 text-sm">คืนแล้ว</p>
-          <p className="text-2xl font-semibold text-gray-800">{countByStatus.returned || 0}</p>
         </div>
       </div>
 
@@ -341,7 +197,7 @@ export default function BorrowApprovalList() {
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className="btn btn-outline flex items-center gap-2 shadow-md bg-white rounded-2xl transition-colors border-gray-200 hover:text-white hover:bg-blue-700 hover:border-blue-700"
             >
-              <FunnelIcon className="w-4 h-4" />
+              <BsFillFilterCircleFill className="w-4 h-4" />
               <span>กรองสถานะ</span>
               {isFilterOpen ? (
                 <ChevronUpIcon className="w-4 h-4" />
@@ -377,7 +233,8 @@ export default function BorrowApprovalList() {
         </div>
       </div>
 
-      {/* ตารางรายการ */}
+
+      {/* ตารางรายการ + Pagination Footer */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
         {loading ? (
           <div className="p-8 text-center">
@@ -401,10 +258,10 @@ export default function BorrowApprovalList() {
                     รหัสคำขอ
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    อุปกรณ์
+                    ผู้ขอยืม
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    ผู้ขอยืม
+                    ครุภัณฑ์
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     วันที่ยืม
@@ -412,85 +269,120 @@ export default function BorrowApprovalList() {
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     กำหนดคืน
                   </th>
+                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                    วันคืนจริง
+                  </th>
                   <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
                     สถานะ
                   </th>
                   <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
-                    การจัดการ
+                    รายละเอียด
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.map((request) => (
-                  <tr key={request.borrowId} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{request.borrowId}</div>
-                      <div className="text-xs text-gray-500">{request.requestDate}</div>
+              <tbody className="bg-white divide-y divide-gray-200 ">
+                {paginatedRequests.map((request) => (
+                  <tr key={request.borrow_id || request.borrowId || request.borrow_code} className="hover:bg-gray-50">
+                    {/* ...existing table row code... */}
+                    <td className="px-6 py-4 whitespace-nowrap ">
+                      <div className="text-gray-900 font-bold">{request.borrow_code || request.borrowId}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
                           <img
-                            className="h-10 w-10 object-contain p-1 bg-gray-100 rounded"
-                            src={request.equipment?.image || "/placeholder-equipment.png"}
-                            alt={request.equipment?.name}
-                          />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{request.equipment?.name}</div>
-                          <div className="text-xs text-gray-500">{request.equipment?.category}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
-                          <img
-                            className="h-8 w-8 rounded-full"
-                            src={request.requester?.avatar || "/placeholder-user.png"}
-                            alt={request.requester?.name}
+                            className="h-10 w-10 rounded-full"
+                            src={request.borrower?.avatar ? (request.borrower.avatar.startsWith('http') ? request.borrower.avatar : `${UPLOAD_BASE}/uploads/user/${request.borrower.avatar}`) : "/placeholder-user.png"}
+                            alt={request.borrower?.name}
                           />
                         </div>
                         <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{request.requester?.name}</div>
-                          <div className="text-xs text-gray-500">{request.requester?.department}</div>
+                          <div className="text-sm font-medium text-gray-900">{request.borrower?.name}</div>
+                          <div className="text-xs text-gray-500">{request.borrower?.department}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.borrowDate}</div>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1 overflow-hidden">
+                        {Array.isArray(request.equipment) && request.equipment.length > 0 ? (
+                          <>
+                            <div className="flex items-center">
+                              <span className=" text-gray-900 break-words text-sm">
+                                {request.equipment[0]?.name || '-'}
+                              </span>
+                              {request.equipment.length > 1 &&
+                                <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0">
+                                  +{request.equipment.length - 1} รายการ
+                                </span>
+                              }
+                            </div>
+                            <span className="text-xs text-gray-600">
+                              รวม {request.equipment.reduce((total, eq) => total + (eq.quantity || 1), 0)} ชิ้น
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-gray-400 text-sm">-</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.dueDate}</div>
+                      <div className="text-sm text-gray-900">{formatDate(request.borrow_date || request.borrowDate)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{formatDate(request.due_date || request.return_date || request.dueDate)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{formatDate(request.return_date)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
-                        {request.status === "pending" }  
-                        {request.status === "approved"}
-                        {request.status === "rejected"}
                         {statusTranslation[request.status]}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      {request.status === "pending" ? (
-                        <button
-                          onClick={() => handleOpenDialog(request)}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
-                        >
-                          พิจารณา
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenDialog(request)}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 hover:text-gary-700 transition-all duration-200"
-                        >
-                          ดูรายละเอียด
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleOpenDialog(request)}
+                        title="ดูรายละเอียด"
+                        className="inline-flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full p-2 transition-all duration-200 shadow-sm"
+                        style={{ minWidth: 0 }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12C2.25 12 5.25 5.25 12 5.25s9.75 6.75 9.75 6.75-3 6.75-9.75 6.75S2.25 12 2.25 12z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
+              {/* Pagination Footer */}
+              <tfoot>
+                <tr>
+                  <td colSpan={8} className="bg-white px-6 py-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between">
+                      <span className="text-gray-600 mb-3 sm:mb-0 text-sm">
+                        แสดง {paginatedRequests.length > 0 ? (page - 1) * rowsPerPage + 1 : 0} ถึง {(page - 1) * rowsPerPage + paginatedRequests.length} จากทั้งหมด {filteredRequests.length} รายการ
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                          onClick={() => setPage(page - 1)}
+                          disabled={page === 1}
+                        >
+                          ก่อนหน้า
+                        </button>
+                        <button
+                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                          onClick={() => setPage(page + 1)}
+                          disabled={page === totalPages}
+                        >
+                          ถัดไป
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
