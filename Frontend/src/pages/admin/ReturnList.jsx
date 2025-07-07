@@ -39,9 +39,13 @@ import ReturnFormDialog from "./dialog/ReturnFormDialog";
 import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
 
 
+
+
+import { getAllBorrows, UPLOAD_BASE } from "../../utils/api";
 // Import services
 import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
 import { getAllBorrows, UPLOAD_BASE } from "../../utils/api";
+
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
@@ -60,6 +64,7 @@ const TABLE_HEAD = [
   "วันที่ยืม",
   "กำหนดคืน",
   "สถานะ",
+  "วัตถุประสงค์",
   "จัดการ"
 ];
 
@@ -450,13 +455,23 @@ const ReturnList = () => {
             <table className="min-w-full divide-y divide-gray-200 table-auto">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  <th className="w-24 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">รหัสการยืม</th>
-                  <th className="w-48 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ผู้ยืม</th>
-                  <th className="w-64 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ครุภัณฑ์</th>
-                  <th className="w-28 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วันที่ยืม</th>
-                  <th className="w-28 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">กำหนดคืน</th>
-                  <th className="w-32 text-center px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
-                  <th className="w-40 text-center px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">จัดการ</th>
+                  {TABLE_HEAD.map((head, index) => (
+                    <th
+                      key={head}
+                      className={`px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                        index === 0 ? "w-24 text-left" : // รหัสการยืม
+                        index === 1 ? "w-48 text-left" : // ผู้ยืม
+                        index === 2 ? "w-64 text-left" : // ครุภัณฑ์
+                        index === 3 ? "w-28 text-left" : // วันที่ยืม
+                        index === 4 ? "w-28 text-left" : // กำหนดคืน
+                        index === 5 ? "w-32 text-center" : // สถานะ
+                        index === 6 ? "w-22 text-left" : // วัตถุประสงค์
+                        index === 7 ? "w-40 text-center" : ""
+                      }`}
+                    >
+                      {head}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -515,10 +530,17 @@ const ReturnList = () => {
                       <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date ? new Date(item.borrow_date).toLocaleDateString('th-TH') : "-"}</td>
                       <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date ? new Date(item.due_date).toLocaleDateString('th-TH') : "-"}</td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
+
                         {getStatusBadge(item.status)}
                       </td>
+                      <td className="w-22 px-4 py-4 whitespace-nowrap text-center text-gray-900">{item.purpose || '-'}</td>
                       <td className="w-40 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Tooltip content="ดูรายละเอียด" placement="top">
+                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
+                              <EyeIcon className="h-4 w-4" />
+                            </IconButton>
+                          </Tooltip>
                           {item.status !== 'waiting_payment' && (
                             <Tooltip content="คืนครุภัณฑ์" placement="top">
                               <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => {
@@ -527,15 +549,10 @@ const ReturnList = () => {
                                 setSelectedBorrowedItem(item);
                                 setIsReturnFormOpen(true);
                               }}>
-                                <CheckCircleSolidIcon className="h-6 w-6" />
+                                <CheckCircleSolidIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
                           )}
-                          <Tooltip content="ดูรายละเอียด" placement="top">
-                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
-                              <EyeIcon className="h-5 w-5" />
-                            </IconButton>
-                          </Tooltip>
                           <Tooltip content="ลบ" placement="top">
                             <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteReturn(item.borrow_id)}>
                               <TrashIcon className="h-4 w-4" />
