@@ -270,53 +270,65 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                         <div className="px-6 py-5 mt-auto">
                             <div className="flex flex-col sm:flex-row justify-end gap-3">
                                 {!showRejectReason ? (
-                                    <button
-                                        type="button"
-                                        className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-sm"
-                                        onClick={() => setShowRejectReason(true)}
-                                        disabled={isSubmitting}
-                                    >
-                                        <XCircleIcon className="h-5 w-5 mr-2" />
-                                        ไม่อนุมัติ
-                                    </button>
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-sm"
+                                            onClick={() => setShowRejectReason(true)}
+                                            disabled={isSubmitting}
+                                        >
+                                            <XCircleIcon className="h-5 w-5 mr-2" />
+                                            ไม่อนุมัติ
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm disabled:opacity-70"
+                                            onClick={handleApprove}
+                                            disabled={isSubmitting}
+                                        >
+                                            {isSubmitting ? (
+                                                <>
+                                                    <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
+                                                    กำลังประมวลผล...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircleSolidIcon className="h-5 w-5 mr-2" />
+                                                    อนุมัติการยืม
+                                                </>
+                                            )}
+                                        </button>
+                                    </>
                                 ) : (
-                                    <button
-                                        type="button"
-                                        className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-sm disabled:opacity-70"
-                                        onClick={handleReject}
-                                        disabled={isSubmitting || !rejectReason}
-                                    >
-                                        {isSubmitting ? (
-                                            <>
-                                                <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
-                                                กำลังประมวลผล...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <XCircleIcon className="h-5 w-5 mr-2" />
-                                                ยืนยันไม่อนุมัติ
-                                            </>
-                                        )}
-                                    </button>
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors duration-200 shadow-sm"
+                                            onClick={() => setShowRejectReason(false)}
+                                            disabled={isSubmitting}
+                                        >
+                                            ยกเลิก
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-sm disabled:opacity-70"
+                                            onClick={handleReject}
+                                            disabled={isSubmitting || !rejectReason}
+                                        >
+                                            {isSubmitting ? (
+                                                <>
+                                                    <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
+                                                    กำลังประมวลผล...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <XCircleIcon className="h-5 w-5 mr-2" />
+                                                    ยืนยันไม่อนุมัติ
+                                                </>
+                                            )}
+                                        </button>
+                                    </>
                                 )}
-                                <button
-                                    type="button"
-                                    className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm disabled:opacity-70"
-                                    onClick={handleApprove}
-                                    disabled={isSubmitting}
-                                >
-                                    {isSubmitting ? (
-                                        <>
-                                            <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
-                                            กำลังประมวลผล...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckCircleSolidIcon className="h-5 w-5 mr-2" />
-                                            อนุมัติการยืม
-                                        </>
-                                    )}
-                                </button>
                             </div>
                         </div>
                     )}
