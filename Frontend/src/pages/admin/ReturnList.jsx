@@ -43,8 +43,7 @@ import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
 
 import { getAllBorrows, UPLOAD_BASE } from "../../utils/api";
 // Import services
-import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
-import { getAllBorrows, UPLOAD_BASE } from "../../utils/api";
+// import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
 
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
