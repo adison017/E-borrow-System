@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
 import { MdAddCircle, MdDelete, MdEdit } from 'react-icons/md';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import DeleteNewsDialog from './dialog/DeleteNewsDialog';
 import NewsFormDialog from './dialog/NewsFormDialog';
-import axios from 'axios';
 
 // Helper function to get category color
 const getCategoryColor = (category) => {
@@ -28,7 +30,52 @@ const ManageNews = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newsToDelete, setNewsToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // ลบ state error เดิม (ใช้ react-toastify แทน)
+  // ฟังก์ชันกลางสำหรับแจ้งเตือน (เหมือน borrowlist)
+  const notifyNewsAction = (action, extra) => {
+    let message = "";
+    let type = "info";
+    switch (action) {
+      case "add":
+        message = `เพิ่มข่าวใหม่เรียบร้อยแล้ว`;
+        type = "success";
+        break;
+      case "edit":
+        message = `แก้ไขข่าวเรียบร้อยแล้ว`;
+        type = "success";
+        break;
+      case "delete":
+        message = `ลบข่าวเรียบร้อยแล้ว`;
+        type = "success";
+        break;
+      case "add_error":
+        message = "เกิดข้อผิดพลาดในการเพิ่มข่าว";
+        type = "error";
+        break;
+      case "edit_error":
+        message = "เกิดข้อผิดพลาดในการแก้ไขข่าว";
+        type = "error";
+        break;
+      case "delete_error":
+        message = "เกิดข้อผิดพลาดในการลบข่าว";
+        type = "error";
+        break;
+      case "fetch_error":
+        message = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+        type = "error";
+        break;
+      default:
+        message = action;
+        type = "info";
+    }
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast.info(message);
+    }
+  };
 
   const [formData, setFormData] = useState({
     title: '',
@@ -47,7 +94,7 @@ const ManageNews = () => {
       setNewsItems(response.data);
       setLoading(false);
     } catch (err) {
-      setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      notifyNewsAction("fetch_error");
       setLoading(false);
     }
   };
@@ -87,8 +134,9 @@ const ManageNews = () => {
         setNewsItems(prevItems => prevItems.filter(item => item.id !== newsToDelete.id));
         setShowDeleteModal(false);
         setNewsToDelete(null);
+        notifyNewsAction("delete");
       } catch (err) {
-        setError('เกิดข้อผิดพลาดในการลบข่าว');
+        notifyNewsAction("delete_error");
       }
     }
   };
@@ -104,28 +152,46 @@ const ManageNews = () => {
             item.id === currentItem.id ? response.data : item
           )
         );
+        notifyNewsAction("edit");
       } else {
         // Add new item
         const response = await axios.post('http://localhost:5000/api/news', formData);
         setNewsItems(prevItems => [response.data, ...prevItems]);
+        notifyNewsAction("add");
       }
       setShowModal(false);
       setFormData({ title: '', content: '', category: 'ประกาศ' });
     } catch (err) {
-      setError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      if (isEditing) {
+        notifyNewsAction("edit_error");
+      } else {
+        notifyNewsAction("add_error");
+      }
     }
   };
 
   if (loading) return <div className="p-6">กำลังโหลด...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
     <div className="p-6 flex-grow text-black">
+      {/* Notification Component (react-toastify) */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">จัดการข่าวสาร</h1>
         <button
           onClick={handleAddNew}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center transition duration-150 ease-in-out"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full flex items-center transition duration-150 ease-in-out"
         >
           <MdAddCircle className="mr-2" size={20} />
           เพิ่มข่าวใหม่
@@ -140,17 +206,17 @@ const ManageNews = () => {
           newsItems.map((item) => (
             <div
               key={item.id}
-              className="bg-white p-6 rounded-lg shadow-md"
+              className="bg-blue-100/20 p-6 rounded-4xl shadow-md"
             >
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <span className={`text-xs font-semibold p-3 rounded-full ${getCategoryColor(item.category)}`}>
+                  <span className={`text-xs font-semibold p-2 rounded-full ${getCategoryColor(item.category)}`}>
                     {item.category}
                   </span>
-                  <h2 className="text-2xl font-semibold text-blue-600 mt-4">{item.title}</h2>
-                  <p className="text-sm text-gray-500">เผยแพร่เมื่อ: {new Date(item.date).toLocaleDateString('th-TH')}</p>
+                  <h2 className="ml-2 text-2xl font-semibold text-blue-600 mt-4">{item.title}</h2>
+                  <p className="ml-2  text-sm text-gray-500">เผยแพร่เมื่อ: {new Date(item.date).toLocaleDateString('th-TH')}</p>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 ">
                   <button
                     onClick={() => handleEdit(item)}
                     className="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-100 transition duration-150"
@@ -167,7 +233,7 @@ const ManageNews = () => {
                   </button>
                 </div>
               </div>
-              <p className="text-gray-700 leading-relaxed mt-3">{item.content}</p>
+              <p className="text-gray-700 leading-relaxed mt-3 ml-2 ">{item.content}</p>
             </div>
           ))
         )}

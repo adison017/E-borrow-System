@@ -1,10 +1,11 @@
 import {
-  CheckCircleIcon,
-  MagnifyingGlassIcon,
-  XCircleIcon
+  MagnifyingGlassIcon
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
+
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
 
 const API_BASE = "http://localhost:5000";
@@ -16,11 +17,7 @@ export default function BorrowApprovalList() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending_approval");
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "success"
-  });
+  // ไม่ใช้ notification state แบบเดิม ใช้ react-toastify แทน
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // สถานะของคำขอยืม
@@ -81,6 +78,36 @@ export default function BorrowApprovalList() {
     }, 0);
   };
 
+  // ฟังก์ชันกลางสำหรับแจ้งเตือน
+  const notifyBorrowAction = (action, extra) => {
+    let message = "";
+    let type = "info";
+    switch (action) {
+      case "approve":
+        message = "อนุมัติคำขอยืมเรียบร้อยแล้ว (รอส่งมอบ)";
+        type = "success";
+        break;
+      case "reject":
+        message = `ปฏิเสธคำขอยืมเรียบร้อยแล้ว${extra ? ` เหตุผล: ${extra}` : ""}`;
+        type = "error";
+        break;
+      case "error":
+        message = extra || "เกิดข้อผิดพลาด";
+        type = "error";
+        break;
+      default:
+        message = extra || "ดำเนินการสำเร็จ";
+        type = "info";
+    }
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast(message);
+    }
+  };
+
   const handleApproveRequest = async (approvedData) => {
     try {
       await updateBorrowStatus(approvedData.borrow_id, "carry", approvedData.approvalNotes);
@@ -91,9 +118,9 @@ export default function BorrowApprovalList() {
             : req
         )
       );
-      showNotification("อนุมัติคำขอยืมเรียบร้อยแล้ว (รอส่งมอบ)", "success");
+      notifyBorrowAction("approve");
     } catch (err) {
-      showNotification("เกิดข้อผิดพลาดในการอนุมัติ", "error");
+      notifyBorrowAction("error", "เกิดข้อผิดพลาดในการอนุมัติ");
     }
   };
 
@@ -107,24 +134,13 @@ export default function BorrowApprovalList() {
             : req
         )
       );
-      showNotification("ปฏิเสธคำขอยืมเรียบร้อยแล้ว", "error");
+      notifyBorrowAction("reject", rejectedData.rejectReason);
     } catch (err) {
-      showNotification("เกิดข้อผิดพลาดในการปฏิเสธ", "error");
+      notifyBorrowAction("error", "เกิดข้อผิดพลาดในการปฏิเสธ");
     }
   };
 
-  // แสดงการแจ้งเตือน
-  const showNotification = (message, type) => {
-    setNotification({
-      show: true,
-      message,
-      type
-    });
-
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }));
-    }, 5000);
-  };
+  // ไม่ใช้ showNotification แบบเดิม
 
   // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ
   const filteredRequests = borrowRequests.filter(request => {
@@ -298,42 +314,19 @@ export default function BorrowApprovalList() {
         onReject={handleRejectRequest}
       />
 
-      {/* Notification Component */}
-      {notification.show && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg max-w-md transition-all duration-300 transform ${
-          notification.show ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'
-        } ${
-          notification.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' :
-          notification.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' :
-          'bg-blue-50 border border-blue-200 text-blue-700'
-        }`}>
-          <div className="flex items-start gap-3">
-            <div className={`flex-shrink-0 ${
-              notification.type === 'success' ? 'text-green-400' :
-              notification.type === 'error' ? 'text-red-400' :
-              'text-blue-400'
-            }`}>
-              {notification.type === 'success' && (
-                <CheckCircleIcon className="w-5 h-5" />
-              )}
-              {notification.type === 'error' && (
-                <XCircleIcon className="w-5 h-5" />
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{notification.message}</p>
-            </div>
-            <button
-              onClick={() => setNotification(prev => ({ ...prev, show: false }))}
-              className="text-gray-400 hover:text-gray-500"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Toast Notification */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </div>
   );
 }

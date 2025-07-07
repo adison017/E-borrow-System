@@ -162,7 +162,7 @@ export default function BorrowDetailsDialog({
       borrowing: "รายละเอียดคำขอยืม (กำลังยืม)",
       returned: "รายละเอียดคำขอยืม (คืนแล้ว)"
     };
-    return titles[borrowRequest?.status] || "รายละเอียดคำขอยืมอุปกรณ์";
+    return titles[borrowRequest?.status] || "รายละเอียดคำขอยืมครุภัณฑ์";
   };
 
   useEffect(() => {

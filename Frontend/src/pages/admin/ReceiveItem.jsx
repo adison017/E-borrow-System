@@ -1,12 +1,11 @@
 import {
-  EyeIcon,
   MagnifyingGlassIcon,
-  QrCodeIcon,
-  TrashIcon
+  QrCodeIcon
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 
 import {
+  CheckCircleIcon,
   CheckCircleIcon as CheckCircleSolidIcon,
   ClockIcon
 } from "@heroicons/react/24/solid";
@@ -27,8 +26,9 @@ import {
 } from "@material-tailwind/react";
 
 // Import components
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import Notification from "../../components/Notification";
 import ScannerDialog from "../../components/ScannerDialog";
 import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
 import EquipmentDeliveryDialog from "./dialog/EquipmentDeliveryDialog";
@@ -86,12 +86,7 @@ const ReceiveItem = () => {
   const [selectedBorrow, setSelectedBorrow] = useState(null);
   const [selectedBorrowId, setSelectedBorrowId] = useState(null);
 
-  // Notification state
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "success"
-  });
+
 
   useEffect(() => {
     // Fetch borrows from backend
@@ -127,6 +122,37 @@ const ReceiveItem = () => {
 
   const handleSearch = (e) => setSearchTerm(e.target.value);
 
+
+  // Notification message/type builder
+  const getReceiveNotifyMessage = (action, extra) => {
+    switch (action) {
+      case "not_found_scan":
+        return { message: "ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่สแกน", type: "error" };
+      case "not_found_manual":
+        return { message: "ไม่พบข้อมูลการยืมที่ป้อน", type: "error" };
+      case "no_signature":
+        return { message: "กรุณาเซ็นชื่อก่อนยืนยันการส่งมอบ", type: "error" };
+      case "delivered":
+        return { message: "ส่งมอบครุภัณฑ์เรียบร้อยแล้ว", type: "success" };
+      case "cancelled":
+        return { message: "ยกเลิกการยืมเรียบร้อยแล้ว", type: "success" };
+      default:
+        return { message: extra || "ดำเนินการสำเร็จ", type: "info" };
+    }
+  };
+
+  // Centralized notification trigger
+  const notifyReceiveAction = (action, extra) => {
+    const { message, type } = getReceiveNotifyMessage(action, extra);
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast.info(message);
+    }
+  };
+
   const handleScanComplete = (code) => {
     setIsScannerOpen(false);
     const borrowedItem = filteredDeliveries.find(item =>
@@ -137,7 +163,7 @@ const ReceiveItem = () => {
       setSelectedBorrow(borrowedItem);
       setIsDeliveryDialogOpen(true);
     } else {
-      showNotification("ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่สแกน", "error");
+      notifyReceiveAction("not_found_scan");
     }
   };
 
@@ -152,7 +178,7 @@ const ReceiveItem = () => {
       setSelectedBorrow(borrowedItem);
       setIsDeliveryDialogOpen(true);
     } else {
-      showNotification("ไม่พบข้อมูลการยืมที่ป้อน", "error");
+      notifyReceiveAction("not_found_manual");
     }
   };
 
@@ -164,7 +190,7 @@ const ReceiveItem = () => {
   const handleDeliveryConfirm = async (deliveryData) => {
     // ต้องเป็น base64 เท่านั้น (กรณีเซ็นใหม่) ถ้าไม่ใช่ให้แจ้งเตือน
     if (!deliveryData.signature_image || !deliveryData.signature_image.startsWith('data:image/')) {
-      showNotification("กรุณาเซ็นชื่อก่อนยืนยันการส่งมอบ", "error");
+      notifyReceiveAction("no_signature");
       return;
     }
     await updateBorrowStatus(
@@ -176,7 +202,7 @@ const ReceiveItem = () => {
     // Refresh borrows
     getAllBorrows().then(data => setBorrows(Array.isArray(data) ? data : []));
     setIsDeliveryDialogOpen(false);
-    showNotification("ส่งมอบครุภัณฑ์เรียบร้อยแล้ว", "success");
+    notifyReceiveAction("delivered");
   };
 
   const handleCancelBorrow = async (borrowId) => {
@@ -188,15 +214,10 @@ const ReceiveItem = () => {
     await updateBorrowStatus(selectedBorrowId, "cancelled");
     getAllBorrows().then(data => setBorrows(Array.isArray(data) ? data : []));
     setIsConfirmDialogOpen(false);
-    showNotification("ยกเลิกการยืมเรียบร้อยแล้ว", "success");
+    notifyReceiveAction("cancelled");
   };
 
-  const showNotification = (message, type) => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }));
-    }, 5000);
-  };
+
 
   const handleStatusFilter = (status) => setStatusFilter(status);
   const countByStatus = {
@@ -207,11 +228,17 @@ const ReceiveItem = () => {
   return (
     <ThemeProvider value={theme}>
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
-        <Notification
-          show={notification.show}
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(prev => ({ ...prev, show: false }))}
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
         />
         <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-6">
           <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -280,8 +307,8 @@ const ReceiveItem = () => {
                   <th className="w-64 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ครุภัณฑ์</th>
                   <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วันที่ยืม</th>
                   <th className="w-32 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">กำหนดส่งคืน</th>
-                  <th className="w-56 px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วัตถุประสงค์</th>
-                  <th className="w-20 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
+                  <th className="w-44 max-w-xs px-4 py-3 text-left text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วัตถุประสงค์</th>
+                  <th className="w-20 px-4 py-3 text-center align-middle text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
                   <th className="w-32 px-4 py-3 text-center text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">จัดการ</th>
                 </tr>
               </thead>
@@ -333,30 +360,26 @@ const ReceiveItem = () => {
                       </td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date ? item.borrow_date.slice(0, 10) : "-"}</td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date ? item.due_date.slice(0, 10) : "-"}</td>
-                      <td className="w-56 px-4 py-4 whitespace-nowrap truncate text-gray-900 text-left">
-                        <Typography variant="small" className="text-xs text-gray-700 whitespace-pre-line break-words">
-                          {item.purpose}
+                      <td className="w-44 max-w-xs px-4 py-4 whitespace-nowrap text-gray-900 text-left overflow-hidden">
+                        <Typography variant="small" className="bg-gray-100 p-2 rounded-2xl text-xs text-gray-700 whitespace-pre-line break-words overflow-hidden text-ellipsis max-w-xs block">
+                            {item.purpose}
                         </Typography>
                       </td>
-                      <td className="w-20 px-4 py-4 whitespace-nowrap text-center">
-                        <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
-                          {statusConfig[item.status]?.label || "-"}
-                        </span>
+                      <td className="w-20 px-4 py-4 whitespace-nowrap text-center align-middle">
+                        <div className="flex items-center justify-center h-full">
+                          <span className={`px-3 py-1 inline-flex justify-center items-center leading-5 font-semibold rounded-full border text-xs ${statusConfig[item.status]?.backgroundColor || "bg-gray-200"} ${statusConfig[item.status]?.borderColor || "border-gray-200"} text-${statusConfig[item.status]?.color || "gray"}-800`}>
+                            {statusConfig[item.status]?.label || "-"}
+                          </span>
+                        </div>
                       </td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
-                        <div className="flex flex-wrap items-center justify-end gap-2">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
                           <Tooltip content="ดูรายละเอียด" placement="top">
-                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
-                              <EyeIcon className="h-4 w-4" />
+                            <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
+                              <CheckCircleSolidIcon className="h-6 w-6" />
                             </IconButton>
                           </Tooltip>
-                          {item.status === "carry" && (
-                            <Tooltip content="ยกเลิกการยืม" placement="top">
-                              <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleCancelBorrow(item.borrow_id)}>
-                                <TrashIcon className="h-4 w-4" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
+                          {/* ปุ่มยกเลิกการยืมถูกลบตามคำขอ */}
                         </div>
                       </td>
                     </tr>
@@ -398,7 +421,7 @@ const ReceiveItem = () => {
           isOpen={isScannerOpen}
           onClose={() => setIsScannerOpen(false)}
           onScanComplete={handleScanComplete}
-          onManualSearch={handleManualSearch}
+          onManualInput={handleManualSearch}
         />
         {/* Dialog for delivery */}
         <EquipmentDeliveryDialog
