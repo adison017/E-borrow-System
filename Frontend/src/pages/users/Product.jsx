@@ -2,7 +2,7 @@ import { Button, Menu, MenuHandler, MenuItem, MenuList } from "@material-tailwin
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { MdAdd, MdRemove, MdSearch, MdShoppingCart } from "react-icons/md";
-import { getCategories, getEquipment } from '../../utils/api'; // เพิ่ม getCategories
+import { getCategories, getEquipment, updateEquipmentStatus } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
@@ -64,6 +64,18 @@ const historyData = {
   ]
 };
 
+// ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
+function getTomorrowTH() {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const bangkok = new Date(utc + (7 * 60 * 60 * 1000));
+  bangkok.setDate(bangkok.getDate() + 1);
+  const yyyy = bangkok.getUTCFullYear();
+  const mm = String(bangkok.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(bangkok.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ทั้งหมด');
@@ -74,7 +86,7 @@ const Home = () => {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [borrowData, setBorrowData] = useState({
     reason: '',
-    borrowDate: '',
+    borrowDate: getTomorrowTH(), // autofill วันพรุ่งนี้ของไทย
     returnDate: '',
   });
   const [selectedImage, setSelectedImage] = useState(null);
@@ -123,6 +135,11 @@ const Home = () => {
 
   // Handle quantity increase
   const handleIncrease = (item_code) => {
+    // ถ้ายังไม่เคยเลือก item_code นี้ และเลือกครบ 7 รหัสแล้ว
+    if (!quantities[item_code] && Object.keys(quantities).length >= 7) {
+      alert('เลือกอุปกรณ์ได้ไม่เกิน 7 รหัส');
+      return;
+    }
     const equipment = equipmentData.find(item => item.id === item_code);
     if (equipment && (quantities[item_code] || 0) < equipment.available) {
       setQuantities(prev => ({
@@ -190,14 +207,12 @@ const Home = () => {
   // Handle confirm button click
   const handleConfirm = () => {
     setShowBorrowDialog(true);
-    // Set default dates
-    const today = new Date();
-    const returnDate = new Date();
-    returnDate.setDate(today.getDate() + 7);
-
+    const tomorrow = getTomorrowTH();
+    const returnDate = new Date(tomorrow);
+    returnDate.setDate(returnDate.getDate() + 7);
     setBorrowData({
       reason: '',
-      borrowDate: today.toISOString().split('T')[0],
+      borrowDate: tomorrow, // autofill วันพรุ่งนี้ของไทย
       returnDate: returnDate.toISOString().split('T')[0]
     });
   };
@@ -205,6 +220,13 @@ const Home = () => {
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'borrowDate') {
+      const minDate = getTomorrowTH();
+      if (value < minDate) {
+        alert('กรุณาเลือกวันที่ยืมหลังวันส่งคำขอ 1 วันขึ้นไป');
+        return;
+      }
+    }
     setBorrowData(prev => ({
       ...prev,
       [name]: value
@@ -232,6 +254,11 @@ const Home = () => {
   // Handle form submission
   const handleSubmitBorrow = async (e) => {
     e.preventDefault();
+    // ตรวจสอบว่ากรอกวันที่ยืมหลังวันส่งคำขอ 1 วันขึ้นไป
+    if (borrowData.borrowDate < getTomorrowTH()) {
+      alert('กรุณาเลือกวันที่ยืมหลังวันส่งคำขอ 1 วันขึ้นไป');
+      return;
+    }
     // Map item_code (id) -> item_id ที่แท้จริง
     const items = Object.entries(quantities).map(([item_code, quantity]) => {
       const equipment = equipmentData.find(eq => String(eq.id) === String(item_code));
@@ -262,6 +289,23 @@ const Home = () => {
         setShowBorrowDialog(false);
         setQuantities({});
         setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
+        // อัปเดตสถานะครุภัณฑ์เป็น 'ถูกยืม'
+        for (const item of items) {
+          try {
+            // หา item_code จาก equipmentData
+            const equipment = equipmentData.find(eq => eq.item_id === item.item_id);
+            if (!equipment) continue;
+            const itemCode = equipment.code; // code คือ item_code เช่น 'EQ-001'
+            await updateEquipmentStatus(itemCode, 'ถูกยืม');
+            setEquipmentData(prev =>
+              prev.map(eq =>
+                eq.item_id === item.item_id ? { ...eq, status: 'ถูกยืม' } : eq
+              )
+            );
+          } catch (err) {
+            // handle error (optional)
+          }
+        }
       } else {
         alert('เกิดข้อผิดพลาด: ' + (data.message || ''));
       }
@@ -288,6 +332,9 @@ const Home = () => {
     setSelectedEquipment(equipment);
     setShowDetailDialog(true);
   };
+
+  // เพิ่มตัวแปรตรวจสอบว่า borrowDate ถูกต้องหรือไม่
+  const isBorrowDateValid = borrowData.borrowDate && borrowData.borrowDate >= getTomorrowTH();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -618,11 +665,13 @@ const Home = () => {
         quantities={quantities}
         equipmentData={equipmentData}
         borrowData={borrowData}
+        setBorrowData={setBorrowData} // ส่ง prop นี้เพิ่ม
         handleInputChange={handleInputChange}
         handleReturnDateChange={handleReturnDateChange}
         handleSubmitBorrow={handleSubmitBorrow}
         calculateMaxReturnDate={calculateMaxReturnDate}
         showImageModal={showImageModal}
+        isBorrowDateValid={isBorrowDateValid}
       />
 
       <EquipmentDetailDialog

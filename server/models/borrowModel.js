@@ -58,8 +58,8 @@ LEFT JOIN roles r ON u.role_id = r.role_id;`
           role: row.role_name,
         },
         equipment: [],
-        borrow_date: row.borrow_date,
-        due_date: row.return_date,
+        borrow_date: row.borrow_date ? row.borrow_date.toISOString ? row.borrow_date.toISOString().split('T')[0] : String(row.borrow_date).split('T')[0] : null,
+        due_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
         status: row.status,
         purpose: row.purpose,
       };
@@ -126,8 +126,8 @@ export const getBorrowById = async (borrow_id) => {
       quantity: r.quantity,
       pic: r.pic,
     })),
-    borrow_date: row.borrow_date,
-    due_date: row.return_date,
+    borrow_date: row.borrow_date ? row.borrow_date.toISOString ? row.borrow_date.toISOString().split('T')[0] : String(row.borrow_date).split('T')[0] : null,
+    due_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
     status: row.status,
     purpose: row.purpose,
     rejection_reason: row.rejection_reason
@@ -211,7 +211,7 @@ export const getBorrowsByStatus = async (statusArray) => {
           role: row.role_name,
         },
         equipment: [],
-        borrow_date: row.borrow_date,
+        borrow_date: row.borrow_date ? row.borrow_date.toISOString ? row.borrow_date.toISOString().split('T')[0] : String(row.borrow_date).split('T')[0] : null,
         return_date: row.actual_return_date, // วันคืนจริงจากตาราง returns
         status: row.status,
         purpose: row.purpose,
