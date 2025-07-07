@@ -1,6 +1,9 @@
-import { CheckCircleIcon, MagnifyingGlassIcon, XCircleIcon } from "@heroicons/react/24/outline";
+
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import axios from 'axios';
 import { useEffect, useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
 
 export default function RepairApprovalList() {
@@ -10,11 +13,7 @@ export default function RepairApprovalList() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "success"
-  });
+  // ไม่ใช้ notification state แบบเดิม ใช้ react-toastify แทน
 
   // สถานะของคำขอซ่อม
   const statusOptions = [
@@ -119,6 +118,36 @@ export default function RepairApprovalList() {
     setIsDialogOpen(true);
   };
 
+  // ฟังก์ชันกลางสำหรับแจ้งเตือน
+  const notifyRepairAction = (action, extra) => {
+    let message = "";
+    let type = "info";
+    switch (action) {
+      case "approve":
+        message = "อนุมัติคำขอซ่อมเรียบร้อยแล้ว";
+        type = "success";
+        break;
+      case "reject":
+        message = `ปฏิเสธคำขอซ่อมเรียบร้อยแล้ว${extra ? ` เหตุผล: ${extra}` : ""}`;
+        type = "error";
+        break;
+      case "error":
+        message = extra || "เกิดข้อผิดพลาด";
+        type = "error";
+        break;
+      default:
+        message = extra || "ดำเนินการสำเร็จ";
+        type = "info";
+    }
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast(message);
+    }
+  };
+
   const handleApproveRequest = async (approvedData) => {
     try {
       // The dialog already makes the API call with all necessary data
@@ -127,11 +156,10 @@ export default function RepairApprovalList() {
       // รีเฟรชข้อมูลใหม่
       await fetchRepairRequests();
 
-      // แสดงการแจ้งเตือน
-      showNotification("อนุมัติคำขอซ่อมเรียบร้อยแล้ว", "success");
+      notifyRepairAction("approve");
     } catch (error) {
       console.error('Error approving request:', error);
-      showNotification("เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม", "error");
+      notifyRepairAction("error", "เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม");
     }
   };
 
@@ -143,26 +171,14 @@ export default function RepairApprovalList() {
       // รีเฟรชข้อมูลใหม่
       await fetchRepairRequests();
 
-      // แสดงการแจ้งเตือน
-      showNotification("ปฏิเสธคำขอซ่อมเรียบร้อยแล้ว", "error");
+      notifyRepairAction("reject", rejectedData.rejectReason);
     } catch (error) {
       console.error('Error rejecting request:', error);
-      showNotification("เกิดข้อผิดพลาดในการปฏิเสธคำขอซ่อม", "error");
+      notifyRepairAction("error", "เกิดข้อผิดพลาดในการปฏิเสธคำขอซ่อม");
     }
   };
 
-  // แสดงการแจ้งเตือน
-  const showNotification = (message, type) => {
-    setNotification({
-      show: true,
-      message,
-      type
-    });
-
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }));
-    }, 5000);
-  };
+  // ไม่ใช้ showNotification แบบเดิม
 
   // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ
   const filteredRequests = repairRequests.filter(request => {
@@ -242,9 +258,9 @@ export default function RepairApprovalList() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
+                        <div className="flex-shrink-0 h-15 w-15">
                           <img
-                            className="h-10 w-10 object-contain p-1 bg-gray-100 rounded"
+                            className="h-15 w-15 object-contain rounded-lg"
                             src={request.equipment_pic || (request.equipment_pic_filename ? `http://localhost:5000/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
                             alt={request.equipment_name}
                             onError={(e) => {
@@ -274,7 +290,7 @@ export default function RepairApprovalList() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.request_date}</div>
+                      <div className="text-sm text-gray-900">{request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
@@ -320,42 +336,19 @@ export default function RepairApprovalList() {
         onReject={handleRejectRequest}
       />
 
-      {/* Notification Component */}
-      {notification.show && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg max-w-md transition-all duration-300 transform ${
-          notification.show ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'
-        } ${
-          notification.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' :
-          notification.type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' :
-          'bg-blue-50 border border-blue-200 text-blue-700'
-        }`}>
-          <div className="flex items-start gap-3">
-            <div className={`flex-shrink-0 ${
-              notification.type === 'success' ? 'text-green-400' :
-              notification.type === 'error' ? 'text-red-400' :
-              'text-blue-400'
-            }`}>
-              {notification.type === 'success' && (
-                <CheckCircleIcon className="w-5 h-5" />
-              )}
-              {notification.type === 'error' && (
-                <XCircleIcon className="w-5 h-5" />
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{notification.message}</p>
-            </div>
-            <button
-              onClick={() => setNotification(prev => ({ ...prev, show: false }))}
-              className="text-gray-400 hover:text-gray-500"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Toast Notification */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </div>
   );
 }
