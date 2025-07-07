@@ -2,6 +2,7 @@ import * as ReturnModel from '../models/returnModel.js';
 import * as BorrowModel from '../models/borrowModel.js';
 import * as EquipmentModel from '../models/equipmentModel.js';
 import * as DamageLevelModel from '../models/damageLevelModel.js';
+import { updateProofImageAndPayStatus } from '../models/returnModel.js';
 
 export const getAllReturns = async (req, res) => {
   try {
@@ -23,6 +24,9 @@ export const createReturn = async (req, res) => {
     condition_level_id,
     condition_text,
     fine_amount,
+    damage_fine,
+    late_fine,
+    late_days,
     proof_image,
     status,
     notes,
@@ -38,6 +42,9 @@ export const createReturn = async (req, res) => {
       condition_level_id,
       condition_text,
       fine_amount,
+      damage_fine,
+      late_fine,
+      late_days,
       proof_image,
       status,
       notes,
@@ -114,5 +121,55 @@ export const getReturnsByBorrowId = async (req, res) => {
     res.json(rows);
   } catch (err) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+};
+
+export const getAllReturns_pay = async (req, res) => {
+  try {
+    const user_id = req.query.user_id;
+    const rows = await (await import('../models/returnModel.js')).getAllReturns_pay(user_id);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+};
+
+export const uploadSlip = async (req, res) => {
+  try {
+    console.log('UPLOAD SLIP req.body:', req.body);
+    console.log('UPLOAD SLIP req.files:', req.files);
+    const file = req.files?.slip?.[0];
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    // ใช้ borrow_code จาก req.body
+    // สามารถบันทึกชื่อไฟล์ลงฐานข้อมูลได้ที่นี่ (ถ้ามี borrow_id)
+    // const borrow_id = req.body.borrow_id;
+    // TODO: update return record with slip filename if needed
+    res.json({ success: true, filename: file.filename });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Upload failed', error: err.message });
+  }
+};
+
+export const confirmPayment = async (req, res) => {
+  try {
+    const { borrow_id, proof_image } = req.body;
+    console.log('[confirm-payment] req.body:', req.body);
+    if (!borrow_id || !proof_image) {
+      console.log('[confirm-payment] missing borrow_id or proof_image');
+      return res.status(400).json({ success: false, message: 'Missing borrow_id or proof_image' });
+    }
+    const affected = await updateProofImageAndPayStatus(borrow_id, proof_image);
+    console.log('[confirm-payment] affected:', affected);
+    if (affected > 0) {
+      res.json({ success: true });
+    } else {
+      console.log('[confirm-payment] Return not found for borrow_id:', borrow_id);
+      res.status(404).json({ success: false, message: 'Return not found' });
+    }
+  } catch (err) {
+    console.error('[confirm-payment] error:', err);
+    res.status(500).json({ success: false, message: 'Confirm payment failed', error: err.message });
   }
 };

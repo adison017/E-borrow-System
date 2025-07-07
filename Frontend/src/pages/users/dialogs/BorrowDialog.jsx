@@ -1,5 +1,18 @@
 import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
+import { useEffect } from 'react';
+
+// ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
+function getTomorrowTH() {
+  const now = new Date();
+  const bangkokNow = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+  bangkokNow.setUTCHours(0, 0, 0, 0);
+  bangkokNow.setUTCDate(bangkokNow.getUTCDate() + 1);
+  const yyyy = bangkokNow.getUTCFullYear();
+  const mm = String(bangkokNow.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(bangkokNow.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 const BorrowDialog = ({
   showBorrowDialog,
@@ -7,12 +20,40 @@ const BorrowDialog = ({
   quantities,
   equipmentData,
   borrowData,
+  setBorrowData, // เพิ่ม prop นี้
   handleInputChange,
   handleReturnDateChange,
   handleSubmitBorrow,
   calculateMaxReturnDate,
   showImageModal
 }) => {
+  // ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
+  function getTomorrowTH() {
+    const now = new Date();
+    const bangkokNow = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    bangkokNow.setUTCHours(0, 0, 0, 0);
+    bangkokNow.setUTCDate(bangkokNow.getUTCDate() + 1);
+    const yyyy = bangkokNow.getUTCFullYear();
+    const mm = String(bangkokNow.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(bangkokNow.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  // Autofill borrowDate เป็นวันพรุ่งนี้เมื่อ dialog ถูกเปิด
+  useEffect(() => {
+    if (showBorrowDialog) {
+      const tomorrow = getTomorrowTH();
+      if (!borrowData.borrowDate || borrowData.borrowDate !== tomorrow) {
+        setBorrowData(prev => ({
+          ...prev,
+          borrowDate: tomorrow
+        }));
+      }
+    }
+    // eslint-disable-next-line
+  }, [showBorrowDialog]);
+
+  const isBorrowDateValid = !!borrowData.borrowDate && borrowData.borrowDate >= getTomorrowTH();
   return (
     showBorrowDialog && (
       <div className="modal modal-open">
@@ -83,7 +124,7 @@ const BorrowDialog = ({
                   <div>
                     <label className="block text-gray-700 font-medium mb-2 flex-none justify-start">
                       <span>วันที่ยืม</span>
-                      <span className="text-xs text-blue-600 font-normal"> (หลังวันที่ส่งคำขอ 1 วันขึ้นไปเพื่อรออนุมัติ)</span>
+                      <span className="text-xs text-blue-600 font-normal"> ( Set เป็นหลังวันที่ส่งคำขอ 1 วัน เพื่อรออนุมัติ)</span>
                     </label>
                     <div className="relative">
                       <input
@@ -92,11 +133,7 @@ const BorrowDialog = ({
                         name="borrowDate"
                         value={borrowData.borrowDate}
                         onChange={handleInputChange}
-                        min={(() => {
-                          const tomorrow = new Date();
-                          tomorrow.setDate(tomorrow.getDate() + 1);
-                          return tomorrow.toISOString().split('T')[0];
-                        })()}
+                        min={getTomorrowTH()}
                         required
                       />
                       <button
@@ -106,6 +143,9 @@ const BorrowDialog = ({
                       >
                         <FaCalendarAlt />
                       </button>
+                      {!isBorrowDateValid && borrowData.borrowDate && (
+                        <p className="text-xs text-red-600 mt-1">กรุณาเลือกวันที่ยืมหลังวันส่งคำขอ 1 วันขึ้นไป</p>
+                      )}
                     </div>
                   </div>
 
@@ -147,6 +187,7 @@ const BorrowDialog = ({
                   <button
                     type="submit"
                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-1"
+                    disabled={!isBorrowDateValid}
                   >
                     ส่งคำขอยืม
                   </button>
