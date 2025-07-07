@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { Button } from "@material-tailwind/react";
+import { globalUserData } from '../../../components/Header.jsx';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -32,7 +33,8 @@ const ReturnFormDialog = ({
   const [isVerifyingSlip, setIsVerifyingSlip] = useState(false);
   const [slipVerifyResult, setSlipVerifyResult] = useState(null);
 
-  const userId = borrowedItem?.user_id;
+  const userId = borrowedItem?.user_id; // ผู้ยืม
+  const returnById = globalUserData?.user_id; // ผู้ตรวจรับ
 
   // fallback ถ้า parent ไม่ได้ส่ง showNotification มา
   const notify = showNotification || ((msg, type) => alert(msg));
@@ -135,8 +137,6 @@ const ReturnFormDialog = ({
 
   const paymentMethods = [
     { value: "cash", label: "เงินสด" },
-    { value: "transfer", label: "โอนเงิน" },
-    { value: "other", label: "อื่นๆ" },
     { value: "online", label: "ออนไลน์" },
   ];
 
@@ -152,6 +152,10 @@ const ReturnFormDialog = ({
       notify('ไม่พบข้อมูลผู้คืน (userId)', 'error');
       return;
     }
+    if (!returnById) {
+      notify('ไม่พบข้อมูลผู้ตรวจรับคืน (return_by)', 'error');
+      return;
+    }
     if (!selectedDamageLevelId) {
       notify('กรุณาเลือกสภาพครุภัณฑ์', 'error');
       return;
@@ -163,7 +167,8 @@ const ReturnFormDialog = ({
     const payload = {
       borrow_id: borrowedItem.borrow_id,
       return_date: getThailandNowString(),
-      return_by: userId,
+      return_by: returnById, // ผู้ตรวจรับ
+      user_id: userId,      // ผู้ยืม
       condition_level_id: selectedDamageLevel ? (selectedDamageLevel.damage_id || selectedDamageLevel.id) : selectedDamageLevelId,
       condition_text: selectedDamageLevel ? selectedDamageLevel.detail : '',
       fine_amount: totalFineAmount,

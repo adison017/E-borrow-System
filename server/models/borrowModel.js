@@ -19,6 +19,7 @@ export const getAllBorrows = async () => {
   const [rows] = await db.query(
     `SELECT
   bt.borrow_id,
+  bt.user_id,
   bt.borrow_code,
   u.fullname,
   b.branch_name,
@@ -49,6 +50,7 @@ LEFT JOIN roles r ON u.role_id = r.role_id;`
     if (!grouped[row.borrow_id]) {
       grouped[row.borrow_id] = {
         borrow_id: row.borrow_id,
+        user_id: row.user_id, // เพิ่ม user_id ใน object
         borrow_code: row.borrow_code,
         borrower: {
           name: row.fullname,
@@ -80,6 +82,7 @@ export const getBorrowById = async (borrow_id) => {
   const [rows] = await db.query(
     `SELECT
       bt.borrow_id,
+      bt.user_id,
       bt.borrow_code,
       u.fullname,
       b.branch_name,
@@ -111,6 +114,7 @@ export const getBorrowById = async (borrow_id) => {
   const row = rows[0];
   return {
     borrow_id: row.borrow_id,
+    user_id: row.user_id, // เพิ่ม user_id ใน object
     borrow_code: row.borrow_code,
     borrower: {
       name: row.fullname,
