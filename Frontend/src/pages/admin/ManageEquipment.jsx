@@ -480,8 +480,8 @@ function ManageEquipment() {
                             )}
                             {status === 'กำลังซ่อม' && (
                               <Tooltip content="ตรวจรับครุภัณฑ์" placement="top">
-                                <IconButton variant="text" color="teal" className="bg-teal-50 hover:bg-teal-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleInspectEquipment(item)}>
-                                  <CheckCircleIcon className="h-5 w-5" />
+                                <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleInspectEquipment(item)}>
+                                  <CheckCircleIcon className="h-6 w-6" />
                                 </IconButton>
                               </Tooltip>
                             )}
