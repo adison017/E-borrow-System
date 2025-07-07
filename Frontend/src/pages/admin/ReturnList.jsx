@@ -39,9 +39,12 @@ import ReturnFormDialog from "./dialog/ReturnFormDialog";
 import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
 
 
+
+
+import { getAllBorrows, UPLOAD_BASE } from "../../utils/api";
 // Import services
 import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
-import { UPLOAD_BASE } from "../../utils/api";
+
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
@@ -96,6 +99,33 @@ const statusConfig = {
 
 const displayableStatusKeys = ["approved", "overdue", "waiting_payment"];
 
+const FINE_RATE_PER_DAY = 50;
+function calculateReturnStatus(borrowedItem) {
+  const today = new Date();
+  const dueDate = new Date(borrowedItem.due_date);
+  // วันถัดจาก dueDate คือวันที่เริ่มคิดค่าปรับ
+  const lateStartDate = new Date(dueDate);
+  lateStartDate.setDate(lateStartDate.getDate() + 1);
+  const msPerDay = 1000 * 60 * 60 * 24;
+
+  if (today >= lateStartDate) {
+    // คำนวณจำนวนวันที่เกินกำหนด (เริ่มนับจาก lateStartDate)
+    // ถ้าวันนี้คือ lateStartDate จะถือว่าคืนช้า 1 วัน
+    const daysLate = Math.floor((today - lateStartDate) / msPerDay) + 1;
+    return {
+      isOverdue: true,
+      overdayCount: daysLate,
+      fineAmount: daysLate * FINE_RATE_PER_DAY
+    };
+  } else {
+    return {
+      isOverdue: false,
+      overdayCount: 0,
+      fineAmount: 0
+    };
+  }
+}
+
 const ReturnList = () => {
   const [returns, setReturns] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -128,34 +158,37 @@ const ReturnList = () => {
     type: "success"
   });
 
+  // เพิ่ม state สำหรับ refresh
+  const [refreshFlag, setRefreshFlag] = useState(0);
+
+  // ฟังก์ชัน fetch returns ใหม่ (ใช้ทั้งใน useEffect และหลังคืนของ)
+  const fetchReturns = async () => {
+    const res = await fetch(`${UPLOAD_BASE}/api/returns`);
+    const data = await res.json();
+    // Mapping: ให้แน่ใจว่ามี field borrower และ equipment เป็น array
+    const mapped = data.map(item => ({
+      ...item,
+      borrower: item.borrower
+        ? item.borrower
+        : {
+            name: item.fullname,
+            position: item.position_name,
+            department: item.branch_name,
+            avatar: item.avatar,
+            role: item.role_name,
+          },
+      equipment: Array.isArray(item.equipment)
+        ? item.equipment
+        : item.equipment
+          ? [item.equipment]
+          : [],
+    }));
+    setReturns(mapped);
+  };
+
   useEffect(() => {
-    fetch(`${UPLOAD_BASE}/api/returns`)
-      .then(res => res.json())
-      .then(data => {
-        console.log("API returns:", data);
-
-        // Mapping: ให้แน่ใจว่ามี field borrower และ equipment เป็น array
-        const mapped = data.map(item => ({
-          ...item,
-          borrower: item.borrower
-            ? item.borrower
-            : {
-                name: item.fullname,
-                position: item.position_name,
-                department: item.branch_name,
-                avatar: item.avatar,
-                role: item.role_name,
-              },
-          equipment: Array.isArray(item.equipment)
-            ? item.equipment
-            : item.equipment
-              ? [item.equipment]
-              : [],
-        }));
-
-        setReturns(mapped);
-      });
-  }, []);
+    fetchReturns();
+  }, [refreshFlag]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -221,22 +254,11 @@ const ReturnList = () => {
     }
   };
 
-  const handleReturnConfirm = (returnData) => {
-    // Create new return record
-    const newReturn = createNewReturn(returnData.borrowedItem, {
-      returnCondition: returnData.returnCondition,
-      returnNotes: returnData.returnNotes,
-      fineAmount: returnData.fineAmount
-    }, returns);
-
-    // Add new return to returns list
-    setReturns([newReturn, ...returns]);
-
-    // Close return form
+  // เพิ่มฟังก์ชันนี้เพื่อให้ ReturnFormDialog เรียกเมื่อยืนยันการคืน
+  const handleReturnConfirm = async (returnData) => {
+    await fetchReturns(); // ดึงข้อมูลใหม่ทันทีหลังคืนของ
+    setRefreshFlag(f => f + 1); // trigger useEffect (optional)
     setIsReturnFormOpen(false);
-
-    // Show success notification
-    showNotification("บันทึกการคืนครุภัณฑ์เรียบร้อยแล้ว", "success");
   };
 
   const handleViewDetails = (returnItem) => {
@@ -331,6 +353,10 @@ const ReturnList = () => {
   });
   const totalPages = Math.ceil(filteredReturns.length / rowsPerPage);
   const paginatedReturns = filteredReturns.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+  // กรองข้อมูลก่อน render เฉพาะที่ยังไม่คืนสำเร็จ
+  const displayableStatus = ["approved", "overdue", "waiting_payment"];
+  const displayReturns = returns.filter(item => displayableStatus.includes(item.status));
 
   return (
     <ThemeProvider value={theme}>
