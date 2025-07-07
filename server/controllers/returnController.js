@@ -21,6 +21,7 @@ export const createReturn = async (req, res) => {
     borrow_id,
     return_date,
     return_by,
+    user_id, // เพิ่ม user_id
     condition_level_id,
     condition_text,
     fine_amount,
@@ -39,6 +40,7 @@ export const createReturn = async (req, res) => {
       borrow_id,
       return_date,
       return_by,
+      user_id, // user_id ต้องอยู่ลำดับที่ 4
       condition_level_id,
       condition_text,
       fine_amount,
