@@ -162,12 +162,12 @@ export const getAllReturns_pay = async (user_id = null) => {
 };
 
 
-export const createReturn = async (borrow_id, return_date, return_by, condition_level_id, condition_text, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status = 'pending', payment_method = null) => {
+export const createReturn = async (borrow_id, return_date, return_by, user_id, condition_level_id, condition_text, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status = 'pending', payment_method = null) => {
   const [result] = await db.query(
     `INSERT INTO returns (
-      borrow_id, return_date, return_by, condition_level_id, condition_text, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status, payment_method, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [borrow_id, return_date, return_by, condition_level_id, condition_text, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status, payment_method]
+      borrow_id, return_date, return_by, user_id, condition_level_id, condition_text, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status, payment_method, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    [borrow_id, return_date, return_by, user_id, condition_level_id, condition_text, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status, payment_method]
   );
   return result.insertId;
 };
