@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { Button } from "@material-tailwind/react";
+import { globalUserData } from '../../../components/Header.jsx';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -32,7 +33,8 @@ const ReturnFormDialog = ({
   const [isVerifyingSlip, setIsVerifyingSlip] = useState(false);
   const [slipVerifyResult, setSlipVerifyResult] = useState(null);
 
-  const userId = borrowedItem?.user_id;
+  const userId = borrowedItem?.user_id; // ผู้ยืม
+  const returnById = globalUserData?.user_id; // ผู้ตรวจรับ
 
   // fallback ถ้า parent ไม่ได้ส่ง showNotification มา
   const notify = showNotification || ((msg, type) => alert(msg));
@@ -76,7 +78,13 @@ const ReturnFormDialog = ({
   const LATE_FINE_PER_DAY = 20;
   const dueDate = borrowedItem?.due_date ? new Date(borrowedItem.due_date) : null;
   const returnDate = getThailandNow(); // วันคืนจริง (ปัจจุบัน)
-  const overdayCount = dueDate ? Math.max(0, Math.ceil((returnDate - dueDate) / (1000 * 60 * 60 * 24))) : 0;
+  // วันถัดจาก dueDate คือวันที่เริ่มคิดค่าปรับ
+  const lateStartDate = dueDate ? new Date(dueDate) : null;
+  if (lateStartDate) lateStartDate.setDate(lateStartDate.getDate() + 1);
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const overdayCount = (lateStartDate && returnDate >= lateStartDate)
+    ? Math.floor((returnDate - lateStartDate) / msPerDay) + 1
+    : 0;
   const lateFineAmount = overdayCount * LATE_FINE_PER_DAY;
 
   // รวมค่าปรับล่าช้าและค่าปรับเสียหาย
@@ -86,6 +94,21 @@ const ReturnFormDialog = ({
   const fineAmountValue = Number(paymentDetails?.fine_amount ?? fineAmount) || 0;
   const damageCost = Number(paymentDetails?.damage_cost ?? 0);
   const totalAmount = lateFineAmount + fineAmountValue;
+
+  useEffect(() => {
+    if (isOpen) {
+      setReturnCondition("");
+      setReturnNotes("");
+      setPaymentMethod("cash");
+      setIsSubmitting(false);
+      setSelectedDamageLevelId(null);
+      setDamageLevelDetail("");
+      setShowUploadSlip(false);
+      setSlipFile(null);
+      setIsVerifyingSlip(false);
+      setSlipVerifyResult(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen || !borrowedItem) return null;
 
@@ -114,8 +137,6 @@ const ReturnFormDialog = ({
 
   const paymentMethods = [
     { value: "cash", label: "เงินสด" },
-    { value: "transfer", label: "โอนเงิน" },
-    { value: "other", label: "อื่นๆ" },
     { value: "online", label: "ออนไลน์" },
   ];
 
@@ -131,6 +152,10 @@ const ReturnFormDialog = ({
       notify('ไม่พบข้อมูลผู้คืน (userId)', 'error');
       return;
     }
+    if (!returnById) {
+      notify('ไม่พบข้อมูลผู้ตรวจรับคืน (return_by)', 'error');
+      return;
+    }
     if (!selectedDamageLevelId) {
       notify('กรุณาเลือกสภาพครุภัณฑ์', 'error');
       return;
@@ -142,10 +167,14 @@ const ReturnFormDialog = ({
     const payload = {
       borrow_id: borrowedItem.borrow_id,
       return_date: getThailandNowString(),
-      return_by: userId,
+      return_by: returnById, // ผู้ตรวจรับ
+      user_id: userId,      // ผู้ยืม
       condition_level_id: selectedDamageLevel ? (selectedDamageLevel.damage_id || selectedDamageLevel.id) : selectedDamageLevelId,
       condition_text: selectedDamageLevel ? selectedDamageLevel.detail : '',
       fine_amount: totalFineAmount,
+      damage_fine: fineAmount,
+      late_fine: lateFineAmount,
+      late_days: overdayCount,
       proof_image: proofImage || null,
       status: 'pending',
       notes: returnNotes || '',
@@ -167,6 +196,9 @@ const ReturnFormDialog = ({
         'บันทึกข้อมูลการคืนสำเร็จ' + ((paymentMethod === 'online' || paymentMethod === 'transfer') ? '\nผู้ใช้ต้องไปชำระเงินในหน้า "ชำระค่าปรับ"' : ''),
         'success'
       );
+      if (typeof onConfirm === 'function') {
+        onConfirm(); // เรียกหลัง API สำเร็จเท่านั้น
+      }
       onClose();
     } catch (err) {
       notify(err.message || 'เกิดข้อผิดพลาดในการบันทึกการคืน', 'error');
@@ -427,6 +459,12 @@ const ReturnFormDialog = ({
                               </div>
                             );
                           })()}
+                          {!selectedDamageLevelId && (
+                            <div className="flex items-center gap-2 bg-red-50 border border-red-300 rounded-lg px-3 py-2 mt-2 mb-2 animate-pulse">
+                              <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              <span className="text-sm text-red-700 font-semibold">กรุณาเลือกสภาพครุภัณฑ์</span>
+                            </div>
+                          )}
                           <label className="block text-sm font-medium text-gray-700 mt-4">หมายเหตุ</label>
                           <textarea
                             className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"

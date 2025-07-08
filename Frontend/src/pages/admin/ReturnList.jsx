@@ -39,9 +39,12 @@ import ReturnFormDialog from "./dialog/ReturnFormDialog";
 import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
 
 
+
+
+import { getAllBorrows, UPLOAD_BASE } from "../../utils/api";
 // Import services
-import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
-import { UPLOAD_BASE } from "../../utils/api";
+// import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
+
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
@@ -60,6 +63,7 @@ const TABLE_HEAD = [
   "วันที่ยืม",
   "กำหนดคืน",
   "สถานะ",
+  "วัตถุประสงค์",
   "จัดการ"
 ];
 
@@ -96,6 +100,33 @@ const statusConfig = {
 
 const displayableStatusKeys = ["approved", "overdue", "waiting_payment"];
 
+const FINE_RATE_PER_DAY = 50;
+function calculateReturnStatus(borrowedItem) {
+  const today = new Date();
+  const dueDate = new Date(borrowedItem.due_date);
+  // วันถัดจาก dueDate คือวันที่เริ่มคิดค่าปรับ
+  const lateStartDate = new Date(dueDate);
+  lateStartDate.setDate(lateStartDate.getDate() + 1);
+  const msPerDay = 1000 * 60 * 60 * 24;
+
+  if (today >= lateStartDate) {
+    // คำนวณจำนวนวันที่เกินกำหนด (เริ่มนับจาก lateStartDate)
+    // ถ้าวันนี้คือ lateStartDate จะถือว่าคืนช้า 1 วัน
+    const daysLate = Math.floor((today - lateStartDate) / msPerDay) + 1;
+    return {
+      isOverdue: true,
+      overdayCount: daysLate,
+      fineAmount: daysLate * FINE_RATE_PER_DAY
+    };
+  } else {
+    return {
+      isOverdue: false,
+      overdayCount: 0,
+      fineAmount: 0
+    };
+  }
+}
+
 const ReturnList = () => {
   const [returns, setReturns] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -128,34 +159,37 @@ const ReturnList = () => {
     type: "success"
   });
 
+  // เพิ่ม state สำหรับ refresh
+  const [refreshFlag, setRefreshFlag] = useState(0);
+
+  // ฟังก์ชัน fetch returns ใหม่ (ใช้ทั้งใน useEffect และหลังคืนของ)
+  const fetchReturns = async () => {
+    const res = await fetch(`${UPLOAD_BASE}/api/returns`);
+    const data = await res.json();
+    // Mapping: ให้แน่ใจว่ามี field borrower และ equipment เป็น array
+    const mapped = data.map(item => ({
+      ...item,
+      borrower: item.borrower
+        ? item.borrower
+        : {
+            name: item.fullname,
+            position: item.position_name,
+            department: item.branch_name,
+            avatar: item.avatar,
+            role: item.role_name,
+          },
+      equipment: Array.isArray(item.equipment)
+        ? item.equipment
+        : item.equipment
+          ? [item.equipment]
+          : [],
+    }));
+    setReturns(mapped);
+  };
+
   useEffect(() => {
-    fetch(`${UPLOAD_BASE}/api/returns`)
-      .then(res => res.json())
-      .then(data => {
-        console.log("API returns:", data);
-
-        // Mapping: ให้แน่ใจว่ามี field borrower และ equipment เป็น array
-        const mapped = data.map(item => ({
-          ...item,
-          borrower: item.borrower
-            ? item.borrower
-            : {
-                name: item.fullname,
-                position: item.position_name,
-                department: item.branch_name,
-                avatar: item.avatar,
-                role: item.role_name,
-              },
-          equipment: Array.isArray(item.equipment)
-            ? item.equipment
-            : item.equipment
-              ? [item.equipment]
-              : [],
-        }));
-
-        setReturns(mapped);
-      });
-  }, []);
+    fetchReturns();
+  }, [refreshFlag]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -221,22 +255,11 @@ const ReturnList = () => {
     }
   };
 
-  const handleReturnConfirm = (returnData) => {
-    // Create new return record
-    const newReturn = createNewReturn(returnData.borrowedItem, {
-      returnCondition: returnData.returnCondition,
-      returnNotes: returnData.returnNotes,
-      fineAmount: returnData.fineAmount
-    }, returns);
-
-    // Add new return to returns list
-    setReturns([newReturn, ...returns]);
-
-    // Close return form
+  // เพิ่มฟังก์ชันนี้เพื่อให้ ReturnFormDialog เรียกเมื่อยืนยันการคืน
+  const handleReturnConfirm = async (returnData) => {
+    await fetchReturns(); // ดึงข้อมูลใหม่ทันทีหลังคืนของ
+    setRefreshFlag(f => f + 1); // trigger useEffect (optional)
     setIsReturnFormOpen(false);
-
-    // Show success notification
-    showNotification("บันทึกการคืนครุภัณฑ์เรียบร้อยแล้ว", "success");
   };
 
   const handleViewDetails = (returnItem) => {
@@ -331,6 +354,10 @@ const ReturnList = () => {
   });
   const totalPages = Math.ceil(filteredReturns.length / rowsPerPage);
   const paginatedReturns = filteredReturns.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+  // กรองข้อมูลก่อน render เฉพาะที่ยังไม่คืนสำเร็จ
+  const displayableStatus = ["approved", "overdue", "waiting_payment"];
+  const displayReturns = returns.filter(item => displayableStatus.includes(item.status));
 
   return (
     <ThemeProvider value={theme}>
@@ -427,13 +454,23 @@ const ReturnList = () => {
             <table className="min-w-full divide-y divide-gray-200 table-auto">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  <th className="w-24 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">รหัสการยืม</th>
-                  <th className="w-48 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ผู้ยืม</th>
-                  <th className="w-64 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">ครุภัณฑ์</th>
-                  <th className="w-28 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">วันที่ยืม</th>
-                  <th className="w-28 text-left px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">กำหนดคืน</th>
-                  <th className="w-32 text-center px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">สถานะ</th>
-                  <th className="w-40 text-center px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap">จัดการ</th>
+                  {TABLE_HEAD.map((head, index) => (
+                    <th
+                      key={head}
+                      className={`px-4 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                        index === 0 ? "w-24 text-left" : // รหัสการยืม
+                        index === 1 ? "w-48 text-left" : // ผู้ยืม
+                        index === 2 ? "w-64 text-left" : // ครุภัณฑ์
+                        index === 3 ? "w-28 text-left" : // วันที่ยืม
+                        index === 4 ? "w-28 text-left" : // กำหนดคืน
+                        index === 5 ? "w-32 text-center" : // สถานะ
+                        index === 6 ? "w-22 text-left" : // วัตถุประสงค์
+                        index === 7 ? "w-40 text-center" : ""
+                      }`}
+                    >
+                      {head}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -492,10 +529,17 @@ const ReturnList = () => {
                       <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date ? new Date(item.borrow_date).toLocaleDateString('th-TH') : "-"}</td>
                       <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date ? new Date(item.due_date).toLocaleDateString('th-TH') : "-"}</td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
+
                         {getStatusBadge(item.status)}
                       </td>
+                      <td className="w-22 px-4 py-4 whitespace-nowrap text-center text-gray-900">{item.purpose || '-'}</td>
                       <td className="w-40 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Tooltip content="ดูรายละเอียด" placement="top">
+                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
+                              <EyeIcon className="h-4 w-4" />
+                            </IconButton>
+                          </Tooltip>
                           {item.status !== 'waiting_payment' && (
                             <Tooltip content="คืนครุภัณฑ์" placement="top">
                               <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => {
@@ -504,15 +548,10 @@ const ReturnList = () => {
                                 setSelectedBorrowedItem(item);
                                 setIsReturnFormOpen(true);
                               }}>
-                                <CheckCircleSolidIcon className="h-6 w-6" />
+                                <CheckCircleSolidIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
                           )}
-                          <Tooltip content="ดูรายละเอียด" placement="top">
-                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
-                              <EyeIcon className="h-5 w-5" />
-                            </IconButton>
-                          </Tooltip>
                           <Tooltip content="ลบ" placement="top">
                             <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteReturn(item.borrow_id)}>
                               <TrashIcon className="h-4 w-4" />
