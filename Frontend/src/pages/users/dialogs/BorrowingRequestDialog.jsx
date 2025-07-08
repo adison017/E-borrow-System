@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { BsBoxSeamFill, BsCalendarDateFill } from "react-icons/bs";
 import {
   FaCalendarAlt,
@@ -10,10 +10,28 @@ import {
   FaMoneyBillWave,
   FaQrcode,
   FaSearch,
-  FaTimes
+  FaTimes,
+  FaCheckCircle,
+  FaUpload,
+  FaMoneyCheckAlt
 } from "react-icons/fa";
 import { RiArrowGoBackLine } from "react-icons/ri";
 import QRCode from "react-qr-code";
+import AlertDialog from '../../../components/Notification.jsx';
+
+// เพิ่มฟังก์ชัน formatThaiDate ในไฟล์นี้
+function formatThaiDate(dateStr) {
+  if (!dateStr) return "-";
+  if (dateStr instanceof Date) {
+    // ถ้าเป็น Date object
+    const yyyy = dateStr.getFullYear() + 543;
+    const mm = String(dateStr.getMonth() + 1).padStart(2, '0');
+    const dd = String(dateStr.getDate()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy}`;
+  }
+  const [y, m, d] = dateStr.split("-");
+  return `${d}/${m}/${parseInt(y, 10) + 543}`;
+}
 
 const getStepIcon = (stepNumber) => {
   const iconClass = "text-lg";
@@ -35,25 +53,165 @@ const getStepIcon = (stepNumber) => {
   }
 };
 
-const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,showImageModal }) => {
-  if (!request) return null;
+// PromptPay QR payload generator (minimal, inline)
+function generatePromptPayPayload(phone, amount) {
+  // Convert phone to 13 digits (0066xxxxxxxxx)
+  let id = phone.replace(/[^0-9]/g, '');
+  if (id.length === 10 && id.startsWith('0')) id = '0066' + id.slice(1);
+  else if (id.length === 13 && id.startsWith('0066')) { /* ok */ }
+  else return '';
+
+  let payload =
+    '000201' + // Payload Format Indicator
+    '010212' + // Point of Initiation Method
+    '29370016A000000677010111' + // Merchant Account Information - PromptPay
+    '0113' + id + // PromptPay ID
+    '5303764' + // Currency (764 = THB)
+    '5802TH'; // Country
+
+  if (amount && amount > 0) {
+    let amt = Number(amount).toFixed(2);
+    payload += '54' + amt.length.toString().padStart(2, '0') + amt;
+  }
+
+  payload += '6304'; // CRC
+  payload += crc16(payload);
+  return payload;
+
+  function crc16(s) {
+    let crc = 0xFFFF;
+    for (let i = 0; i < s.length; i++) {
+      crc ^= s.charCodeAt(i) << 8;
+      for (let j = 0; j < 8; j++) {
+        if ((crc & 0x8000) !== 0) crc = (crc << 1) ^ 0x1021;
+        else crc <<= 1;
+      }
+      crc &= 0xFFFF;
+    }
+    return crc.toString(16).toUpperCase().padStart(4, '0');
+  }
+}
+
+// ลบฟังก์ชัน formatThaiDate ที่ประกาศในไฟล์นี้ออก (ถ้ามี)
+
+// ฟังก์ชันดึงวันที่ปัจจุบัน (string YYYY-MM-DD) ของไทย
+function getTodayStringTH() {
+  const now = new Date();
+  // คำนวณเวลาปัจจุบันของไทย (Asia/Bangkok)
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const bangkok = new Date(utc + (7 * 60 * 60 * 1000));
+  const yyyy = bangkok.getUTCFullYear();
+  const mm = String(bangkok.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(bangkok.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// เพิ่มฟังก์ชัน mapStatusToColor
+const mapStatusToColor = (status) => {
+  switch (status) {
+    case "carry": // ส่งมอบครุภัณฑ์
+      return "badge-info";
+    case "completed": // เสร็จสิ้น
+      return "badge-success";
+    case "waiting_payment": // ค้างชำระเงิน
+      return "badge-error";
+    case "rejected": // ไม่อนุมัติ/ปฏิเสธ
+      return "badge-neutral";
+    case "pending_approval": // รอการอนุมัติ
+      return "badge-warning";
+    case "pending": // รอดำเนินการ
+      return "badge-warning";
+    case "approved": // ได้รับการอนุมัติ
+      return "badge-success";
+    default:
+      return "badge-neutral";
+  }
+};
+
+const mapStatusToLabel = (status) => {
+  switch (status) {
+    case "carry":
+      return "ส่งมอบครุภัณฑ์";
+    case "completed":
+      return "เสร็จสิ้น";
+    case "waiting_payment":
+      return "ค้างชำระเงิน";
+    case "rejected":
+      return "ไม่อนุมัติ/ปฏิเสธ";
+    case "pending_approval":
+      return "รอการอนุมัติ";
+    case "pending":
+      return "รอดำเนินการ";
+    case "approved":
+      return "ได้รับการอนุมัติ";
+    default:
+      return status;
+  }
+};
+
+function formatThaiDateTime(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const yyyy = d.getFullYear() + 543;
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  // ถ้าต้องการแค่วันที่: `${dd}/${mm}/${yyyy}`
+  // ถ้าต้องการวันที่+เวลา: `${dd}/${mm}/${yyyy} ${hh}:${min}`
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+}
+
+const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine, showImageModal, activeStep, dialogShouldClose, forceOpen, afterClose }) => {
+  if (!request && !showSuccessAlert) return null;
+
+  console.log('BorrowingRequestDialog request:', request);
 
   // Determine current step based on status
   let currentStep = 1;
-  if (request.status === "รออนุมัติ") currentStep = 2;
-  if (request.status === "อนุมัติ") currentStep = 3;
-  if (request.status === "กำหนดคืน") currentStep = 4;
-  if (request.status === "ค้างชำระเงิน") currentStep = 5;
-  if (request.status === "เสร็จสิ้น") currentStep = 6;
-  if (request.status === "ปฏิเสธ") currentStep = 2;
+  if (typeof activeStep === 'number') {
+    currentStep = activeStep;
+  } else {
+    if (request.status === "รออนุมัติ") currentStep = 2;
+    if (request.status === "อนุมัติ") currentStep = 3;
+    if (request.status === "กำหนดคืน") currentStep = 4;
+    if (request.status === "ค้างชำระเงิน") currentStep = 5;
+    if (request.status === "เสร็จสิ้น") currentStep = 6;
+    if (request.status === "ปฏิเสธ") currentStep = 2;
+  }
 
   // Check if we should show QR code
   const showQRCode = request.status === "อนุมัติ" || request.status === "กำหนดคืน";
   const showReason = request.status === "ปฏิเสธ";
-  const showFine = request.status === "ค้างชำระเงิน";
+  const showFine = (request.status === "ค้างชำระเงิน") || currentStep === 5;
+
+  const [showQRDialog, setShowQRDialog] = useState(false);
+  const [slipFile, setSlipFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [uploadStep, setUploadStep] = useState(1); // 1 = ยืนยันการอัพโหลด, 2 = ยืนยันการชำระเงิน
+
+  // คำนวณค่าปรับรวม
+  const totalFine = Number(request.late_fine || 0) + Number(request.damage_fine || 0);
+
+  // ถ้า dialogShouldClose เป็น true และ afterClose มี ให้ปิด dialog จริง
+  useEffect(() => {
+    if (dialogShouldClose && afterClose) {
+      console.log('afterClose called');
+      afterClose();
+    }
+  }, [dialogShouldClose, afterClose]);
+
+  // กำหนด statusColor อัตโนมัติถ้าไม่มีมาใน request
+  const statusColor = request.statusColor || mapStatusToColor(request.status);
+  const statusLabel = mapStatusToLabel(request.status);
 
   return (
-    <div className="modal modal-open">
+    <div className={forceOpen === false ? 'hidden' : 'modal modal-open'}>
       <div className="fixed inset-0 z-50  flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
           <div className="p-4 md:p-6 space-y-6 md:space-y-8">
@@ -67,13 +225,13 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                 </h2>
                 <div className="flex items-center gap-3 mt-2 flex-wrap">
                   <span
-                    className={`badge ${request.statusColor} text-white px-3 py-1 rounded-full text-xs md:text-sm font-medium`}
+                    className={`badge ${statusColor} text-white px-3 py-1 rounded-full text-xs md:text-sm font-medium`}
                   >
-                    {request.status}
+                    {statusLabel}
                   </span>
                   <span className="text-xs md:text-sm text-gray-500 flex items-center gap-1">
                     <BsCalendarDateFill className="text-gray-400 hidden sm:block" />
-                    วันที่ยืม {request.borrowedDate} - คืน {request.dueDate}
+                    วันที่ยืม {formatThaiDate(request.borrowedDate || request.borrow_date || getTodayStringTH())} - คืน {formatThaiDate(request.dueDate || request.due_date)}
                   </span>
                 </div>
               </div>
@@ -92,8 +250,8 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                   QR Code สำหรับการยืมครุภัณฑ์
                 </h3>
                 <div className="p-2 bg-white rounded-lg border border-gray-200 mb-2">
-                  <QRCode 
-                    value={request.id} 
+                  <QRCode
+                    value={request.id}
                     size={128}
                     level="H"
                   />
@@ -133,7 +291,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                   <div>
                     <p className="text-red-800 font-medium mb-1">สาเหตุ</p>
                     <p className="text-red-700">{request.cencalReason}</p>
-                    
+
                     {request.rejectionDetails && (
                       <div className="mt-3">
                         <p className="text-red-800 font-medium mb-1 text-sm">รายละเอียดเพิ่มเติม:</p>
@@ -165,107 +323,143 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                 </div>
 
                 <div className="bg-white rounded-lg p-4 mb-5 border border-amber-100">
-                  {/* เงื่อนไขตรวจสอบการแสดงจำนวนวันที่คืนล่าช้า */}
-                  {request.overdueDays ? (
-                    <div className="grid grid-cols-2 gap-4 mb-3">
-                      <div className="space-y-1">
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                          <FaCalendarAlt className="text-amber-400" />
-                          วันที่คืนล่าช้า
-                        </p>
-                        <p className="text-xl font-bold text-amber-700">
-                          {request.overdueDays} <span className="text-sm font-normal">วัน</span>
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                          <FaMoneyBillWave className="text-amber-400" />
-                          ค่าปรับทั้งหมด
-                        </p>
-                        <p className="text-xl font-bold text-amber-700">
-                          ฿{request.fineAmount?.toFixed(2) || '0.00'}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1 mb-3">
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div className="space-y-1">
                       <p className="text-sm text-gray-500 flex items-center gap-1">
                         <FaMoneyBillWave className="text-amber-400" />
-                        ค่าปรับทั้งหมด
+                        ค่าปรับเสียหาย
                       </p>
                       <p className="text-xl font-bold text-amber-700">
-                        ฿{request.fineAmount?.toFixed(2) || '0.00'}
+                        ฿{(request.damage_fine ?? 0).toLocaleString('th-TH')}
                       </p>
                     </div>
-                  )}
-                  
-                  {/* ส่วนแสดงเหตุผลค่าปรับ */}
-                  <div className="mt-4">
-                    <h4 className="font-medium text-gray-700 mb-2">รายละเอียดค่าปรับ</h4>
-                    <div className="bg-amber-50 rounded-lg p-3">
-                      {request.fineReason ? (
-                        <p className="text-amber-800 font-medium">{request.fineReason}</p>
-                      ) : request.overdueDays ? (
-                        <p className="text-amber-800 font-medium">
-                          คืนครุภัณฑ์ล่าช้า {request.overdueDays} วัน
-                        </p>
-                      ) : (
-                        <p className="text-amber-800 font-medium">
-                          มีค่าปรับจากการยืมครุภัณฑ์
-                        </p>
-                      )}
-                      {request.fineDetails && (
-                        <p className="text-amber-600 text-sm mt-1">{request.fineDetails}</p>
-                      )}
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <FaMoneyBillWave className="text-amber-400" />
+                        ค่าปรับคืนช้า
+                      </p>
+                      <p className="text-xl font-bold text-amber-700">
+                        ฿{(request.late_fine ?? 0).toLocaleString('th-TH')} ({request.late_days ?? 0} วัน)
+                      </p>
                     </div>
                   </div>
+
+                  {/* Fine Total Only */}
+                  {(Number(request.late_fine || 0) + Number(request.damage_fine || 0)) > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-medium text-gray-700 mb-2">ค่าปรับรวม</h4>
+                      <div className="flex items-center gap-3 bg-gradient-to-r from-amber-200 to-amber-100 rounded-xl p-5 shadow-sm border border-amber-300">
+                        <FaMoneyBillAlt className="text-3xl text-amber-500" />
+                        <span className="text-2xl font-bold text-amber-800">
+                          {(Number(request.late_fine || 0) + Number(request.damage_fine || 0)).toLocaleString()} บาท
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* ส่วนช่องทางการชำระเงิน (คงเดิม) */}
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-700 text-sm flex items-center gap-2">
-                    <FaExchangeAlt className="text-gray-400" />
-                    <span>เลือกช่องทางการชำระเงิน</span>
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {/* Cash Payment */}
+                {/* PromptPay QR Code + Slip Upload */}
+                <div className="mt-8 flex flex-col items-center justify-center">
+                  <h4 className="font-medium text-gray-700 mb-3 text-center">ชำระค่าปรับผ่าน PromptPay</h4>
+                  <QRCode value={generatePromptPayPayload('0929103592', totalFine)} size={180} level="H" />
+                  <div className="text-center text-gray-700 text-sm mt-2">
+                    <div>PromptPay: <span className="font-bold text-blue-700">092-910-3592</span></div>
+                    <div>ยอดเงิน: <span className="font-bold text-amber-700">{totalFine.toLocaleString()} บาท</span></div>
+                  </div>
+                  {/* ปุ่มอัปโหลด/เปลี่ยนสลิป */}
+                  <label
+                    htmlFor="slip-upload"
+                    className="mt-6 w-full max-w-xs mx-auto py-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold flex items-center justify-center gap-2 text-lg shadow-lg cursor-pointer transition-transform"
+                  >
+                    <FaUpload className="text-2xl" />
+                    {slipFile ? 'เปลี่ยนไฟล์สลิป' : 'เลือกไฟล์สลิป'}
+                    <input
+                      id="slip-upload"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={e => {
+                        setUploadError("");
+                        setUploadSuccess(false);
+                        setUploadStep(1);
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        setSlipFile(file);
+                      }}
+                    />
+                  </label>
+                  {/* Preview รูปภาพสลิปใน card ค่าปรับ */}
+                  {slipFile && (
+                    <div className="flex flex-col items-center mt-6 w-full">
+                      <div className="bg-white border-2 border-blue-200 rounded-2xl shadow-lg p-4 flex flex-col items-center w-full max-w-xs mx-auto">
+                        <img
+                          src={URL.createObjectURL(slipFile)}
+                          alt="slip preview"
+                          className="w-56 h-56 object-contain rounded-xl mb-2 bg-white"
+                        />
+                        <span className="text-gray-500 text-xs mb-2">Preview สลิปที่เลือก</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* ปุ่ม 2 สเต็ป */}
+                  {slipFile && uploadStep === 1 && (
                     <button
-                      onClick={() => onPayFine('cash')}
-                      className="group flex items-center gap-3 bg-white hover:bg-green-50 p-4 rounded-xl border border-gray-200 hover:border-green-300 transition-all"
+                      className="mt-6 w-full max-w-xs mx-auto py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold flex items-center justify-center gap-2 text-lg shadow-lg hover:scale-105 transition-transform disabled:opacity-50"
+                      disabled={isUploading}
+                      onClick={() => setUploadStep(2)}
                     >
-                      <div className="p-2 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
-                        <FaMoneyBillAlt className="text-green-600 text-xl" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-800">ชำระเงินสด</p>
-                        <p className="text-xs text-gray-500">ที่แผนกครุภัณฑ์ ชั้น 2</p>
-                      </div>
-                      <FaChevronRight className="ml-auto text-gray-300 group-hover:text-green-400" />
+                      <FaUpload className="text-2xl" />
+                      ยืนยันการอัพโหลด
                     </button>
-
-                    {/* QR Payment */}
-                  <button
-                      onClick={() => onPayFine('qr')}
-                      className="group flex items-center gap-3 bg-white hover:bg-blue-50 p-4 rounded-xl border border-gray-200 hover:border-blue-300 transition-all"
+                  )}
+                  {slipFile && uploadStep === 2 && (
+                    <button
+                      className="mt-6 w-full max-w-xs mx-auto py-3 rounded-xl bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 text-white font-extrabold flex items-center justify-center gap-2 text-lg shadow-xl ring-2 ring-emerald-200 hover:ring-4 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 focus:outline-none focus:ring-4 focus:ring-emerald-300"
+                      disabled={isUploading || isConfirming}
+                      onClick={async () => {
+                        if (isUploading || isConfirming) return;
+                        setIsUploading(true);
+                        setUploadError("");
+                        setUploadSuccess(false);
+                        const formData = new FormData();
+                        formData.append("borrow_code", request.borrow_code);
+                        formData.append("slip", slipFile);
+                        formData.append("borrow_id", request.borrow_id);
+                        try {
+                          const res = await fetch("http://localhost:5000/api/returns/upload-slip", {
+                            method: "POST",
+                            body: formData
+                          });
+                          if (!res.ok) throw new Error("อัปโหลดสลิปไม่สำเร็จ");
+                          const data = await res.json();
+                          setIsConfirming(true);
+                          const confirmRes = await fetch("http://localhost:5000/api/returns/confirm-payment", {
+                            method: "POST",
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ borrow_id: request.borrow_id, proof_image: data.filename })
+                          });
+                          if (!confirmRes.ok) throw new Error("ยืนยันการจ่ายเงินไม่สำเร็จ");
+                          setUploadSuccess(true);
+                          if (afterClose) afterClose(true);
+                        } catch (err) {
+                          setUploadError("เกิดข้อผิดพลาดในการอัปโหลดหรือยืนยันการจ่ายเงิน");
+                        } finally {
+                          setIsUploading(false);
+                          setIsConfirming(false);
+                        }
+                      }}
                     >
-                      <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                        <FaQrcode className="text-blue-600 text-xl" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-800">สแกน QR Code</p>
-                        <p className="text-xs text-gray-500">ผ่านแอปธนาคาร</p>
-                      </div>
-                      <FaChevronRight className="ml-auto text-gray-300 group-hover:text-blue-400" />
+                      <FaMoneyCheckAlt className="text-2xl drop-shadow-md" />
+                      {(isUploading || isConfirming) ? 'กำลังดำเนินการ...' : 'ยืนยันการชำระเงิน'}
                     </button>
-                  </div>
-                  </div>
-                  <div className="text-center pt-2">
-                    <p className="text-xs text-gray-400">
-                      ระบบจะอัปเดตสถานะภายใน 1 ชั่วโมงหลังชำระเงิน
-                    </p>
-                  </div>
+                  )}
                 </div>
+                <div className="text-center pt-2">
+                  <p className="text-xs text-gray-400">
+                    ระบบจะอัปเดตสถานะภายใน 1 ชั่วโมงหลังชำระเงิน
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* Progress Steps */}
@@ -278,7 +472,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                   {[1, 2, 3, 4, 5, 6].map((step) => {
                     const isActive = currentStep >= step;
                     const isRejected = request.status === "ปฏิเสธ" && step === 2;
-                    
+
                     return (
                       <div
                         key={step}
@@ -305,17 +499,15 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
               </div>
             </div>
 
-            
-        
             {/* Equipment List */}
             <div className="space-y-3 md:space-y-4">
               <h3 className="font-semibold text-gray-700 text-sm">รายการครุภัณฑ์</h3>
               <div className="bg-blue-50 rounded-lg p-3 md:p-4">
-                {request.items.map((item, index) => (
-                  <div key={index} className="flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-lg transition-colors">
+                {(request.equipment || []).map((item, index) => (
+                  <div key={item.item_id || index} className="flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-lg transition-colors">
                     <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                       <img
-                        src={item.image || "https://via.placeholder.com/500?text=No+Image"}
+                        src={item.pic || "https://via.placeholder.com/500?text=No+Image"}
                         alt={item.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -327,15 +519,23 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-800 truncate text-sm md:text-base">{item.name}</p>
                       <div className="flex justify-between text-xs md:text-sm text-gray-500 px-1">
-                        <span>รหัส: {item.equipmentId || `EQ-${(1000 + index).toString().padStart(4, '0')}`}</span>
+                        <span>รหัส: {item.item_code}</span>
                         <span>จำนวน: {item.quantity} {item.quantity > 1 ? 'ชิ้น' : 'ชุด'}</span>
                       </div>
                     </div>
                   </div>
                 ))}
                 <div className="mt-5 bg-blue-600 px-2 py-3 rounded-2xl text-white font-medium text-sm md:text-base justify-end flex">
-                  รวมทั้งหมด {request.total} ชิ้น
+                  รวมทั้งหมด {(request.equipment || []).reduce((sum, eq) => sum + (eq.quantity || 0), 0)} ชิ้น
                 </div>
+              </div>
+            </div>
+
+            {/* Borrower Name */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-700 text-sm">ชื่อผู้ยืม</h3>
+              <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+                <p className="text-gray-700 text-sm md:text-base">{request.borrower?.name || '-'}</p>
               </div>
             </div>
 
@@ -343,28 +543,65 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
             <div className="space-y-2">
               <h3 className="font-semibold text-gray-700 text-sm">เหตุผลการขอยืม</h3>
               <div className="bg-gray-50 rounded-lg p-3 md:p-4">
-                <p className="text-gray-700 text-sm md:text-base">{request.reason}</p>
+                <p className="text-gray-700 text-sm md:text-base">{request.purpose || '-'}</p>
               </div>
             </div>
 
-            {/* Dates */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-700 text-sm md:text-base">วันที่ยืม</h3>
-                <div className="bg-gray-50 rounded-lg p-3 md:p-4">
-                  <p className="text-gray-700 text-sm md:text-base">{request.borrowedDate}</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+            {/* วันที่ยืม */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-700 text-sm md:text-base">วันที่ยืม</h3>
+              <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+                <p className="text-gray-700 text-sm md:text-base">
+                  {formatThaiDate(
+                    request.borrowedDate ||
+                    request.borrow_date ||
+                    new Date()
+                  )}
+                </p>
               </div>
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-700 text-sm md:text-base">วันที่คืน</h3>
-                <div className="bg-gray-50 rounded-lg p-3 md:p-4">
-                  <p className="text-gray-700 text-sm md:text-base">{request.dueDate}</p>
-                </div>
+            </div>
+
+            {/* วันที่คืนกำหนด */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-700 text-sm md:text-base">วันที่คืนกำหนด</h3>
+              <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+                <p className="text-gray-700 text-sm md:text-base">
+                  {request.dueDate
+                    ? formatThaiDate(request.dueDate)
+                    : request.due_date
+                    ? formatThaiDate(request.due_date)
+                    : "-"}
+                </p>
+              </div>
+            </div>
+
+            {/* วันที่คืนจริง */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-700 text-sm md:text-base">วันที่คืนจริง</h3>
+              <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+                <p className="text-gray-600 text-sm md:text-base">
+                  {formatThaiDateTime(request.return_date)}
+                </p>
               </div>
             </div>
           </div>
+          </div>
         </div>
       </div>
+
+      {/* Success Alert */}
+      <AlertDialog
+        show={showSuccessAlert}
+        message="ชำระเงินสำเร็จ ระบบได้รับข้อมูลการชำระเงินแล้ว"
+        type="success"
+        onClose={() => {
+          console.log('AlertDialog onClose called');
+          setShowSuccessAlert(false);
+          if (onClose) onClose();
+        }}
+        buttonText="ตกลง"
+      />
     </div>
   );
 };
