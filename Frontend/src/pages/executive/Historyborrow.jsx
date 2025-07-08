@@ -31,12 +31,14 @@ export default function HistoryBorrow() {
   const rowsPerPage = 5;
   // ...existing code...
 
-  // นับจำนวนแต่ละสถานะจากข้อมูลจริง
-  const statusCounts = borrowRequests.reduce((acc, request) => {
-    if (acc[request.status] === undefined) acc[request.status] = 0;
-    acc[request.status]++;
-    return acc;
-  }, {});
+  // นับจำนวนแต่ละสถานะจากข้อมูลจริง (ป้องกัน borrowRequests ไม่ใช่ array)
+  const statusCounts = Array.isArray(borrowRequests)
+    ? borrowRequests.reduce((acc, request) => {
+        if (acc[request.status] === undefined) acc[request.status] = 0;
+        acc[request.status]++;
+        return acc;
+      }, {})
+    : {};
 
   // สถานะของคำขอยืม (พร้อม count จริง)
   const statusOptions = [
@@ -63,14 +65,15 @@ export default function HistoryBorrow() {
 
   useEffect(() => {
     setLoading(true);
-    // ดึงข้อมูลจาก API (เหมือนหน้า success)
-    fetch(`${UPLOAD_BASE}/api/borrows/history`)
+    // ใช้ endpoint ที่มีอยู่จริง (เหมือนหน้า Success)
+    fetch(`${UPLOAD_BASE}/api/returns/success-borrows`)
       .then(res => res.json())
       .then(data => {
-        setBorrowRequests(data);
+        setBorrowRequests(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
+        setBorrowRequests([]);
         setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", type: "error" });
         setLoading(false);
       });
@@ -136,18 +139,20 @@ export default function HistoryBorrow() {
     return d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ
-  const filteredRequests = borrowRequests.filter(request => {
-    // เฉพาะสถานะที่เลือก
-    if (!statusFilter.includes(request.status)) return false;
-    // ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้ขอยืม
-    const search = searchTerm.toLowerCase();
-    return (
-      (request.borrow_code && request.borrow_code.toLowerCase().includes(search)) ||
-      (Array.isArray(request.equipment) && request.equipment.some(eq => eq.name && eq.name.toLowerCase().includes(search))) ||
-      (request.borrower && request.borrower.name && request.borrower.name.toLowerCase().includes(search))
-    );
-  });
+  // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ (ป้องกัน borrowRequests ไม่ใช่ array)
+  const filteredRequests = Array.isArray(borrowRequests)
+    ? borrowRequests.filter(request => {
+        // เฉพาะสถานะที่เลือก
+        if (!statusFilter.includes(request.status)) return false;
+        // ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้ขอยืม
+        const search = searchTerm.toLowerCase();
+        return (
+          (request.borrow_code && request.borrow_code.toLowerCase().includes(search)) ||
+          (Array.isArray(request.equipment) && request.equipment.some(eq => eq.name && eq.name.toLowerCase().includes(search))) ||
+          (request.borrower && request.borrower.name && request.borrower.name.toLowerCase().includes(search))
+        );
+      })
+    : [];
 
   // Pagination logic
   const totalPages = Math.ceil(filteredRequests.length / rowsPerPage);
