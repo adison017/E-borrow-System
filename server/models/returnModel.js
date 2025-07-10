@@ -74,6 +74,7 @@ LEFT JOIN (
 
 export const getAllReturns_pay = async (user_id = null) => {
   let sql = `SELECT
+    ret.return_id,  -- เพิ่ม return_id
     bt.borrow_id,
     bt.borrow_code,
     u.fullname,
@@ -99,7 +100,7 @@ export const getAllReturns_pay = async (user_id = null) => {
     ret.late_days,
     ret.return_date AS return_date_real,
     ret.payment_method,
-    dl.fine_percent   -- ✅ เพิ่มตรงนี้
+    dl.fine_percent
   FROM borrow_transactions bt
   JOIN users u ON bt.user_id = u.user_id
   JOIN borrow_items bi ON bt.borrow_id = bi.borrow_id
@@ -123,6 +124,7 @@ export const getAllReturns_pay = async (user_id = null) => {
   rows.forEach(row => {
     if (!grouped[row.borrow_id]) {
       grouped[row.borrow_id] = {
+        return_id: row.return_id, // เพิ่มตรงนี้
         borrow_id: row.borrow_id,
         borrow_code: row.borrow_code,
         borrower: {
@@ -145,7 +147,7 @@ export const getAllReturns_pay = async (user_id = null) => {
         late_days: row.late_days,
         return_date: row.return_date_real,
         payment_method: row.payment_method,
-        fine_percent: row.fine_percent || 0  // ✅ เพิ่มข้อมูลเปอร์เซ็นต์ค่าปรับจาก damage level
+        fine_percent: row.fine_percent || 0
       };
     }
     grouped[row.borrow_id].equipment.push({
@@ -155,7 +157,7 @@ export const getAllReturns_pay = async (user_id = null) => {
       quantity: row.quantity,
       pic: row.pic,
       price: row.price,
-      fine_percent: row.fine_percent || 0 // เพิ่มบรรทัดนี้
+      fine_percent: row.fine_percent || 0
     });
   });
   return Object.values(grouped);

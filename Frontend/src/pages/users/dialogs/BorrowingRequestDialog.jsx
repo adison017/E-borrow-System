@@ -440,6 +440,12 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                           });
                           if (!confirmRes.ok) throw new Error("ยืนยันการจ่ายเงินไม่สำเร็จ");
                           setUploadSuccess(true);
+                          // เรียก PATCH /api/returns/:return_id/pay เพื่อ trigger LINE Notify รายการเสร็จสิ้น
+                          if (request.return_id) {
+                            await fetch(`http://localhost:5000/api/returns/${request.return_id}/pay`, { method: "PATCH" });
+                          } else {
+                            console.error('ไม่พบ return_id ใน request, ไม่สามารถ trigger LINE Notify ได้');
+                          }
                           if (afterClose) afterClose(true);
                         } catch (err) {
                           setUploadError("เกิดข้อผิดพลาดในการอัปโหลดหรือยืนยันการจ่ายเงิน");

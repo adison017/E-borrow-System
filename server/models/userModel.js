@@ -55,6 +55,7 @@ const User = {
           u.province,
           u.postal_no,
           u.role_id,
+          u.line_id,
           r.role_name,
           p.position_name,
           b.branch_name,
@@ -461,6 +462,46 @@ const User = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // ฟังก์ชันสำหรับอัปเดต line_id ให้ user_id ที่ระบุ
+  updateUserLineId: async (user_id, line_id) => {
+    try {
+      const [result] = await db.query(
+        'UPDATE users SET line_id = ? WHERE user_id = ?',
+        [line_id, user_id]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error in updateUserLineId:', error);
+      throw error;
+    }
+  },
+
+  // ฟังก์ชันสำหรับอัปเดต line_id ให้ username ที่ระบุ
+  updateUserLineIdByUsername: async (username, line_id) => {
+    try {
+      const [result] = await db.query(
+        'UPDATE users SET line_id = ? WHERE username = ?',
+        [line_id, username]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error in updateUserLineIdByUsername:', error);
+      throw error;
+    }
+  },
+
+  // ดึง admin ทั้งหมด (role_id = 1)
+  getAdmins: async () => {
+    const [rows] = await db.query('SELECT line_id FROM users WHERE role_id = 1 AND line_id IS NOT NULL');
+    return rows;
+  },
+
+  // ดึง executive ทั้งหมด (role_id = 2)
+  getExecutives: async () => {
+    const [rows] = await db.query('SELECT line_id FROM users WHERE role_id = 2 AND line_id IS NOT NULL');
+    return rows;
   }
 };
 

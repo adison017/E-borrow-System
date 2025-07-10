@@ -1,8 +1,15 @@
 import express from 'express';
 import * as repairRequestController from '../controllers/repairRequestController.js';
 import { uploadRepairImages, processRepairImages } from '../utils/imageUtils.js';
+import db from '../db.js';
 
 const router = express.Router();
+
+// Attach db connection to req
+router.use((req, res, next) => {
+  req.db = db;
+  next();
+});
 
 // GET all repair requests
 router.get('/', repairRequestController.getAllRepairRequests);

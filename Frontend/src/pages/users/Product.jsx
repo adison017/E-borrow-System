@@ -254,29 +254,40 @@ const Home = () => {
   // Handle form submission
   const handleSubmitBorrow = async (e) => {
     e.preventDefault();
-    // ตรวจสอบว่ากรอกวันที่ยืมหลังวันส่งคำขอ 1 วันขึ้นไป
-    if (borrowData.borrowDate < getTomorrowTH()) {
-      alert('กรุณาเลือกวันที่ยืมหลังวันส่งคำขอ 1 วันขึ้นไป');
+
+    if (!globalUserData?.user_id) {
+      alert('กรุณาเข้าสู่ระบบก่อนทำรายการ');
       return;
     }
-    // Map item_code (id) -> item_id ที่แท้จริง
+
     const items = Object.entries(quantities).map(([item_code, quantity]) => {
       const equipment = equipmentData.find(eq => String(eq.id) === String(item_code));
+      if (!equipment || !equipment.item_id) {
+        alert('พบอุปกรณ์ที่ไม่มีรหัส item_id');
+        throw new Error('Missing item_id');
+      }
       return {
-        item_id: equipment?.item_id, // ต้องได้ค่า item_id จริง
+        item_id: equipment.item_id,
         quantity: Number(quantity)
       };
     });
-    // ดึง user_id จาก globalUserData
-    const user_id = globalUserData?.user_id || 1; // fallback เป็น 1 ถ้าไม่มีข้อมูล
+
+    if (items.length === 0) {
+      alert('กรุณาเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
+      return;
+    }
+
     const payload = {
-      user_id,
+      user_id: globalUserData.user_id,
       reason: borrowData.reason,
-      purpose: borrowData.reason, // เพิ่มบรรทัดนี้เพื่อให้ purpose = เหตุผลการขอยืม
+      purpose: borrowData.reason,
       borrow_date: borrowData.borrowDate,
       return_date: borrowData.returnDate,
       items
     };
+
+    console.log('payload', payload);
+
     try {
       const response = await fetch('http://localhost:5000/api/borrows', {
         method: 'POST',
