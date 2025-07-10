@@ -35,7 +35,7 @@ export default function RepairRequestDialog({
   // Function to generate random repair code
   const generateRepairCode = () => {
     const randomNum = Math.floor(10000 + Math.random() * 90000); // Random 5 digits
-    return `RP${randomNum}`;
+    return `RP-${randomNum}`;
   };
 
   // Get requester info from globalUserData
@@ -207,67 +207,72 @@ export default function RepairRequestDialog({
 
       console.log('7. Final Data Being Sent to Server:', repairData);
 
-      // Submit repair request to API
-      const response = await axios.post('http://localhost:5000/api/repair-requests', repairData, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log('8. Server Response:', response.data);
-
-      // Update equipment status to "รออนุมัติซ่อม"
+      // ตรวจสอบรหัสซ้ำฝั่ง backend
       try {
-        // Use item_code as canonical identifier
-        const equipmentCode = equipment.item_code || equipment.id || equipment.item_id;
-        console.log('Updating equipment status for item_code:', equipmentCode);
-
-        if (equipmentCode) {
-          const response = await axios.put(`http://localhost:5000/api/equipment/${equipmentCode}/status`, {
-            status: "รออนุมัติซ่อม"
-          });
-
-          console.log('Equipment status update response:', response.data);
-        } else {
-          console.warn('No equipment item_code available for status update');
-        }
-      } catch (error) {
-        console.error('Error updating equipment status:', error);
-        console.error('Error details:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status
+        const response = await axios.post('http://localhost:5000/api/repair-requests', repairData, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
-        // Continue with the process even if status update fails
+
+        console.log('8. Server Response:', response.data);
+
+        // Update equipment status to "รออนุมัติซ่อม"
+        try {
+          // Use item_code as canonical identifier
+          const equipmentCode = equipment.item_code || equipment.id || equipment.item_id;
+          console.log('Updating equipment status for item_code:', equipmentCode);
+
+          if (equipmentCode) {
+            const response = await axios.put(`http://localhost:5000/api/equipment/${equipmentCode}/status`, {
+              status: "รออนุมัติซ่อม"
+            });
+
+            console.log('Equipment status update response:', response.data);
+          } else {
+            console.warn('No equipment item_code available for status update');
+          }
+        } catch (error) {
+          console.error('Error updating equipment status:', error);
+          console.error('Error details:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+          });
+          // Continue with the process even if status update fails
+        }
+
+        // If successful, call the onSubmit callback with the response data
+        onSubmit({
+          description: formData.description,
+          estimatedCost: formData.estimatedCost,
+          images: formData.images,
+          equipment: {
+            name: equipment.name,
+            item_id: equipment.item_id,
+            code: equipment.item_code,
+            category: equipmentCategory
+          },
+          requester: {
+            name: requesterInfo.name,
+            department: requesterInfo.department
+          },
+          requestDate: requestDate,
+          status: 'รออนุมัติซ่อม'
+        });
+
+        // Show success notification
+        showNotification('ส่งคำขอแจ้งซ่อมสำเร็จ', 'success');
+
+        // Close dialog
+        onClose();
+      } catch (error) {
+        if (error.response && error.response.status === 409) {
+          showNotification(error.response.data.error || 'รหัสแจ้งซ่อมซ้ำ กรุณาลองใหม่', 'error');
+        } else {
+          showNotification('เกิดข้อผิดพลาดในการส่งคำขอแจ้งซ่อม', 'error');
+        }
       }
-
-      // If successful, call the onSubmit callback with the response data
-      onSubmit({
-        description: formData.description,
-        estimatedCost: formData.estimatedCost,
-        images: formData.images,
-        equipment: {
-          name: equipment.name,
-          item_id: equipment.item_id,
-          code: equipment.item_code,
-          category: equipmentCategory
-        },
-        requester: {
-          name: requesterInfo.name,
-          department: requesterInfo.department
-        },
-        requestDate: requestDate,
-        status: 'รออนุมัติซ่อม'
-      });
-
-      // Show success notification
-      showNotification('ส่งคำขอแจ้งซ่อมสำเร็จ', 'success');
-
-      // Close dialog
-      onClose();
-    } catch (error) {
-      console.error('Error submitting repair request:', error);
-      showNotification('เกิดข้อผิดพลาดในการส่งคำขอแจ้งซ่อม', 'error');
     } finally {
       setIsSubmitting(false);
     }

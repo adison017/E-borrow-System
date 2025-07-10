@@ -3,6 +3,8 @@ import * as BorrowModel from '../models/borrowModel.js';
 import * as EquipmentModel from '../models/equipmentModel.js';
 import * as DamageLevelModel from '../models/damageLevelModel.js';
 import { updateProofImageAndPayStatus } from '../models/returnModel.js';
+import User from '../models/userModel.js';
+import { sendLineNotify } from '../utils/lineNotify.js';
 
 export const getAllReturns = async (req, res) => {
   try {
@@ -55,13 +57,15 @@ export const createReturn = async (req, res) => {
     );
 
     // 2. อัปเดตสถานะ borrow
+    let newStatus = null;
     if ((pay_status === 'pending') && (paymentMethod === 'online' || paymentMethod === 'transfer')) {
       console.log(`[RETURN] Set borrow_id=${borrow_id} status=waiting_payment (pay_status=${pay_status}, paymentMethod=${paymentMethod})`);
       await BorrowModel.updateBorrowStatus(borrow_id, 'waiting_payment');
-      // ไม่ต้องอัปเดตสถานะอุปกรณ์ที่นี่
+      newStatus = 'waiting_payment';
     } else {
       console.log(`[RETURN] Set borrow_id=${borrow_id} status=completed (pay_status=${pay_status}, paymentMethod=${paymentMethod})`);
       await BorrowModel.updateBorrowStatus(borrow_id, 'completed');
+      newStatus = 'completed';
       // อัปเดตสถานะอุปกรณ์ที่นี่เท่านั้น
       const borrow = await BorrowModel.getBorrowById(borrow_id);
       const equipmentList = borrow && borrow.equipment ? borrow.equipment : [];
@@ -71,6 +75,184 @@ export const createReturn = async (req, res) => {
       for (const eq of equipmentList) {
         const newStatus = isMajorDamage ? 'ชำรุด' : 'พร้อมใช้งาน';
         await EquipmentModel.updateEquipmentStatus(eq.item_code, newStatus);
+      }
+    }
+
+    // === แจ้งเตือน LINE ===
+    if (newStatus === 'waiting_payment' || newStatus === 'completed') {
+      const borrow = await BorrowModel.getBorrowById(borrow_id);
+      const user = await User.findById(borrow.user_id);
+      if (user?.line_id) {
+        let message;
+        if (newStatus === 'waiting_payment') {
+          message = {
+            type: 'flex',
+            altText: `แจ้งเตือนยอดค้างชำระ รหัสการยืม: ${borrow.borrow_code} กรุณาชำระเงินผ่านเว็บไซต์`,
+            contents: {
+              type: 'bubble',
+              header: {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#d84315',
+                contents: [
+                  {
+                    type: 'text',
+                    text: '⚠️ แจ้งเตือนยอดค้างชำระ',
+                    weight: 'bold',
+                    size: 'xl',
+                    color: '#ffffff',
+                    align: 'center'
+                  }
+                ]
+              },
+              body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'md',
+                contents: [
+                  {
+                    type: 'box',
+                    layout: 'horizontal',
+                    contents: [
+                      { type: 'text', text: 'รหัสการยืม', size: 'sm', color: '#888888', flex: 2 },
+                      { type: 'text', text: borrow.borrow_code, size: 'sm', color: '#222222', flex: 4, weight: 'bold' }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'horizontal',
+                    contents: [
+                      { type: 'text', text: 'สถานะ', size: 'sm', color: '#888888', flex: 2 },
+                      { type: 'text', text: 'ค้างชำระ', size: 'sm', color: '#d84315', flex: 4, weight: 'bold' }
+                    ]
+                  },
+                  { type: 'separator', margin: 'md' },
+                  {
+                    "type": "text",
+                    "text": "เรียนผู้ใช้บริการ\nระบบขอแจ้งให้ท่านทราบว่ามียอดค้างชำระสำหรับรายการยืมนี้ กรุณาตรวจสอบและดำเนินการชำระเงินผ่านเว็บไซต์ หากชำระเงินแล้วสามารถตรวจสอบสถานะได้ที่ระบบออนไลน์",
+                    "size": "sm",
+                    "color": "#222222",
+                    "wrap": true,
+                    "align": "center"
+                  }
+
+                ]
+              },
+              footer: {
+                type: 'box',
+                layout: 'vertical',
+                contents: [
+                  {
+                    type: 'button',
+                    style: 'primary',
+                    color: '#d84315',
+                    action: {
+                      type: 'uri',
+                      label: 'ชำระเงิน/ดูรายละเอียด',
+                      uri: 'https://your-website.com/payment'
+                    }
+                  },
+                  {
+                    type: 'text',
+                    text: 'สอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่',
+                    size: 'xs',
+                    color: '#888888',
+                    align: 'center',
+                    margin: 'md'
+                  }
+                ]
+              }
+            }
+          };
+        } else if (newStatus === 'completed') {
+          message = {
+            type: 'flex',
+            altText: `รายการยืมเสร็จสิ้น รหัสการยืม: ${borrow.borrow_code} ขอบคุณที่ใช้บริการ`,
+            contents: {
+              type: 'bubble',
+              header: {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#0A8F08',
+                contents: [
+                  {
+                    type: 'text',
+                    text: '✅ รายการยืมเสร็จสิ้น',
+                    weight: 'bold',
+                    size: 'xl',
+                    color: '#ffffff',
+                    align: 'center'
+                  }
+                ]
+              },
+              body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'md',
+                contents: [
+                  {
+                    type: 'box',
+                    layout: 'horizontal',
+                    contents: [
+                      { type: 'text', text: 'รหัสการยืม', size: 'sm', color: '#888888', flex: 2 },
+                      { type: 'text', text: borrow.borrow_code, size: 'sm', color: '#222222', flex: 4, weight: 'bold' }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'horizontal',
+                    contents: [
+                      { type: 'text', text: 'สถานะ', size: 'sm', color: '#888888', flex: 2 },
+                      { type: 'text', text: 'เสร็จสิ้น', size: 'sm', color: '#0A8F08', flex: 4, weight: 'bold' }
+                    ]
+                  },
+                  { type: 'separator', margin: 'md' },
+                  {
+                    "type": "text",
+                    "text": "ขอขอบคุณที่ใช้บริการระบบยืม-คืนครุภัณฑ์\nหากมีข้อเสนอแนะหรือต้องการติชม\nกรุณาคลิกปุ่มด้านล่าง",
+                    "size": "sm",
+                    "color": "#222222",
+                    "wrap": true,
+                    "align": "center",   // จัดกลางแนวนอน
+                    "gravity": "center"  // จัดกลางแนวตั้ง (เฉพาะใน box)
+                  }
+                ]
+              },
+              footer: {
+                type: 'box',
+                layout: 'vertical',
+                contents: [
+                  {
+                    type: 'button',
+                    style: 'primary',
+                    color: '#0A8F08',
+                    action: {
+                      type: 'uri',
+                      label: 'ติชมระบบ',
+                      uri: 'https://your-website.com/feedback'
+                    }
+                  },
+                  {
+                    type: 'text',
+                    text: '🙏 ขอขอบคุณสำหรับข้อเสนอแนะของท่าน',
+                    size: 'xs',
+                    color: '#888888',
+                    align: 'center',
+                    margin: 'sm',
+                    wrap: true
+                  }
+                ]
+              }
+            }
+          };
+        }
+        try {
+          await sendLineNotify(user.line_id, message);
+        } catch (err) {
+          console.error(`[LINE Notify] Error sending message for status ${newStatus}:`, err, err.response?.data);
+        }
+      } else {
+        console.log(`[LINE Notify] No line_id for user:`, borrow.user_id);
       }
     }
 
@@ -108,6 +290,99 @@ export const updatePayStatus = async (req, res) => {
       for (const eq of equipmentList) {
         const newStatus = isMajorDamage ? 'ชำรุด' : 'พร้อมใช้งาน';
         await EquipmentModel.updateEquipmentStatus(eq.item_code, newStatus);
+      }
+      // === แจ้งเตือน LINE ===
+      const user = await User.findById(borrow.user_id);
+      if (user?.line_id) {
+        const message = {
+          type: 'flex',
+          altText: `รายการยืมเสร็จสิ้น รหัสการยืม: ${borrow.borrow_code} ขอบคุณที่ใช้บริการ`,
+          contents: {
+            type: 'bubble',
+            header: {
+              type: 'box',
+              layout: 'vertical',
+              backgroundColor: '#0A8F08',
+              contents: [
+                {
+                  type: 'text',
+                  text: '✅ รายการยืมเสร็จสิ้น',
+                  weight: 'bold',
+                  size: 'xl',
+                  color: '#ffffff',
+                  align: 'center'
+                }
+              ]
+            },
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    { type: 'text', text: 'รหัสการยืม', size: 'sm', color: '#888888', flex: 2 },
+                    { type: 'text', text: borrow.borrow_code, size: 'sm', color: '#222222', flex: 4, weight: 'bold' }
+                  ]
+                },
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    { type: 'text', text: 'สถานะ', size: 'sm', color: '#888888', flex: 2 },
+                    { type: 'text', text: 'เสร็จสิ้น', size: 'sm', color: '#0A8F08', flex: 4, weight: 'bold' }
+                  ]
+                },
+                { type: 'separator', margin: 'md' },
+                {
+                  type: 'text',
+                  text: 'ขอขอบคุณที่ใช้บริการระบบยืม-คืนครุภัณฑ์\nหากมีข้อเสนอแนะหรือต้องการติชม\nกรุณาคลิกปุ่มด้านล่าง',
+                  size: 'sm',
+                  color: '#222222',
+                  wrap: true,
+                  align: 'center',
+                  gravity: 'center'
+                }
+              ]
+            },
+            footer: {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                {
+                  type: 'button',
+                  style: 'primary',
+                  color: '#0A8F08',
+                  action: {
+                    type: 'uri',
+                    label: 'ติชมระบบ',
+                    uri: 'https://your-website.com/feedback'
+                  }
+                },
+                {
+                  type: 'text',
+                  text: '🙏 ขอขอบคุณสำหรับข้อเสนอแนะของท่าน',
+                  size: 'xs',
+                  color: '#888888',
+                  align: 'center',
+                  margin: 'sm',
+                  wrap: true
+                }
+              ]
+            }
+          }
+        };
+        console.log(`[LINE Notify] Preparing to send to line_id=${user.line_id}, borrow_id=${borrow.borrow_id}`);
+        try {
+          await sendLineNotify(user.line_id, message);
+          console.log(`[LINE Notify] Sent successfully to line_id=${user.line_id}, borrow_id=${borrow.borrow_id}`);
+        } catch (err) {
+          console.error('[LINE Notify] Error sending message for status completed:', err, err.response?.data);
+        }
+      } else {
+        console.log('[LINE Notify] No line_id for user:', borrow.user_id);
       }
     }
     res.json({ success: true });

@@ -1,4 +1,6 @@
 import * as RepairRequest from '../models/repairRequestModel.js';
+import User from '../models/userModel.js';
+import { sendLineNotify } from '../utils/lineNotify.js';
 
 export const getAllRepairRequests = async (req, res) => {
   try {
@@ -80,6 +82,112 @@ export const addRepairRequest = async (req, res) => {
       ...data,
       images: images
     });
+    // === แจ้งเตือน executive ทุกคน ===
+    try {
+      // ดึง Fullname ของผู้แจ้ง
+      let requesterName = data.requester_name || '-';
+      if (data.user_id) {
+        const requester = await User.findById?.(data.user_id);
+        if (requester && requester.Fullname) {
+          requesterName = requester.Fullname;
+        }
+      }
+      const executives = await User.getExecutives();
+      const message = {
+        type: 'flex',
+        altText: `แจ้งเตือนซ่อมครุภัณฑ์ใหม่ รหัส: ${data.repair_code || result.repair_id}`,
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#1976D2',
+            contents: [
+              {
+                type: 'text',
+                text: '🛠️ แจ้งซ่อมครุภัณฑ์ใหม่',
+                weight: 'bold',
+                size: 'xl',
+                color: '#ffffff',
+                align: 'center'
+              }
+            ]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            contents: [
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  { type: 'text', text: 'รหัสแจ้งซ่อม', size: 'sm', color: '#888888', flex: 2 },
+                  { type: 'text', text: data.repair_code || result.repair_id, size: 'sm', color: '#222222', flex: 4, weight: 'bold' }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  { type: 'text', text: 'วันที่แจ้ง', size: 'sm', color: '#888888', flex: 2 },
+                  { type: 'text', text: data.request_date, size: 'sm', color: '#222222', flex: 4 }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  { type: 'text', text: 'รายละเอียด', size: 'sm', color: '#888888', flex: 2 },
+                  { type: 'text', text: data.problem_description || '-', size: 'sm', color: '#222222', flex: 4, wrap: true }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  { type: 'text', text: 'ผู้แจ้ง', size: 'sm', color: '#888888', flex: 2 },
+                  { type: 'text', text: requesterName, size: 'sm', color: '#222222', flex: 4 }
+                ]
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                color: '#1976D2',
+                action: {
+                  type: 'uri',
+                  label: 'ดูรายละเอียด',
+                  uri: 'https://your-website.com/repairs/' + (data.repair_code || result.repair_id)
+                }
+              },
+              {
+                type: 'text',
+                text: '🔔โปรดตรวจสอบและดำเนินการขอบคุณครับ',
+                size: 'sm',
+                color: '#1976D2',
+                align: 'center',
+                margin: 'md',
+                wrap: true
+              }
+            ]
+          }
+        }
+      };
+      for (const executive of executives) {
+        if (executive.line_id) {
+          await sendLineNotify(executive.line_id, message);
+        }
+      }
+    } catch (notifyErr) {
+      console.error('Error sending LINE notify to executive:', notifyErr);
+    }
+    // === จบแจ้งเตือน ===
     res.status(201).json({
       message: 'Repair request added successfully',
       repair_id: result.repair_id,
