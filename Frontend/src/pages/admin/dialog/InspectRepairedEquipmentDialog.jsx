@@ -24,6 +24,12 @@ export default function InspectRepairedEquipmentDialog({
     setError('');
     try {
       const newStatus = formData.isRepaired ? 'พร้อมใช้งาน' : 'ชำรุด';
+      // อัปเดตสถานะอุปกรณ์ใน backend
+      await axios.put(`/api/equipment/${equipment.item_code}/status`, {
+        status: newStatus,
+        inspectionNotes: formData.inspectionNotes,
+        inspectionDate: new Date().toISOString().split('T')[0],
+      });
       // ส่งข้อมูล inspection กลับไปให้ parent
       onSubmit({
         ...formData,

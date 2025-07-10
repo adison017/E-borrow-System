@@ -17,6 +17,8 @@ import repairRequestRoutes from './routes/repairRequestRoutes.js';
 import borrowRoutes from './routes/borrowRoutes.js';
 import returnRoutes from './routes/returnRoutes.js';
 import damageLevelRoutes from './routes/damageLevelRoutes.js';
+import lineRoutes from './routes/lineRoutes.js';
+import './cron/notifySchedule.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -39,15 +41,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Parse JSON bodies
-app.use(express.json());
-
 // Parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from uploads directory
 // Apply CORS before static serving
-app.use('/uploads', cors(), express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', cors(), express.static(path.join(__dirname, '/uploads')));
 
 // Create nested router for user-related routes
 const userRouter = express.Router();
@@ -57,8 +56,20 @@ userRouter.use('/branches', branchRoutes);
 userRouter.use('/roles', roleRoutes);
 app.use('/users', userRouter);
 
-// News routes
+// LINE webhook ต้องมาก่อน express.json()
+app.use('/api/line', lineRoutes);
+
+// Parse JSON bodies (หลังจาก LINE middleware)
+app.use(express.json());
+
+// Route อื่นๆ ที่ต้องการอ่าน req.body
+app.use('/api/borrows', borrowRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/equipment', equipmentRoutes);
+app.use('/api/category', categoryRoutes);
+app.use('/api/repair-requests', repairRequestRoutes);
+app.use('/api/returns', returnRoutes);
+app.use('/api/damage-levels', damageLevelRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -75,16 +86,6 @@ app.use((err, req, res, next) => {
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 });
-
-app.use('/api/equipment', equipmentRoutes);
-app.use('/api/category', categoryRoutes);
-app.use('/api/repair-requests', repairRequestRoutes);
-app.use('/api/borrows', borrowRoutes);
-app.use('/api/returns', returnRoutes);
-app.use('/api/damage-levels', damageLevelRoutes);
-
-// เสิร์ฟไฟล์ static จาก uploads (ใช้ absolute path)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 const PORT = process.env.PORT || 5000;
