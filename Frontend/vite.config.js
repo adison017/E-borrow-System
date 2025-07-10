@@ -10,4 +10,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'), // 👉 เพิ่ม alias
     },
   },
+  server: {
+    proxy: {
+      '/api': 'http://localhost:5000',
+      '/uploads': 'http://localhost:5000',
+    },
+  },
 });

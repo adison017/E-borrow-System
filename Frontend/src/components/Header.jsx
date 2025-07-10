@@ -84,7 +84,7 @@ function Header({ userRole, changeRole }) {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const userId = '65'; // กำหนดค่า user_id เป็น 28 สำหรับทดสอบ
+      const userId = '31'; // กำหนดค่า user_id เป็น 28 สำหรับทดสอบ
       try {
         console.log('Fetching user data for ID:', userId);
         const response = await fetch(`http://localhost:5000/users/id/${userId}`);

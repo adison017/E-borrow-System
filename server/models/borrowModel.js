@@ -93,6 +93,7 @@ export const getBorrowById = async (borrow_id) => {
       e.item_id,
       e.item_code,
       e.pic,
+      e.location,
       bi.quantity,
       bt.borrow_date,
       bt.return_date,
@@ -129,6 +130,7 @@ export const getBorrowById = async (borrow_id) => {
       name: r.name,
       quantity: r.quantity,
       pic: r.pic,
+      location: r.location,
     })),
     borrow_date: row.borrow_date ? row.borrow_date.toISOString ? row.borrow_date.toISOString().split('T')[0] : String(row.borrow_date).split('T')[0] : null,
     due_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
@@ -232,4 +234,14 @@ export const getBorrowsByStatus = async (statusArray) => {
   });
 
   return Object.values(grouped);
+};
+
+export const getActiveBorrows = async () => {
+  const [rows] = await db.query(
+    `SELECT bt.borrow_id, bt.borrow_code, bt.borrow_date, bt.return_date, u.line_id
+     FROM borrow_transactions bt
+     JOIN users u ON bt.user_id = u.user_id
+     WHERE bt.status = 'approved'`
+  );
+  return rows;
 };
