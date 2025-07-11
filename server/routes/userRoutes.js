@@ -154,6 +154,7 @@ router.get('/id/:id', userController.getUserById);
 router.post('/', userController.createUser);
 router.put('/id/:id', userController.updateUser);
 router.patch('/id/:id', userController.updateUser);
+router.patch('/:id/line-notify', userController.updateLineNotifyEnabled);
 router.delete('/id/:id', async (req, res) => {
   try {
     // Get user info first

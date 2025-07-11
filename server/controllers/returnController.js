@@ -6,6 +6,11 @@ import { updateProofImageAndPayStatus } from '../models/returnModel.js';
 import User from '../models/userModel.js';
 import { sendLineNotify } from '../utils/lineNotify.js';
 
+// Helper function for strict check
+function isLineNotifyEnabled(val) {
+  return val === 1 || val === true || val === '1';
+}
+
 export const getAllReturns = async (req, res) => {
   try {
     const rows = await ReturnModel.getAllReturns();
@@ -82,7 +87,13 @@ export const createReturn = async (req, res) => {
     if (newStatus === 'waiting_payment' || newStatus === 'completed') {
       const borrow = await BorrowModel.getBorrowById(borrow_id);
       const user = await User.findById(borrow.user_id);
-      if (user?.line_id) {
+      console.log('[DEBUG] LINE Notify user:', {
+        user_id: user.user_id,
+        line_id: user.line_id,
+        line_notify_enabled: user.line_notify_enabled,
+        type: typeof user.line_notify_enabled
+      });
+      if (user?.line_id && isLineNotifyEnabled(user.line_notify_enabled)) {
         let message;
         if (newStatus === 'waiting_payment') {
           message = {
@@ -293,7 +304,13 @@ export const updatePayStatus = async (req, res) => {
       }
       // === แจ้งเตือน LINE ===
       const user = await User.findById(borrow.user_id);
-      if (user?.line_id) {
+      console.log('[DEBUG] LINE Notify user:', {
+        user_id: user.user_id,
+        line_id: user.line_id,
+        line_notify_enabled: user.line_notify_enabled,
+        type: typeof user.line_notify_enabled
+      });
+      if (user?.line_id && isLineNotifyEnabled(user.line_notify_enabled)) {
         const message = {
           type: 'flex',
           altText: `รายการยืมเสร็จสิ้น รหัสการยืม: ${borrow.borrow_code} ขอบคุณที่ใช้บริการ`,
@@ -382,7 +399,7 @@ export const updatePayStatus = async (req, res) => {
           console.error('[LINE Notify] Error sending message for status completed:', err, err.response?.data);
         }
       } else {
-        console.log('[LINE Notify] No line_id for user:', borrow.user_id);
+        console.log(`[LINE Notify] Not sending to user_id=${user.user_id} because line_notify_enabled=${user.line_notify_enabled}`);
       }
     }
     res.json({ success: true });

@@ -24,12 +24,14 @@ import {
   MenuList,
   ThemeProvider,
   Tooltip,
-  Typography
+  Typography,
+  Switch
 } from "@material-tailwind/react";
 import AddUserDialog from "./dialog/AddUserDialog";
 import DeleteUserDialog from "./dialog/DeleteUserDialog";
 import EditUserDialog from "./dialog/EditUserDialog";
 import ViewUserDialog from "./dialog/ViewUserDialog";
+import { BsChatDots } from "react-icons/bs";
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -48,6 +50,7 @@ const TABLE_HEAD = [
   "เบอร์โทรศัพท์",
   "ตำแหน่ง",
   "สาขา",
+  "แจ้งเตือน LINE", // เพิ่มหัวตารางใหม่
   "จัดการ"
 ];
 
@@ -197,7 +200,7 @@ function ManageUser() {
     fetchFilters();
   }, []);
 
-  // ฟังก์ชั่นแสดง Toast
+  // ฟังก์ชันแสดง Toast
   const showAlertMessage = (message, type = "success") => {
     if (type === 'success') toast.success(message);
     else if (type === 'error') toast.error(message);
@@ -338,6 +341,27 @@ function ManageUser() {
 
   const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+  // เพิ่มฟังก์ชัน handleToggleLineNotify
+  const handleToggleLineNotify = (userId, checked) => {
+    // ตัวอย่าง: เรียก API เพื่ออัปเดต line_notify_enabled
+    fetch(`http://localhost:5000/users/${userId}/line-notify`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ line_notify_enabled: checked ? 1 : 0 })
+    })
+      .then(res => res.json())
+      .then(data => {
+        // อัปเดต state หรือ refresh ข้อมูล user ตามต้องการ
+        setUserList(prevList => prevList.map(u =>
+          u.user_id === userId ? { ...u, line_notify_enabled: checked ? 1 : 0 } : u
+        ));
+        toast.success(checked ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
+      })
+      .catch(err => {
+        toast.error('เกิดข้อผิดพลาดในการอัปเดตแจ้งเตือน LINE');
+      });
+  };
 
   return (
     <ThemeProvider value={theme}>
@@ -557,7 +581,7 @@ function ManageUser() {
                   </tr>
                 ) : paginatedUsers.length > 0 ? (
                   paginatedUsers.map((user) => {
-                    const { user_id, user_code, username, Fullname, avatar, email, phone, position_name, branch_name } = user;
+                    const { user_id, user_code, username, Fullname, avatar, email, phone, position_name, branch_name, role_name, line_notify_enabled } = user;
                     return (
                       <tr key={user_id} className="hover:bg-gray-50 cursor-pointer" onClick={e => {
                         if (e.target.closest('button')) return;
@@ -580,6 +604,36 @@ function ManageUser() {
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{phone}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900 text-center">{position_name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{branch_name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <Tooltip content={line_notify_enabled ? 'ปิดการแจ้งเตือน LINE' : 'เปิดการแจ้งเตือน LINE'} placement="top">
+                            <div className="flex flex-col items-center justify-center gap-1">
+                              <Switch
+                                checked={!!line_notify_enabled}
+                                onChange={async (e) => {
+                                  e.stopPropagation();
+                                  const newValue = e.target.checked ? 1 : 0;
+                                  await fetch(`http://localhost:5000/users/${user_id}/line-notify`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ line_notify_enabled: newValue })
+                                  });
+                                  setUserList(prevList => prevList.map(u =>
+                                    u.user_id === user_id ? { ...u, line_notify_enabled: newValue } : u
+                                  ));
+                                  toast.success(newValue ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
+                                }}
+                                color={line_notify_enabled ? "green" : "gray"}
+                                className="mx-auto scale-125"
+                                ripple={false}
+                                icon={<BsChatDots className={`w-5 h-5 ${line_notify_enabled ? 'text-green-600' : 'text-gray-400'}`} />}
+                              />
+                              <span className={`text-xs font-semibold ${line_notify_enabled ? 'text-green-600' : 'text-gray-400'}`}
+                                style={{marginTop: '2px'}}>
+                                {line_notify_enabled ? "เปิด" : "ปิด"}
+                              </span>
+                            </div>
+                          </Tooltip>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex gap-1 justify-center">
                             <Tooltip content="แก้ไข">

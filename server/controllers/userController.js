@@ -212,6 +212,23 @@ const userController = {
     }
   },
 
+  updateLineNotifyEnabled: async (req, res) => {
+    const userId = req.params.id;
+    const { line_notify_enabled } = req.body;
+    try {
+      if (typeof line_notify_enabled === 'undefined') {
+        return res.status(400).json({ message: 'Missing line_notify_enabled' });
+      }
+      const result = await User.updateLineNotifyEnabled(userId, line_notify_enabled);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.json({ message: 'อัปเดตสถานะแจ้งเตือน LINE สำเร็จ' });
+    } catch (err) {
+      res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+    }
+  },
+
   deleteUser: async (req, res) => {
     try {
       const userId = req.params.id;
