@@ -1,9 +1,16 @@
+import { Client } from '@line/bot-sdk';
+import dotenv from 'dotenv';
 import cron from 'node-cron';
 import { getActiveBorrows } from '../models/borrowModel.js';
-import { Client } from '@line/bot-sdk';
-import { getDaysRemaining, formatDate, getDaysBetween } from '../utils/dateHelper.js';
-import dotenv from 'dotenv';
+import { formatDate, getDaysBetween, getDaysRemaining } from '../utils/dateHelper.js';
 dotenv.config();
+
+
+// Check for required LINE credentials
+if (!process.env.token || !process.env.secretcode) {
+  console.error('ERROR: LINE channel access token or secret is missing. Please set "token" and "secretcode" in your .env file.');
+  process.exit(1);
+}
 
 const client = new Client({
   channelAccessToken: process.env.token,

@@ -1,3 +1,53 @@
+// ดึงเฉพาะรายการที่ status เป็น approved, completed, incomplete
+export const getHistoryRequests = async () => {
+  try {
+    const [rows] = await connection.query(`
+      SELECT
+        rr.id,
+        rr.id AS repair_id,
+        requester.Fullname AS requester_name,
+        requester.avatar,
+        b.branch_name,
+        r.role_name,
+        e.name AS equipment_name,
+        e.item_code AS equipment_code,
+        e.category AS equipment_category,
+        e.item_id,
+        rr.problem_description,
+        rr.request_date,
+        rr.estimated_cost,
+        rr.pic_filename AS repair_pic,
+        rr.status,
+        rr.repair_code,
+        e.pic AS equipment_pic
+      FROM repair_requests rr
+      JOIN users requester ON rr.user_id = requester.user_id
+      LEFT JOIN branches b ON requester.branch_id = b.branch_id
+      LEFT JOIN roles r ON requester.role_id = r.role_id
+      LEFT JOIN equipment e ON rr.item_id = e.item_id
+      WHERE rr.status IN ('approved', 'completed', 'incomplete')
+    `);
+
+    // Parse images for each repair request
+    const parsedRows = rows.map(row => {
+      const parsedImages = parseRepairImages(row.repair_pic);
+      return {
+        ...row,
+        equipment_name: row.equipment_name || '',
+        equipment_code: row.equipment_code || '',
+        equipment_category: row.equipment_category || '',
+        equipment_pic: row.equipment_pic || '',
+        repair_pic: parsedImages,
+        repair_pic_raw: row.repair_pic
+      };
+    });
+
+    return parsedRows;
+  } catch (error) {
+    console.error('getApprovedCompletedIncompleteRequests error:', error);
+    throw error;
+  }
+};
 import connection from '../db.js';
 
 export const getAllRepairRequests = async () => {

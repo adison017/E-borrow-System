@@ -72,6 +72,12 @@ export const updateEquipmentStatus = (item_code, status) => {
 export const getAllBorrows = () => fetch(`${API_BASE}/borrows`).then(res => res.json());
 export const getBorrowById = (id) => fetch(`${API_BASE}/borrows/${id}`).then(res => res.json());
 
+// Get repair requests by item_id
+export const getRepairRequestsByItemId = (item_id) => {
+  return fetch(`${API_BASE}/repair-requests/item/${item_id}`)
+    .then(res => res.json());
+};
+
 export const updateBorrowStatus = (borrow_id, status, rejection_reason, signature_image) => {
   const body = { status };
   if (rejection_reason !== undefined) body.rejection_reason = rejection_reason;

@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { AiOutlineCheckCircle, AiOutlineCloseCircle, AiOutlineInfoCircle, AiOutlineWarning } from "react-icons/ai";
 
 const Notification = ({ 
   show, 
@@ -12,26 +13,40 @@ const Notification = ({
 }) => {
   const notificationRef = useRef(null);
   const timerRef = useRef(null);
+  const [visible, setVisible] = useState(show);
+  const [animateOut, setAnimateOut] = useState(false);
 
   useEffect(() => {
     if (show) {
-      // Auto-dismiss after duration
+      setVisible(true);
+      setAnimateOut(false);
       timerRef.current = setTimeout(() => {
-        onClose();
+        handleClose();
       }, duration);
-
-      // Add entrance animation
-      if (notificationRef.current) {
-        notificationRef.current.style.animation = "slideInRight 0.3s ease-out forwards";
-      }
+    } else if (visible) {
+      setAnimateOut(true);
+      // รอให้ animation ออกจบก่อน unmount
+      const timeout = setTimeout(() => {
+        setVisible(false);
+        setAnimateOut(false);
+      }, 200); // ต้องตรงกับ duration ของ fadeOutScale
+      return () => clearTimeout(timeout);
     }
-
     return () => {
       clearTimeout(timerRef.current);
     };
-  }, [show, duration, onClose]);
+  }, [show, duration]);
 
-  if (!show) return null;
+  const handleClose = () => {
+    setAnimateOut(true);
+    setTimeout(() => {
+      setVisible(false);
+      setAnimateOut(false);
+      onClose && onClose();
+    }, 200); // duration ของ fadeOutScale
+  };
+
+  if (!visible) return null;
 
   const getNotificationStyle = () => {
     switch (type) {
@@ -50,113 +65,139 @@ const Notification = ({
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return (
-          <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-        );
+        return <AiOutlineCheckCircle className="w-8 h-8 text-green-500" />;
       case 'error':
-        return (
-          <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-          </svg>
-        );
+        return <AiOutlineCloseCircle className="w-8 h-8 text-red-500" />;
       case 'warning':
-        return (
-          <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-        );
+        return <AiOutlineWarning className="w-8 h-8 text-yellow-500" />;
       case 'info':
       default:
-        return (
-          <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
-          </svg>
-        );
+        return <AiOutlineInfoCircle className="w-8 h-8 text-blue-500" />;
     }
   };
 
+  // Default action: ถ้าไม่มี actions ส่งมา ให้แสดงปุ่มตกลง
+  const effectiveActions = actions && actions.length > 0 ? actions : [
+    { label: 'ตกลง', onClick: handleClose }
+  ];
+
   return createPortal(
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/40">
-      <div
-        ref={notificationRef}
-        className={`bg-white rounded-full p-6 w-full max-w-md sm:max-w-lg transform transition-all duration-300 ${getNotificationStyle()}`}
-        style={{ 
-          maxWidth: '90vh',
-          maxHeight: '80vh',
-          overflowY: 'auto',
-          animation: "slideInRight 0.3s ease-out forwards", 
-          boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        <div className="overflow-y-auto flex-1">
-          <div className="p-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0 mt-0.5">
-                {getIcon()}
-              </div>
-              <div className="ml-3 w-0 flex-1 min-w-0">
-                <h3 className="text-sm sm:text-base md:text-lg font-medium text-gray-900 break-words">
-                  {title}
-                </h3>
-                <div className="mt-1 text-sm sm:text-base md:text-lg text-gray-600 break-words whitespace-pre-line">
-                  {message}
-                </div>
-                {actions.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {actions.map((action, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        className={`text-sm font-medium rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                          type === 'warning' 
-                            ? 'text-yellow-700 hover:text-yellow-800 focus:ring-yellow-500'
-                            : type === 'error'
-                            ? 'text-red-700 hover:text-red-800 focus:ring-red-500'
-                            : type === 'success'
-                            ? 'text-green-700 hover:text-green-800 focus:ring-green-500'
-                            : 'text-blue-700 hover:text-blue-800 focus:ring-blue-500'
-                        }`}
-                        onClick={action.onClick}
-                      >
-                        {action.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="ml-4 flex-shrink-0 flex">
-                <button
-                  className="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
-                  onClick={onClose}
-                >
-                  <span className="sr-only">Close</span>
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+    <>
+      <style>{`
+        @keyframes fadeInScale {
+          0% { opacity: 0; transform: scale(0.95); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOutScale {
+          0% { opacity: 1; transform: scale(1); }
+          100% { opacity: 0; transform: scale(0.95); }
+        }
+        .animate-fadeInScale {
+          animation: fadeInScale 0.25s cubic-bezier(0.4,0,0.2,1);
+        }
+        .animate-fadeOutScale {
+          animation: fadeOutScale 0.25s cubic-bezier(0.4,0,0.2,1);
+        }
+      `}</style>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn">
+        <div
+          ref={notificationRef}
+          className={`relative bg-white rounded-3xl p-8 pb-16 w-full max-w-[380px] sm:max-w-[420px] shadow-2xl border ${getNotificationStyle()} transition-all duration-300 ${animateOut ? 'animate-fadeOutScale' : 'animate-fadeInScale'} mb-12`}
+          style={{
+            maxWidth: '30vw',
+            maxHeight: '80vh',
+            overflow: 'visible',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+        {/* ปุ่มปิด (X) มุมขวาบน */}
+        <button
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-full p-1 transition"
+          onClick={handleClose}
+        >
+          <span className="sr-only">Close</span>
+          <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </button>
+        {/* ไอคอนสถานะใหญ่ */}
+        <div className="mb-3 flex items-center justify-center">
+          <div className="w-14 h-14 flex items-center justify-center rounded-full bg-opacity-10 animate-bounce" style={{backgroundColor: type==='success'? '#bbf7d0': type==='error'? '#fecaca': type==='warning'? '#fef08a': '#bfdbfe'}}>
+            <div className="w-8 h-8">{getIcon()}</div>
           </div>
         </div>
+        {/* Title และข้อความ */}
+        <h3
+          className="text-2xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 mb-3 text-center break-words tracking-wide drop-shadow-sm"
+          style={{ letterSpacing: '0.02em', lineHeight: 1.2 }}
+        >
+          {title}
+        </h3>
+        <div
+          className="text-gray-700 text-base sm:text-lg md:text-xl  text-center whitespace-pre-line break-words mb-8 px-2 leading-relaxed font-medium"
+          style={{ letterSpacing: '0.01em' }}
+        >
+          {message}
+        </div>
+        {/* Progress bar */}
         {duration > 0 && (
-          <div className="h-1 bg-gray-200 flex-shrink-0">
-            <div 
-              className={`h-full ${
-                type === 'success' ? 'bg-green-500' :
-                type === 'error' ? 'bg-red-500' :
-                type === 'warning' ? 'bg-yellow-500' :
-                'bg-blue-500'
-              }`}
-              style={{ animation: `progress ${duration}ms linear forwards` }}
-            />
+          <>
+            <style>{`
+              @keyframes notification-progress-center {
+                from { transform: scaleX(1); }
+                to { transform: scaleX(0); }
+              }
+            `}</style>
+            <div className="h-1 bg-gray-200 flex-shrink-0 rounded-b-xl overflow-hidden w-2/3 mx-auto ">
+              <div
+                className={`h-full ${
+                  type === 'success' ? 'bg-green-500' :
+                  type === 'error' ? 'bg-red-500' :
+                  type === 'warning' ? 'bg-yellow-500' :
+                  'bg-blue-500'
+                }`}
+                style={{
+                  width: '100%',
+                  transformOrigin: 'center',
+                  animation: visible ? `notification-progress-center ${duration}ms linear` : 'none',
+                  margin: '0 auto'
+                }}
+              />
+            </div>
+          </>
+        )}
+        {/* ปุ่ม action ครึ่งในครึ่งนอกกล่อง dialog */}
+        {effectiveActions.length > 0 && (
+          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-50">
+            {effectiveActions.map((action, index) => (
+              <button
+                key={index}
+                type="button"
+                className={`px-8 py-2 text-base font-semibold rounded-full shadow-xl border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200
+                  ${
+                    type === 'warning' 
+                      ? 'bg-yellow-400 text-yellow-900 border-yellow-500 hover:bg-yellow-500 hover:text-yellow-50 focus:ring-yellow-500' :
+                    type === 'error'
+                      ? 'bg-red-500 text-white border-red-600 hover:bg-red-600 focus:ring-red-500' :
+                    type === 'success'
+                      ? 'bg-green-500 text-white border-green-600 hover:bg-green-600 focus:ring-green-500' :
+                      'bg-blue-500 text-white border-blue-600 hover:bg-blue-600 focus:ring-blue-500'
+                  }
+                `}
+                onClick={action.onClick}
+                style={{ minWidth: 120 }}
+              >
+                {action.label}
+              </button>
+            ))}
           </div>
         )}
       </div>
-    </div>,
+      </div>
+    </>,
     document.body
   );
 };

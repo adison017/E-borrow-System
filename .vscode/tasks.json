@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+	{
+	  "label": "Start Frontend",
+	  "type": "shell",
+	  "command": "cd Frontend && npm run dev",
+	  "group": "build",
+	  "isBackground": true,
+	  "presentation": {
+		"panel": "dedicated"
+	  }
+	},
+	{
+	  "label": "Start Backend",
+	  "type": "shell",
+	  "command": "cd server && node index.js",
+	  "group": "build",
+	  "isBackground": true,
+	  "presentation": {
+		"panel": "dedicated"
+	  }
+	},
+	{
+	  "label": "Start Frontend and Backend",
+	  "dependsOn": ["Start Frontend", "Start Backend"],
+	  "dependsOrder": "parallel"
+	}
+  ]
+}

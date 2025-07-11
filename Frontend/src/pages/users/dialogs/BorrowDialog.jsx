@@ -2,18 +2,6 @@ import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import { useEffect } from 'react';
 
-// ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
-function getTomorrowTH() {
-  const now = new Date();
-  const bangkokNow = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-  bangkokNow.setUTCHours(0, 0, 0, 0);
-  bangkokNow.setUTCDate(bangkokNow.getUTCDate() + 1);
-  const yyyy = bangkokNow.getUTCFullYear();
-  const mm = String(bangkokNow.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(bangkokNow.getUTCDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 const BorrowDialog = ({
   showBorrowDialog,
   setShowBorrowDialog,
