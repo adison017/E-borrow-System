@@ -18,6 +18,7 @@ const User = {
           u.province,
           u.postal_no,
           u.role_id,
+          u.line_notify_enabled,
           r.role_name,
           p.position_name,
           b.branch_name,
@@ -55,6 +56,7 @@ const User = {
           u.province,
           u.postal_no,
           u.role_id,
+          u.line_notify_enabled,
           u.line_id,
           r.role_name,
           p.position_name,
@@ -93,6 +95,7 @@ const User = {
           u.province,
           u.postal_no,
           u.role_id,
+          u.line_notify_enabled,
           r.role_name,
           p.position_name,
           b.branch_name,
@@ -130,6 +133,7 @@ const User = {
           u.province,
           u.postal_no,
           u.role_id,
+          u.line_notify_enabled,
           r.role_name,
           p.position_name,
           b.branch_name,
@@ -167,6 +171,7 @@ const User = {
           u.province,
           u.postal_no,
           u.role_id,
+          u.line_notify_enabled,
           r.role_name,
           p.position_name,
           b.branch_name,
@@ -189,6 +194,13 @@ const User = {
 
   create: async (userData) => {
     try {
+      if (!userData || typeof userData !== 'object') {
+        throw new Error('Invalid user data');
+      }
+      // Default avatar to null if not provided
+      if (!('avatar' in userData)) {
+        userData.avatar = null;
+      }
       // If avatar is provided, only strip path if not a URL or not a root-relative path
       if (userData.avatar && !/^https?:\/\//.test(userData.avatar) && !userData.avatar.startsWith('/')) {
         userData.avatar = userData.avatar.split('/').pop();
@@ -209,7 +221,9 @@ const User = {
         parish,
         postal_no,
         avatar,
-        Fullname
+        Fullname,
+        line_id, // เพิ่ม line_id
+        line_notify_enabled // เพิ่ม line_notify_enabled
       } = userData;
 
       // Validate required fields
@@ -231,14 +245,16 @@ const User = {
         parish,
         postal_no,
         avatar,
-        Fullname
+        Fullname,
+        line_id, // log line_id
+        line_notify_enabled // log line_notify_enabled
       });
 
       const [result] = await db.query(
         `INSERT INTO users (
           user_code, username, email, phone, position_id, branch_id,
-          role_id, password, street, province, district, parish, postal_no, avatar, Fullname
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          role_id, password, street, province, district, parish, postal_no, avatar, Fullname, line_id, line_notify_enabled
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           user_code,
           username,
@@ -254,7 +270,9 @@ const User = {
           parish || '',
           postal_no || '',
           avatar || null,
-          Fullname
+          Fullname,
+          line_id || null, // เพิ่ม line_id
+          line_notify_enabled || null // เพิ่ม line_notify_enabled
         ]
       );
 
@@ -284,7 +302,8 @@ const User = {
         parish,
         postal_no,
         avatar,
-        Fullname
+        Fullname,
+        line_notify_enabled // เพิ่ม line_notify_enabled
       } = userData;
 
       const updates = [];
@@ -350,6 +369,10 @@ const User = {
         updates.push('Fullname = ?');
         values.push(Fullname);
       }
+      if (line_notify_enabled !== undefined) {
+        updates.push('line_notify_enabled = ?');
+        values.push(line_notify_enabled);
+      }
 
       if (updates.length === 0) {
         return { affectedRows: 0 };
@@ -373,7 +396,8 @@ const User = {
   updateByUserCode: async (userCode, userData) => {
     try {
       const {
-        avatar
+        avatar,
+        line_notify_enabled // เพิ่ม line_notify_enabled
       } = userData;
 
       const updates = [];
@@ -382,6 +406,10 @@ const User = {
       if (avatar !== undefined) {
         updates.push('avatar = ?');
         values.push(avatar);
+      }
+      if (line_notify_enabled !== undefined) {
+        updates.push('line_notify_enabled = ?');
+        values.push(line_notify_enabled);
       }
 
       if (updates.length === 0) {
@@ -494,14 +522,28 @@ const User = {
 
   // ดึง admin ทั้งหมด (role_id = 1)
   getAdmins: async () => {
-    const [rows] = await db.query('SELECT line_id FROM users WHERE role_id = 1 AND line_id IS NOT NULL');
+    const [rows] = await db.query('SELECT user_id, line_id, line_notify_enabled, Fullname, email FROM users WHERE role_id = 1 AND line_id IS NOT NULL');
     return rows;
   },
 
   // ดึง executive ทั้งหมด (role_id = 2)
   getExecutives: async () => {
-    const [rows] = await db.query('SELECT line_id FROM users WHERE role_id = 2 AND line_id IS NOT NULL');
+    const [rows] = await db.query('SELECT user_id, line_id, line_notify_enabled, Fullname, email FROM users WHERE role_id = 2 AND line_id IS NOT NULL');
     return rows;
+  },
+
+  // ดึง user ปกติทั้งหมด (role_id = 3)
+  getNormalUsers: async () => {
+    const [rows] = await db.query('SELECT user_id, line_id, line_notify_enabled, Fullname, email FROM users WHERE role_id = 3 AND line_id IS NOT NULL');
+    return rows;
+  },
+
+  updateLineNotifyEnabled: async (userId, enabled) => {
+    const [result] = await db.query(
+      'UPDATE users SET line_notify_enabled = ? WHERE user_id = ?',
+      [enabled, userId]
+    );
+    return result;
   }
 };
 

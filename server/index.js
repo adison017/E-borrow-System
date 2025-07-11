@@ -44,6 +44,12 @@ app.use((req, res, next) => {
 // Parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
 
+// LINE webhook route ต้องมาก่อน express.json()
+app.use('/api/line', lineRoutes);
+
+// ตัวนี้ค่อยใส่ทีหลัง
+app.use(express.json());
+
 // Serve static files from uploads directory
 // Apply CORS before static serving
 app.use('/uploads', cors(), express.static(path.join(__dirname, '/uploads')));
@@ -55,12 +61,6 @@ userRouter.use('/positions', positionRoutes);
 userRouter.use('/branches', branchRoutes);
 userRouter.use('/roles', roleRoutes);
 app.use('/users', userRouter);
-
-// LINE webhook ต้องมาก่อน express.json()
-app.use('/api/line', lineRoutes);
-
-// Parse JSON bodies (หลังจาก LINE middleware)
-app.use(express.json());
 
 // Route อื่นๆ ที่ต้องการอ่าน req.body
 app.use('/api/borrows', borrowRoutes);
