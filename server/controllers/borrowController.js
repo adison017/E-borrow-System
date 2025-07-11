@@ -2,6 +2,7 @@ import * as BorrowModel from '../models/borrowModel.js';
 import { saveBase64Image } from '../utils/saveBase64Image.js';
 import User from '../models/userModel.js';
 import { sendLineNotify } from '../utils/lineNotify.js';
+import * as EquipmentModel from '../models/equipmentModel.js'; // เพิ่ม import นี้
 
 // สร้างรายการยืมใหม่
 export const createBorrow = async (req, res) => {
@@ -166,7 +167,7 @@ export const createBorrow = async (req, res) => {
       // ส่ง LINE Notify ไปยัง admin ทุกคน
       const admins = await User.getAdmins();
       for (const admin of admins) {
-        if (admin.line_id) {
+        if (admin.line_id && (admin.line_notify_enabled === 1 || admin.line_notify_enabled === true || admin.line_notify_enabled === '1')) {
           await sendLineNotify(admin.line_id, flexMessage);
         }
       }
@@ -217,6 +218,15 @@ export const updateBorrowStatus = async (req, res) => {
     }
     const affectedRows = await BorrowModel.updateBorrowStatus(id, status, rejection_reason, signaturePath);
 
+    // ถ้าปฏิเสธ ให้อัปเดตสถานะครุภัณฑ์เป็น 'พร้อมใช้งาน'
+    if (status === 'rejected') {
+      const borrow = await BorrowModel.getBorrowById(id);
+      if (borrow && borrow.equipment && Array.isArray(borrow.equipment)) {
+        for (const eq of borrow.equipment) {
+          await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
+        }
+      }
+    }
     // === เพิ่มส่วนนี้: แจ้ง user เมื่อสถานะเป็น pending_approval ===
     if (status === 'pending_approval') {
       const borrow = await BorrowModel.getBorrowById(id);
@@ -354,14 +364,14 @@ export const updateBorrowStatus = async (req, res) => {
       // ส่งให้ executive
       const executives = await User.getExecutives();
       for (const executive of executives) {
-        if (executive.line_id) {
+        if (executive.line_id && (executive.line_notify_enabled === 1 || executive.line_notify_enabled === true || executive.line_notify_enabled === '1')) {
           await sendLineNotify(executive.line_id, flexMessageExecutive);
         }
       }
       // ส่งให้ user (ผู้ยืม)
       // ดึง line_id จาก user_id โดยตรง
       const user = await User.findById(borrow.user_id);
-      if (user?.line_id) {
+      if (user?.line_id && (user.line_notify_enabled === 1 || user.line_notify_enabled === true || user.line_notify_enabled === '1')) {
         const flexMessageUser = {
           type: 'flex',
           altText: '📢 แจ้งสถานะคำขอยืมของคุณ',
@@ -481,7 +491,7 @@ export const updateBorrowStatus = async (req, res) => {
         `• ${eq.name} (${eq.item_code}) x${eq.quantity}`
       ).join('\n');
       const user = await User.findById(borrow.user_id);
-      if (user?.line_id) {
+      if (user?.line_id && (user.line_notify_enabled === 1 || user.line_notify_enabled === true || user.line_notify_enabled === '1')) {
         // รวม location ของอุปกรณ์ทุกชิ้น (ไม่ซ้ำ)
         const locations = Array.from(new Set(borrow.equipment.map(eq => eq.location).filter(Boolean)));
         const locationText = locations.length > 0 ? locations.join(', ') : 'ห้องพัสดุ อาคาร 1 ชั้น 2';
@@ -732,10 +742,7 @@ export const updateBorrowStatus = async (req, res) => {
             }
           }
         };
-        // const user = await User.findById(borrow.user_id); // ลบออก
-        // if (user?.line_id) { // ลบออก
-        //   await sendLineNotify(user.line_id, flexMessageUser); // ลบออก
-        // }
+        await sendLineNotify(user.line_id, flexMessageUser);
       }
     }
     // ลบส่วนแจ้งเตือน LINE สำหรับ waiting_payment และ completed ออก (ย้ายไป handle ที่ returnController.js แล้ว)

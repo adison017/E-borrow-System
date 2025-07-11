@@ -180,7 +180,7 @@ export const addRepairRequest = async (req, res) => {
         }
       };
       for (const executive of executives) {
-        if (executive.line_id) {
+        if (executive.line_id && (executive.line_notify_enabled === 1 || executive.line_notify_enabled === true || executive.line_notify_enabled === '1')) {
           await sendLineNotify(executive.line_id, message);
         }
       }
