@@ -31,7 +31,7 @@ import {
 } from "@material-tailwind/react";
 import { useEffect, useState } from "react";
 import Notification from "../../components/Notification";
-import { addEquipment, deleteEquipment, getEquipment, updateEquipment, uploadImage } from "../../utils/api";
+import { addEquipment, deleteEquipment, getEquipment, getRepairRequestsByItemId, updateEquipment, uploadImage } from "../../utils/api";
 import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
 import DeleteEquipmentDialog from "./dialog/DeleteEquipmentDialog";
 import EditEquipmentDialog from "./dialog/EditEquipmentDialog";
@@ -239,8 +239,29 @@ function ManageEquipment() {
     setSelectedEquipmentForRepair(null);
   };
 
-  const handleInspectEquipment = (equipment) => {
-    setSelectedEquipment(equipment);
+  const handleInspectEquipment = async (equipment) => {
+    // Try to fetch repair requests for this equipment
+    try {
+      const repairRequests = await getRepairRequestsByItemId(equipment.item_id || equipment.id || equipment.item_code);
+      // Find the latest repair request with status 'กำลังซ่อม' or similar (if needed)
+      let latestRequest = null;
+      if (Array.isArray(repairRequests) && repairRequests.length > 0) {
+        // Sort by created_at or id descending if available
+        latestRequest = repairRequests.sort((a, b) => {
+          if (a.created_at && b.created_at) {
+            return new Date(b.created_at) - new Date(a.created_at);
+          }
+          return (b.id || 0) - (a.id || 0);
+        })[0];
+      }
+      const equipmentWithRequest = latestRequest
+        ? { ...equipment, repair_request_id: latestRequest.id }
+        : equipment;
+      setSelectedEquipment(equipmentWithRequest);
+    } catch (err) {
+      // fallback: open dialog without repair_request_id
+      setSelectedEquipment(equipment);
+    }
     setShowInspectDialog(true);
   };
 
@@ -298,6 +319,8 @@ function ManageEquipment() {
           message={alertMessage}
           type={alertType}
           onClose={() => setShowAlert(false)}
+          animateIn="animate-fadeInScale"
+          animateOut="animate-fadeOutScale"
         />
 
 

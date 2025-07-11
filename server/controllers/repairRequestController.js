@@ -1,6 +1,17 @@
 import * as RepairRequest from '../models/repairRequestModel.js';
+import { getHistoryRequests as getHistoryRequestsModel } from '../models/repairRequestModel.js';
 import User from '../models/userModel.js';
 import { sendLineNotify } from '../utils/lineNotify.js';
+
+// ดึงเฉพาะรายการที่ status เป็น approved, completed, incomplete
+export const getHistoryRequests = async (req, res) => {
+  try {
+    const results = await getHistoryRequestsModel();
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 export const getAllRepairRequests = async (req, res) => {
   try {
@@ -242,7 +253,7 @@ export const updateRepairRequest = async (req, res) => {
     }
 
     // Validate status values
-    const validStatuses = ['approved', 'rejected', 'pending', 'in_progress', 'completed'];
+    const validStatuses = ['approved', 'rejected', 'pending', 'in_progress', 'completed', 'success'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`

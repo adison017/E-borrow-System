@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { FaTools, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import axios from 'axios';
+import { useState } from 'react';
+import { FaCheckCircle, FaTimesCircle, FaTools } from 'react-icons/fa';
 
 export default function InspectRepairedEquipmentDialog({
   open,
@@ -23,6 +23,7 @@ export default function InspectRepairedEquipmentDialog({
     setIsSubmitting(true);
     setError('');
     try {
+
       const newStatus = formData.isRepaired ? 'พร้อมใช้งาน' : 'ชำรุด';
       // อัปเดตสถานะอุปกรณ์ใน backend
       await axios.put(`/api/equipment/${equipment.item_code}/status`, {
@@ -30,6 +31,19 @@ export default function InspectRepairedEquipmentDialog({
         inspectionNotes: formData.inspectionNotes,
         inspectionDate: new Date().toISOString().split('T')[0],
       });
+
+      // อัปเดตสถานะ repair_requests เป็น 'completed' ถ้าซ่อมเสร็จสมบูรณ์, 'incomplete' ถ้ายังไม่สมบูรณ์
+      if (equipment.repair_request_id) {
+        // 1. ดึงข้อมูล repair request ปัจจุบัน
+        const { data: currentRequest } = await axios.get(`/api/repair-requests/${equipment.repair_request_id}`);
+        // 2. ส่งข้อมูลเดิมกลับไปทั้งหมด ยกเว้นเปลี่ยน status
+        await axios.put(`/api/repair-requests/${equipment.repair_request_id}`, {
+          ...currentRequest,
+          status: formData.isRepaired ? 'completed' : 'incomplete',
+          // สามารถเพิ่ม field อื่นๆ ที่จำเป็นได้ เช่น inspectionNotes, inspectionDate
+        });
+      }
+
       // ส่งข้อมูล inspection กลับไปให้ parent
       onSubmit({
         ...formData,

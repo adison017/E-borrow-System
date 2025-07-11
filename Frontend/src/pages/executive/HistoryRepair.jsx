@@ -18,7 +18,8 @@ export default function HistoryRepair() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState(["inprogress", "rejected", "completed"]); // default: show all 3
+  // Show only approved, completed, and incomplete
+  const [statusFilter, setStatusFilter] = useState(["approved", "completed", "incomplete"]); // default: show only 3
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -26,44 +27,39 @@ export default function HistoryRepair() {
   });
   // ...existing code...
 
-  // สถานะของคำขอซ่อม
+  // สถานะของคำขอซ่อม (ใช้ approved, completed, incomplete เท่านั้น)
   const statusOptions = [
-    { value: "rejected", label: "ปฏิเสธ", count: 0 },
-    { value: "inprogress", label: "กำลังซ่อม", count: 0 },
-    { value: "completed", label: "เสร็จสิ้น", count: 0 }
+    { value: "approved", label: "กำลังซ่อม", count: 0 },
+    { value: "completed", label: "เสร็จสิ้น", count: 0 },
+    { value: "incomplete", label: "ไม่สำเร็จ", count: 0 }
   ];
 
   const statusBadgeStyle = {
-    pending: "bg-yellow-50 text-yellow-800 border-yellow-200",
-    approved: "bg-green-50 text-green-800 border-green-200",
-    rejected: "bg-red-50 text-red-800 border-red-200",
-    inprogress: "bg-blue-50 text-blue-800 border-blue-200",
-    completed: "bg-purple-50 text-purple-800 border-purple-200"
+    approved: "bg-blue-50 text-blue-800 border-blue-200",
+    completed: "bg-purple-50 text-purple-800 border-purple-200",
+    incomplete: "bg-red-50 text-red-800 border-red-200"
   };
 
   const statusIconStyle = {
-    pending: "text-yellow-500",
-    approved: "text-green-500",
-    rejected: "text-red-500",
-    inprogress: "text-blue-500",
-    completed: "text-purple-500"
+    approved: "text-blue-500",
+    completed: "text-purple-500",
+    incomplete: "text-red-500"
   };
 
   const statusTranslation = {
-    pending: "รอการอนุมัติ",
-    approved: "อนุมัติแล้ว",
-    rejected: "ปฏิเสธ",
-    inprogress: "กำลังซ่อม",
-    completed: "เสร็จสิ้น"
+    approved: "กำลังซ่อม",
+    completed: "เสร็จสิ้น",
+    incomplete: "ไม่สำเร็จ"
   };
 
   useEffect(() => {
-    // ดึงข้อมูลจาก API ทั้งหมด (เหมือน RepairApprovalList)
+    // ดึงข้อมูลจาก API /api/repair-requests/history (getHistoryRequests)
     const fetchRepairRequests = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/repair-requests');
-        // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component (เหมือน RepairApprovalList)
+        const response = await axios.get('http://localhost:5000/api/repair-requests/history');
+        console.log('API DATA:', response.data); // debug log
+        // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component (แต่ไม่ map status)
         const formattedData = response.data.map(request => ({
           requestId: request.id?.toString() || request.repair_code || "",
           equipment: {
@@ -80,7 +76,7 @@ export default function HistoryRepair() {
             avatar: request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png"
           },
           description: request.problem_description,
-          status: request.status === "approved" ? "inprogress" : request.status, // map approved => inprogress
+          status: request.status, // ไม่ mapping ใดๆ
           requestDate: request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : "-",
           estimatedCost: request.estimated_cost,
           images: request.repair_pic ? request.repair_pic.split(",") : [],
@@ -95,8 +91,11 @@ export default function HistoryRepair() {
     fetchRepairRequests();
   }, []);
 
+  // ส่ง raw request (จาก response.data) ให้ RepairApprovalDialog เพื่อให้มีข้อมูลครบ
   const handleOpenDialog = (request) => {
-    setSelectedRequest(request);
+    // หา raw request object จาก response (ถ้ามี)
+    const rawRequest = repairRequests.find(r => r.requestId === request.requestId) || request;
+    setSelectedRequest(rawRequest);
     setIsDialogOpen(true);
   };
 
@@ -147,15 +146,14 @@ export default function HistoryRepair() {
     }, 5000);
   };
 
-  // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ
+  // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ (approved, completed, incomplete เท่านั้น)
   const filteredRequests = repairRequests.filter(request => {
+    if (!['approved', 'completed', 'incomplete'].includes(request.status)) return false;
     const matchSearch =
       request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.requester.name.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchStatus = statusFilter.includes(request.status);
-
     return matchSearch && matchStatus;
   });
 
@@ -167,7 +165,7 @@ export default function HistoryRepair() {
     );
   };
 
-  // จำนวนคำขอแต่ละสถานะ
+  // จำนวนคำขอแต่ละสถานะ (approved, completed, incomplete)
   const countByStatus = repairRequests.reduce((acc, request) => {
     acc[request.status] = (acc[request.status] || 0) + 1;
     return acc;
@@ -185,7 +183,7 @@ export default function HistoryRepair() {
       <div className="grid grid-cols-3 gap-5 mb-6">
         <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-400">
           <p className="text-gray-500 text-sm">กำลังซ่อม</p>
-          <p className="text-2xl font-semibold text-gray-800">{countByStatus.inprogress || 0}</p>
+          <p className="text-2xl font-semibold text-gray-800">{countByStatus.approved || 0}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-400">
           <p className="text-gray-500 text-sm">ปฏิเสธ</p>
@@ -300,20 +298,21 @@ export default function HistoryRepair() {
                 {filteredRequests.map((request) => (
                   <tr key={request.requestId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{request.requestId}</div>
+                      <div className="text-sm font-medium text-gray-900">{request.repair_code || request.requestId}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
+                        <div className="flex-shrink-0 h-15 w-15">
                           <img
-                            className="h-10 w-10 object-contain p-1 bg-gray-100 rounded"
-                            src={request.equipment?.image || "/placeholder-equipment.png"}
-                            alt={request.equipment?.name}
+                            className="h-15 w-15 object-contain rounded-lg"
+                            src={request.equipment?.image || request.equipment_pic || (request.equipment_pic_filename ? `http://localhost:5000/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
+                            alt={request.equipment?.name || request.equipment_name}
+                            onError={e => { e.target.src = "/placeholder-equipment.png"; }}
                           />
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{request.equipment?.name}</div>
-                          <div className="text-xs text-gray-500">{request.equipment?.category}</div>
+                          <div className="text-sm font-medium text-gray-900">{request.equipment?.name || request.equipment_name}</div>
+                          <div className="text-xs text-gray-500">{request.equipment?.category || request.equipment_category}</div>
                         </div>
                       </div>
                     </td>
@@ -321,23 +320,23 @@ export default function HistoryRepair() {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8">
                           <img
-                            className="h-8 w-8 rounded-full"
-                            src={request.requester?.avatar || "/placeholder-user.png"}
-                            alt={request.requester?.name}
+                            className="h-8 w-8 rounded-full object-cover"
+                            src={request.requester?.avatar ? request.requester.avatar : (request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png")}
+                            alt={request.requester?.name || request.requester_name}
                           />
                         </div>
                         <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{request.requester?.name}</div>
-                          <div className="text-xs text-gray-500">{request.requester?.department}</div>
+                          <div className="text-sm font-medium text-gray-900">{request.requester?.name || request.requester_name}</div>
+                          <div className="text-xs text-gray-500">{request.requester?.department || request.branch_name}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.requestDate}</div>
+                      <div className="text-sm text-gray-900">{request.requestDate || (request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : '-')}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {request.estimatedCost?.toLocaleString()}
+                        {(request.estimatedCost || request.estimated_cost)?.toLocaleString()}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -346,21 +345,12 @@ export default function HistoryRepair() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      {request.status === "pending" ? (
-                        <button
-                          onClick={() => handleOpenDialog(request)}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
-                        >
-                          พิจารณา
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenDialog(request)}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 hover:text-gary-700 transition-all duration-200"
-                        >
-                          ดูรายละเอียด
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleOpenDialog(request)}
+                        className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 hover:text-blue-700 transition-all duration-200"
+                      >
+                        ดูรายละเอียด
+                      </button>
                     </td>
                   </tr>
                 ))}

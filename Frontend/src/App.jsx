@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MdMenu } from 'react-icons/md';
-import { Route, BrowserRouter as Router, Routes, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { Navigate, Route, BrowserRouter as Router, Routes, useLocation, useNavigate } from 'react-router-dom';
 import AuthSystem from './components/AuthSystem'; // เพิ่มบรรทัดนี้
 import Footer from './components/Footer';
 import Header from './components/Header';

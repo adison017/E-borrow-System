@@ -2,11 +2,12 @@ import { Button, Menu, MenuHandler, MenuItem, MenuList } from "@material-tailwin
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { MdAdd, MdRemove, MdSearch, MdShoppingCart } from "react-icons/md";
+import { globalUserData } from '../../components/Header';
+import Notification from '../../components/Notification';
 import { getCategories, getEquipment, updateEquipmentStatus } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
-import { globalUserData } from '../../components/Header';
 
 // Sample borrowing and repair history data
 const historyData = {
@@ -93,6 +94,7 @@ const Home = () => {
   const [equipmentData, setEquipmentData] = useState([]);
   const [categories, setCategories] = useState(['ทั้งหมด']); // default 'ทั้งหมด'
   const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState({ show: false, title: '', message: '', type: 'info' });
 
   // โหลดข้อมูลจาก API
   useEffect(() => {
@@ -131,13 +133,13 @@ const Home = () => {
   }, []);
 
   // Extract unique categories from equipment data
-  const categoryOptions = ['ทั้งหมด', ...new Set(equipmentData.map(item => item.category))];
+  // const categoryOptions = ['ทั้งหมด', ...new Set(equipmentData.map(item => item.category))]; // ไม่ได้ใช้
 
   // Handle quantity increase
   const handleIncrease = (item_code) => {
     // ถ้ายังไม่เคยเลือก item_code นี้ และเลือกครบ 7 รหัสแล้ว
     if (!quantities[item_code] && Object.keys(quantities).length >= 7) {
-      alert('เลือกอุปกรณ์ได้ไม่เกิน 7 รหัส');
+      setNotification({ show: true, title: 'แจ้งเตือน', message: 'เลือกอุปกรณ์ได้ไม่เกิน 7 รหัส', type: 'warning' });
       return;
     }
     const equipment = equipmentData.find(item => item.id === item_code);
@@ -223,7 +225,7 @@ const Home = () => {
     if (name === 'borrowDate') {
       const minDate = getTomorrowTH();
       if (value < minDate) {
-        alert('กรุณาเลือกวันที่ยืมหลังวันส่งคำขอ 1 วันขึ้นไป');
+        setNotification({ show: true, title: 'แจ้งเตือน', message: 'กรุณาเลือกวันที่ยืมหลังวันส่งคำขอ 1 วันขึ้นไป', type: 'warning' });
         return;
       }
     }
@@ -241,7 +243,7 @@ const Home = () => {
     maxReturnDate.setDate(borrowDate.getDate() + 7);
 
     if (returnDate > maxReturnDate) {
-      alert('วันที่คืนต้องไม่เกิน 7 วันนับจากวันที่ยืม');
+      setNotification({ show: true, title: 'แจ้งเตือน', message: 'วันที่คืนต้องไม่เกิน 7 วันนับจากวันที่ยืม', type: 'warning' });
       return;
     }
 
@@ -256,14 +258,14 @@ const Home = () => {
     e.preventDefault();
 
     if (!globalUserData?.user_id) {
-      alert('กรุณาเข้าสู่ระบบก่อนทำรายการ');
+      setNotification({ show: true, title: 'กรุณาเข้าสู่ระบบ', message: 'กรุณาเข้าสู่ระบบก่อนทำรายการ', type: 'error' });
       return;
     }
 
     const items = Object.entries(quantities).map(([item_code, quantity]) => {
       const equipment = equipmentData.find(eq => String(eq.id) === String(item_code));
       if (!equipment || !equipment.item_id) {
-        alert('พบอุปกรณ์ที่ไม่มีรหัส item_id');
+        setNotification({ show: true, title: 'เกิดข้อผิดพลาด', message: 'พบอุปกรณ์ที่ไม่มีรหัส item_id', type: 'error' });
         throw new Error('Missing item_id');
       }
       return {
@@ -273,7 +275,7 @@ const Home = () => {
     });
 
     if (items.length === 0) {
-      alert('กรุณาเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
+      setNotification({ show: true, title: 'แจ้งเตือน', message: 'กรุณาเลือกอุปกรณ์อย่างน้อย 1 ชิ้น', type: 'warning' });
       return;
     }
 
@@ -296,32 +298,24 @@ const Home = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        alert('ส่งคำขอยืมสำเร็จ รหัส: ' + (data.borrow_code || 'ไม่พบรหัส'));
+        setNotification({ show: true, title: 'สำเร็จ', message: 'ส่งคำขอยืมสำเร็จ รหัส ' + (data.borrow_code || 'ไม่พบรหัส'), type: 'success' });
         setShowBorrowDialog(false);
         setQuantities({});
         setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
-        // อัปเดตสถานะครุภัณฑ์เป็น 'ถูกยืม'
         for (const item of items) {
           try {
-            // หา item_code จาก equipmentData
             const equipment = equipmentData.find(eq => eq.item_id === item.item_id);
             if (!equipment) continue;
-            const itemCode = equipment.code; // code คือ item_code เช่น 'EQ-001'
+            const itemCode = equipment.code;
             await updateEquipmentStatus(itemCode, 'ถูกยืม');
-            setEquipmentData(prev =>
-              prev.map(eq =>
-                eq.item_id === item.item_id ? { ...eq, status: 'ถูกยืม' } : eq
-              )
-            );
-          } catch (err) {
-            // handle error (optional)
-          }
+            setEquipmentData(prev => prev.map(eq => eq.item_id === item.item_id ? { ...eq, status: 'ถูกยืม' } : eq));
+          } catch { /* ignore error */ }
         }
       } else {
-        alert('เกิดข้อผิดพลาด: ' + (data.message || ''));
+        setNotification({ show: true, title: 'เกิดข้อผิดพลาด', message: data.message || '', type: 'error' });
       }
-    } catch (err) {
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    } catch {
+      setNotification({ show: true, title: 'เกิดข้อผิดพลาด', message: 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', type: 'error' });
     }
   };
 
@@ -369,336 +363,348 @@ const Home = () => {
   };
 
   return (
-    <motion.div
-      className="bg-white"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* Header Section */}
-      <motion.header
+    <>
+      <Notification
+        show={notification.show}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+        duration={4000}
+        onClose={() => setNotification(n => ({ ...n, show: false }))}
+        animateIn="animate-fadeInScale"
+        animateOut="animate-fadeOutScale"
+      />
+      <motion.div
         className="bg-white"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-center text-center">
-            <h1 className="text-3xl font-bold text-gray-900">ระบบยืมคืนครุภัณฑ์</h1>
-            <p className="mt-2 text-lg text-gray-600">คณะวิทยาการสารสนเทศ</p>
+        {/* Header Section */}
+        <motion.header
+          className="bg-white"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <div className="flex flex-col items-center justify-center text-center">
+              <h1 className="text-3xl font-bold text-gray-900">ระบบยืมคืนครุภัณฑ์</h1>
+              <p className="mt-2 text-lg text-gray-600">คณะวิทยาการสารสนเทศ</p>
+            </div>
           </div>
-        </div>
-      </motion.header>
+        </motion.header>
 
-      {/* Main Content */}
-      <main className="max-w-auto mx-auto px-4 py-6 sm:px-6 lg:px-8 bg-white">
-        {loading ? (
-          <div className="text-center py-12 text-gray-500">กำลังโหลดข้อมูล...</div>
-        ) : (
-          <>
-            {/* Search and Filter Section */}
-            <motion.div
-              className="mb-8"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {/* Search Bar */}
+        {/* Main Content */}
+        <main className="max-w-auto mx-auto px-4 py-6 sm:px-6 lg:px-8 bg-white">
+          {loading ? (
+            <div className="text-center py-12 text-gray-500">กำลังโหลดข้อมูล...</div>
+          ) : (
+            <>
+              {/* Search and Filter Section */}
               <motion.div
-                className="mb-6"
-                variants={itemVariants}
+                className="mb-8"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
               >
-                <div className="relative max-w-3xl mx-auto">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MdSearch className="h-5 w-5 text-gray-400" />
+                {/* Search Bar */}
+                <motion.div
+                  className="mb-6"
+                  variants={itemVariants}
+                >
+                  <div className="relative max-w-3xl mx-auto">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MdSearch className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl text-sm"
+                      placeholder="ค้นหาชื่อครุภัณฑ์หรือรหัส..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                   </div>
-                  <input
-                    type="text"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl text-sm"
-                    placeholder="ค้นหาชื่อครุภัณฑ์หรือรหัส..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </motion.div>
+                </motion.div>
 
-              {/* Filter Controls */}
-              <motion.div
-                className="bg-white p-6 mb-6 bg-gradient-to-r from-indigo-950 to-blue-700 rounded-2xl"
-                variants={itemVariants}
-              >
-                <div className="flex flex-col px-6 md:flex-row md:items-center md:justify-between gap-4">
-                  {/* Status Filters */}
-                  <div>
-                    <h3 className="text-sm font-medium text-white mb-2">สถานะ</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {['ทั้งหมด', 'พร้อมใช้งาน', 'ถูกยืม', 'กำลังซ่อม'].map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => handleStatusFilter(status)}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                            selectedStatus === status
-                              ? 'bg-blue-700 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {status}
-                        </button>
-                      ))}
+                {/* Filter Controls */}
+                <motion.div
+                  className="bg-white p-6 mb-6 bg-gradient-to-r from-indigo-950 to-blue-700 rounded-2xl"
+                  variants={itemVariants}
+                >
+                  <div className="flex flex-col px-6 md:flex-row md:items-center md:justify-between gap-4">
+                    {/* Status Filters */}
+                    <div>
+                      <h3 className="text-sm font-medium text-white mb-2">สถานะ</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {['ทั้งหมด', 'พร้อมใช้งาน', 'ถูกยืม', 'กำลังซ่อม'].map((status) => (
+                          <button
+                            key={status}
+                            onClick={() => handleStatusFilter(status)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                              selectedStatus === status
+                                ? 'bg-blue-700 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {status}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Category Filter */}
+                    <div>
+                      <h3 className="text-sm font-medium text-white mb-2">หมวดหมู่</h3>
+                      <Menu>
+                        <MenuHandler>
+                          <Button
+                            variant="outlined"
+                            className={`w-70 border-white shadow-sm rounded-xl flex items-center px-4 py-2 text-sm font-medium normal-case justify-between transition-colors duration-200 bg-white ${selectedCategory !== 'ทั้งหมด' ? 'bg-blue-50 border border-blue-200 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <MdSearch className="w-4 h-4" />
+                              หมวดหมู่
+                              {selectedCategory !== 'ทั้งหมด' && (
+                                <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-2">{selectedCategory}</span>
+                              )}
+                            </span>
+                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                          </Button>
+                        </MenuHandler>
+                        <MenuList className="min-w-[200px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
+                          <MenuItem
+                            className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${selectedCategory === 'ทั้งหมด' ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                            onClick={() => handleCategoryFilter('ทั้งหมด')}
+                          >
+                            <span>ทั้งหมด</span>
+                            <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{equipmentData.length}</span>
+                          </MenuItem>
+                          {categories.filter(cat => cat !== 'ทั้งหมด').map(category => {
+                            const count = equipmentData.filter(item => item.category === category).length;
+                            return (
+                              <MenuItem
+                                key={category}
+                                className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${selectedCategory === category ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
+                                onClick={() => handleCategoryFilter(category)}
+                              >
+                                <span>{category}</span>
+                                <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{count}</span>
+                              </MenuItem>
+                            );
+                          })}
+                        </MenuList>
+                      </Menu>
                     </div>
                   </div>
-
-                  {/* Category Filter */}
-                  <div>
-                    <h3 className="text-sm font-medium text-white mb-2">หมวดหมู่</h3>
-                    <Menu>
-                      <MenuHandler>
-                        <Button
-                          variant="outlined"
-                          className={`w-70 border-white shadow-sm rounded-xl flex items-center px-4 py-2 text-sm font-medium normal-case justify-between transition-colors duration-200 bg-white ${selectedCategory !== 'ทั้งหมด' ? 'bg-blue-50 border border-blue-200 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <MdSearch className="w-4 h-4" />
-                            หมวดหมู่
-                            {selectedCategory !== 'ทั้งหมด' && (
-                              <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-2">{selectedCategory}</span>
-                            )}
-                          </span>
-                          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                        </Button>
-                      </MenuHandler>
-                      <MenuList className="min-w-[200px] bg-white text-gray-800 rounded-lg border border-gray-100 p-2">
-                        <MenuItem
-                          className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${selectedCategory === 'ทั้งหมด' ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
-                          onClick={() => handleCategoryFilter('ทั้งหมด')}
-                        >
-                          <span>ทั้งหมด</span>
-                          <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{equipmentData.length}</span>
-                        </MenuItem>
-                        {categories.filter(cat => cat !== 'ทั้งหมด').map(category => {
-                          const count = equipmentData.filter(item => item.category === category).length;
-                          return (
-                            <MenuItem
-                              key={category}
-                              className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors duration-200 ${selectedCategory === category ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-normal'}`}
-                              onClick={() => handleCategoryFilter(category)}
-                            >
-                              <span>{category}</span>
-                              <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{count}</span>
-                            </MenuItem>
-                          );
-                        })}
-                      </MenuList>
-                    </Menu>
-                  </div>
-                </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
 
-            {/* Equipment Grid */}
-            <motion.div
-              className="mb-16"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {filteredEquipment.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-                  {filteredEquipment.map((equipment, index) => (
-                    <motion.div
-                      key={equipment.id}
-                      className="card rounded-2xl shadow-md hover:shadow-xl bg-white cursor-pointer transition-all duration-300 ease-in-out group border border-transparent hover:border-blue-200 relative overflow-hidden"
-                      variants={itemVariants}
-                      whileHover={{
-                        scale: 1.02,
-                        y: -5
-                      }}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1, duration: 0.2 }}
-                      onClick={() => showEquipmentDetail(equipment)}>
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-0"></div>
-                      <figure className="px-4 pt-4 relative">
-                        <img
-                          src={equipment.image}
-                          alt={equipment.name}
-                          className="rounded-xl h-40 w-full object-contain cursor-pointer"
-                          // onClick={(e) => {
-                          //   e.stopPropagation();
-                          //   showImageModal(equipment.image);
-                          // }}
-                        />
-                        <div className="absolute top-6 right-6">
-                          {getStatusBadge(equipment.status)}
-                        </div>
-                      </figure>
-                      <div className="card-body p-4 md:p-6">
-                        <div className="card-title flex flex-col gap-2">
-                          <h2 className="font-semibold line-clamp-1 text-lg md:text-xl">{equipment.name}</h2>
-                          <p className="text-sm">{equipment.code}</p>
-                        </div>
+              {/* Equipment Grid */}
+              <motion.div
+                className="mb-16"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {filteredEquipment.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                    {filteredEquipment.map((equipment, index) => (
+                      <motion.div
+                        key={equipment.id}
+                        className="card rounded-2xl shadow-md hover:shadow-xl bg-white cursor-pointer transition-all duration-300 ease-in-out group border border-transparent hover:border-blue-200 relative overflow-hidden"
+                        variants={itemVariants}
+                        whileHover={{
+                          scale: 1.02,
+                          y: -5
+                        }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1, duration: 0.2 }}
+                        onClick={() => showEquipmentDetail(equipment)}>
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-0"></div>
+                        <figure className="px-4 pt-4 relative">
+                          <img
+                            src={equipment.image}
+                            alt={equipment.name}
+                            className="rounded-xl h-40 w-full object-contain cursor-pointer"
+                            // onClick={(e) => {
+                            //   e.stopPropagation();
+                            //   showImageModal(equipment.image);
+                            // }}
+                          />
+                          <div className="absolute top-6 right-6">
+                            {getStatusBadge(equipment.status)}
+                          </div>
+                        </figure>
+                        <div className="card-body p-4 md:p-6">
+                          <div className="card-title flex flex-col gap-2">
+                            <h2 className="font-semibold line-clamp-1 text-lg md:text-xl">{equipment.name}</h2>
+                            <p className="text-sm">{equipment.code}</p>
+                          </div>
 
-                        <div className="flex flex-col items-center w-full mt-2">
-                          <p className="text-sm font-medium text-white bg-blue-700 px-4 py-2 rounded-full">
-                            จำนวน {equipment.available} {equipment.unit || ''}
-                          </p>
-                          {equipment.status === 'พร้อมยืม' && (
-                            <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
-                          )}
-                          {equipment.dueDate && equipment.status !== 'พร้อมยืม' && (
-                            <p className="text-sm">กำหนดคืน {equipment.dueDate}</p>
-                          )}
-                        </div>
+                          <div className="flex flex-col items-center w-full mt-2">
+                            <p className="text-sm font-medium text-white bg-blue-700 px-4 py-2 rounded-full">
+                              จำนวน {equipment.available} {equipment.unit || ''}
+                            </p>
+                            {equipment.status === 'พร้อมยืม' && (
+                              <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
+                            )}
+                            {equipment.dueDate && equipment.status !== 'พร้อมยืม' && (
+                              <p className="text-sm">กำหนดคืน {equipment.dueDate}</p>
+                            )}
+                          </div>
 
-                        <div className="card-actions flex-col items-center justify-center mt-2 ">
-                          {(equipment.status === 'พร้อมยืม' || equipment.status === 'พร้อมใช้งาน') ? (
-                            quantities[equipment.id] ? (
-                              <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="card-actions flex-col items-center justify-center mt-2 ">
+                            {(equipment.status === 'พร้อมยืม' || equipment.status === 'พร้อมใช้งาน') ? (
+                              quantities[equipment.id] ? (
+                                <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                                  <motion.button
+                                    className={`flex items-center justify-center w-9 h-9 rounded-full  border border-blue-500 bg-white shadow-sm transition-colors duration-150 text-blue-700 hover:bg-blue-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed ${quantities[equipment.id] >= equipment.available ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleIncrease(equipment.id);
+                                    }}
+                                    disabled={quantities[equipment.id] >= equipment.available}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    aria-label="เพิ่มจำนวน"
+                                  >
+                                    <MdAdd className="w-5 h-5" />
+                                  </motion.button>
+                                  <span className="inline-flex items-center justify-center w-10 h-9 rounded-lg bg-blue-700 text-base font-semibold text-white border border-gray-200">
+                                    {quantities[equipment.id]}
+                                  </span>
+                                  <motion.button
+                                    className="flex items-center justify-center w-9 h-9 rounded-full border border-blue-500 bg-white shadow-sm transition-colors duration-150 text-blue-700 hover:bg-blue-600 hover:text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDecrease(equipment.id);
+                                    }}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    aria-label="ลดจำนวน"
+                                  >
+                                    <MdRemove className="w-5 h-5" />
+                                  </motion.button>
+                                </div>
+                              ) : (
                                 <motion.button
-                                  className={`flex items-center justify-center w-9 h-9 rounded-full  border border-blue-500 bg-white shadow-sm transition-colors duration-150 text-blue-700 hover:bg-blue-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed ${quantities[equipment.id] >= equipment.available ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                  className={`flex items-center justify-center w-10 h-10 rounded-full mt-2 border border-blue-500  shadow-sm text-blue-700 font-medium gap-2 hover:bg-blue-600 hover:text-white transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${equipment.available <= 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleIncrease(equipment.id);
                                   }}
-                                  disabled={quantities[equipment.id] >= equipment.available}
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  aria-label="เพิ่มจำนวน"
+                                  disabled={equipment.available <= 0}
+                                  whileHover={{ scale: 1.07 }}
+                                  whileTap={{ scale: 0.97 }}
+                                  aria-label="เลือก"
                                 >
                                   <MdAdd className="w-5 h-5" />
                                 </motion.button>
-                                <span className="inline-flex items-center justify-center w-10 h-9 rounded-lg bg-blue-700 text-base font-semibold text-white border border-gray-200">
-                                  {quantities[equipment.id]}
-                                </span>
-                                <motion.button
-                                  className="flex items-center justify-center w-9 h-9 rounded-full border border-blue-500 bg-white shadow-sm transition-colors duration-150 text-blue-700 hover:bg-blue-600 hover:text-white"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDecrease(equipment.id);
-                                  }}
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  aria-label="ลดจำนวน"
-                                >
-                                  <MdRemove className="w-5 h-5" />
-                                </motion.button>
-                              </div>
-                            ) : (
-                              <motion.button
-                                className={`flex items-center justify-center w-10 h-10 rounded-full mt-2 border border-blue-500  shadow-sm text-blue-700 font-medium gap-2 hover:bg-blue-600 hover:text-white transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${equipment.available <= 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleIncrease(equipment.id);
-                                }}
-                                disabled={equipment.available <= 0}
-                                whileHover={{ scale: 1.07 }}
-                                whileTap={{ scale: 0.97 }}
-                                aria-label="เลือก"
-                              >
-                                <MdAdd className="w-5 h-5" />
-                              </motion.button>
-                            )
-                          ) : null}
+                              )
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <motion.div
-                  className="text-center py-12 bg-white rounded-lg shadow-sm"
-                  variants={itemVariants}
-                >
-                  <p className="text-gray-500 text-lg">ไม่พบครุภัณฑ์ที่ตรงกับการค้นหา</p>
-                  <button
-                    onClick={() => {
-                      setSearchTerm('');
-                      setSelectedStatus('ทั้งหมด');
-                      setSelectedCategory('ทั้งหมด');
-                    }}
-                    className="mt-4 btn btn-md btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 transition-colors"
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <motion.div
+                    className="text-center py-12 bg-white rounded-lg shadow-sm"
+                    variants={itemVariants}
                   >
-                    ล้างการค้นหา
-                  </button>
-                </motion.div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </main>
-
-      {/* Floating Cart Summary */}
-      {totalSelectedItems > 0 && (
-        <motion.div
-          className="fixed bottom-6 right-11 md:bottom-6 md:right-6 bg-white shadow-xl p-4 z-10 rounded-2xl"
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 100 }}
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1, repeat: Infinity }}
-              >
-                <MdShoppingCart className="h-6 w-6 text-blue-600" />
+                    <p className="text-gray-500 text-lg">ไม่พบครุภัณฑ์ที่ตรงกับการค้นหา</p>
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                        setSelectedStatus('ทั้งหมด');
+                        setSelectedCategory('ทั้งหมด');
+                      }}
+                      className="mt-4 btn btn-md btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 transition-colors"
+                    >
+                      ล้างการค้นหา
+                    </button>
+                  </motion.div>
+                )}
               </motion.div>
-              <span className="font-medium">
-                {totalSelectedItems} รายการที่เลือก
-              </span>
+            </>
+          )}
+        </main>
+
+        {/* Floating Cart Summary */}
+        {totalSelectedItems > 0 && (
+          <motion.div
+            className="fixed bottom-6 right-11 md:bottom-6 md:right-6 bg-white shadow-xl p-4 z-10 rounded-2xl"
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 100 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  <MdShoppingCart className="h-6 w-6 text-blue-600" />
+                </motion.div>
+                <span className="font-medium">
+                  {totalSelectedItems} รายการที่เลือก
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <motion.button
+                  onClick={() => setQuantities({})}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-2xl"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  ยกเลิก
+                </motion.button>
+                <motion.button
+                  onClick={handleConfirm}
+                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  ยืนยันการยืม
+                </motion.button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <motion.button
-                onClick={() => setQuantities({})}
-                className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-2xl"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                ยกเลิก
-              </motion.button>
-              <motion.button
-                onClick={handleConfirm}
-                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                ยืนยันการยืม
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
-      {/* Dialogs */}
-      <BorrowDialog
-        showBorrowDialog={showBorrowDialog}
-        setShowBorrowDialog={setShowBorrowDialog}
-        quantities={quantities}
-        equipmentData={equipmentData}
-        borrowData={borrowData}
-        setBorrowData={setBorrowData} // ส่ง prop นี้เพิ่ม
-        handleInputChange={handleInputChange}
-        handleReturnDateChange={handleReturnDateChange}
-        handleSubmitBorrow={handleSubmitBorrow}
-        calculateMaxReturnDate={calculateMaxReturnDate}
-        showImageModal={showImageModal}
-        isBorrowDateValid={isBorrowDateValid}
-      />
+        {/* Dialogs */}
+        <BorrowDialog
+          showBorrowDialog={showBorrowDialog}
+          setShowBorrowDialog={setShowBorrowDialog}
+          quantities={quantities}
+          equipmentData={equipmentData}
+          borrowData={borrowData}
+          setBorrowData={setBorrowData} // ส่ง prop นี้เพิ่ม
+          handleInputChange={handleInputChange}
+          handleReturnDateChange={handleReturnDateChange}
+          handleSubmitBorrow={handleSubmitBorrow}
+          calculateMaxReturnDate={calculateMaxReturnDate}
+          showImageModal={showImageModal}
+          isBorrowDateValid={isBorrowDateValid}
+        />
 
-      <EquipmentDetailDialog
-        showDetailDialog={showDetailDialog}
-        setShowDetailDialog={setShowDetailDialog}
-        selectedEquipment={selectedEquipment}
-        historyData={historyData}
-        showImageModal={showImageModal}
-        getStatusBadge={getStatusBadge}
-      />
+        <EquipmentDetailDialog
+          showDetailDialog={showDetailDialog}
+          setShowDetailDialog={setShowDetailDialog}
+          selectedEquipment={selectedEquipment}
+          historyData={historyData}
+          showImageModal={showImageModal}
+          getStatusBadge={getStatusBadge}
+        />
 
-      <ImageModal
-        selectedImage={selectedImage}
-        setSelectedImage={setSelectedImage}
-      />
-    </motion.div>
+        <ImageModal
+          selectedImage={selectedImage}
+          setSelectedImage={setSelectedImage}
+        />
+      </motion.div>
+    </>
   );
 };
 

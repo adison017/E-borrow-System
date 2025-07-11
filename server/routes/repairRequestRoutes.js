@@ -1,16 +1,16 @@
+
 import express from 'express';
 import * as repairRequestController from '../controllers/repairRequestController.js';
-import { uploadRepairImages, processRepairImages } from '../utils/imageUtils.js';
 import db from '../db.js';
+import { processRepairImages, uploadRepairImages } from '../utils/imageUtils.js';
 
 const router = express.Router();
-
-// Attach db connection to req
+// GET /api/repair-requests/history (approved, completed, incomplete)
 router.use((req, res, next) => {
   req.db = db;
   next();
 });
-
+router.get('/history', repairRequestController.getHistoryRequests);
 // GET all repair requests
 router.get('/', repairRequestController.getAllRepairRequests);
 
