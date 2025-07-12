@@ -253,7 +253,7 @@ export const updateRepairRequest = async (req, res) => {
     }
 
     // Validate status values
-    const validStatuses = ['approved', 'rejected', 'pending', 'in_progress', 'completed', 'success'];
+    const validStatuses = ['approved', 'rejected', 'pending', 'incomplete', 'completed'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`

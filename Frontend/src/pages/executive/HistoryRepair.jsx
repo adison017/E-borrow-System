@@ -18,8 +18,8 @@ export default function HistoryRepair() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  // Show only approved, completed, and incomplete
-  const [statusFilter, setStatusFilter] = useState(["approved", "completed", "incomplete"]); // default: show only 3
+  // Show only approved, completed, incomplete, and rejected
+  const [statusFilter, setStatusFilter] = useState(["approved", "completed", "incomplete", "rejected"]); // default: show 4
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -27,29 +27,33 @@ export default function HistoryRepair() {
   });
   // ...existing code...
 
-  // สถานะของคำขอซ่อม (ใช้ approved, completed, incomplete เท่านั้น)
+  // สถานะของคำขอซ่อม (ใช้ approved, completed, incomplete, rejected)
   const statusOptions = [
     { value: "approved", label: "กำลังซ่อม", count: 0 },
     { value: "completed", label: "เสร็จสิ้น", count: 0 },
-    { value: "incomplete", label: "ไม่สำเร็จ", count: 0 }
+    { value: "incomplete", label: "ไม่สำเร็จ", count: 0 },
+    { value: "rejected", label: "ปฏิเสธ", count: 0 }
   ];
 
   const statusBadgeStyle = {
     approved: "bg-blue-50 text-blue-800 border-blue-200",
     completed: "bg-purple-50 text-purple-800 border-purple-200",
-    incomplete: "bg-red-50 text-red-800 border-red-200"
+    incomplete: "bg-red-50 text-red-800 border-red-200",
+    rejected: "bg-red-100 text-red-800 border-red-300"
   };
 
   const statusIconStyle = {
     approved: "text-blue-500",
     completed: "text-purple-500",
-    incomplete: "text-red-500"
+    incomplete: "text-red-500",
+    rejected: "text-red-500"
   };
 
   const statusTranslation = {
     approved: "กำลังซ่อม",
     completed: "เสร็จสิ้น",
-    incomplete: "ไม่สำเร็จ"
+    incomplete: "ไม่สำเร็จ",
+    rejected: "ปฏิเสธ"
   };
 
   useEffect(() => {
@@ -59,27 +63,47 @@ export default function HistoryRepair() {
       try {
         const response = await axios.get('http://localhost:5000/api/repair-requests/history');
         console.log('API DATA:', response.data); // debug log
-        // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component (แต่ไม่ map status)
+        // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component (mapping ให้ตรง backend)
         const formattedData = response.data.map(request => ({
           requestId: request.id?.toString() || request.repair_code || "",
+          id: request.id,
+          user_id: request.user_id,
+          item_id: request.item_id,
+          problem_description: request.problem_description,
+          request_date: request.request_date,
+          estimated_cost: request.estimated_cost,
+          status: request.status,
+          created_at: request.created_at,
+          pic_filename: request.pic_filename,
+          repair_code: request.repair_code,
+          note: request.note,
+          budget: request.budget,
+          responsible_person: request.responsible_person,
+          approval_date: request.approval_date,
+          equipment_code: request.equipment_code || (request.equipment && request.equipment.code),
+          images: Array.isArray(request.repair_pic) ? request.repair_pic : [],
           equipment: {
-            id: request.equipment_id,
+            id: request.item_id,
             code: request.equipment_code,
             name: request.equipment_name,
             category: request.equipment_category,
-            image: request.equipment_pic ? `http://localhost:5000/uploads/${request.equipment_pic}` : "/placeholder-equipment.png"
+            image: request.equipment_pic || "/placeholder-equipment.png"
           },
           requester: {
-            id: request.requester_id,
             name: request.requester_name,
             department: request.branch_name,
             avatar: request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png"
           },
           description: request.problem_description,
-          status: request.status, // ไม่ mapping ใดๆ
           requestDate: request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : "-",
           estimatedCost: request.estimated_cost,
-          images: request.repair_pic ? request.repair_pic.split(",") : [],
+          // สำหรับ fallback กรณี template ใช้ field เดิม
+          equipment_pic: request.equipment_pic,
+          equipment_name: request.equipment_name,
+          equipment_category: request.equipment_category,
+          avatar: request.avatar,
+          branch_name: request.branch_name,
+          requester_name: request.requester_name,
         }));
         setRepairRequests(formattedData);
       } catch (err) {
@@ -146,9 +170,9 @@ export default function HistoryRepair() {
     }, 5000);
   };
 
-  // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ (approved, completed, incomplete เท่านั้น)
+  // กรองข้อมูลตามการค้นหาและตัวกรองสถานะ (approved, completed, incomplete, rejected)
   const filteredRequests = repairRequests.filter(request => {
-    if (!['approved', 'completed', 'incomplete'].includes(request.status)) return false;
+    if (!['approved', 'completed', 'incomplete', 'rejected'].includes(request.status)) return false;
     const matchSearch =
       request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -179,22 +203,6 @@ export default function HistoryRepair() {
           <p className="text-gray-500 text-sm">จัดการคำขอแจ้งซ่อมทั้งหมดขององค์กร</p>
         </div>
       </div>
-
-      <div className="grid grid-cols-3 gap-5 mb-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-400">
-          <p className="text-gray-500 text-sm">กำลังซ่อม</p>
-          <p className="text-2xl font-semibold text-gray-800">{countByStatus.approved || 0}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-400">
-          <p className="text-gray-500 text-sm">ปฏิเสธ</p>
-          <p className="text-2xl font-semibold text-gray-800">{countByStatus.rejected || 0}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-400">
-          <p className="text-gray-500 text-sm">เสร็จสิ้น</p>
-          <p className="text-2xl font-semibold text-gray-800">{countByStatus.completed || 0}</p>
-        </div>
-      </div>
-
       <div className="p-4 mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl">
           <div className="relative flex-1">
@@ -347,9 +355,14 @@ export default function HistoryRepair() {
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                       <button
                         onClick={() => handleOpenDialog(request)}
-                        className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 hover:text-blue-700 transition-all duration-200"
+                        title="ดูรายละเอียด"
+                        className="inline-flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full p-2 transition-all duration-200 shadow-sm"
+                        style={{ minWidth: 0 }}
                       >
-                        ดูรายละเอียด
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12C2.25 12 5.25 5.25 12 5.25s9.75 6.75 9.75 6.75-3 6.75-9.75 6.75S2.25 12 2.25 12z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
                       </button>
                     </td>
                   </tr>
