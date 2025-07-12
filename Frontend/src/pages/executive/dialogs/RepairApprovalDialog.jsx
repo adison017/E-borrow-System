@@ -75,6 +75,7 @@ export default function RepairApprovalDialog({
     console.log('pic_filename_raw:', repairRequest?.pic_filename_raw);
     console.log('repair_code:', repairRequest?.repair_code);
 
+
     if (repairRequest?.pic_filename) {
       // Check if it's already an array (parsed by backend)
       if (Array.isArray(repairRequest.pic_filename)) {
@@ -113,8 +114,18 @@ export default function RepairApprovalDialog({
         console.log('Unexpected pic_filename type:', typeof repairRequest.pic_filename);
         setRepairImages([]);
       }
+    } else if (repairRequest?.images && Array.isArray(repairRequest.images) && repairRequest.images.length > 0) {
+      // Fallback: กรณี history (images มาจาก backend)
+      setRepairImages(
+        repairRequest.images.map((img, idx) => ({
+          ...img,
+          url: img.url || (img.file_path ? `http://localhost:5000/${img.file_path}` : undefined),
+          index: idx,
+          repair_code: repairRequest.repair_code
+        }))
+      );
     } else {
-      console.log('No pic_filename found');
+      console.log('No pic_filename or images found');
       setRepairImages([]);
     }
 
@@ -653,45 +664,41 @@ export default function RepairApprovalDialog({
 
           {/* สำหรับคำขอที่อนุมัติแล้ว */}
           {repairRequest.status === 'approved' && (
-            <div className="alert alert-success">
-              <div className="flex items-start gap-3">
-                <FaCheckCircle className="text-xl mt-0.5" />
-                <div>
-                  <h4 className="font-bold">อนุมัติแล้ว</h4>
-                  <p className="text-sm">
-                    โดย {repairRequest.responsible_person || 'ไม่ระบุผู้รับผิดชอบ'}
-                  </p>
-                  <p className="text-xs mt-1">
-                    วันที่อนุมัติ: {repairRequest.approvalDate}
-                  </p>
-                  {repairRequest.approvalNotes && (
-                    <p className="text-sm mt-2">
-                      <span className="font-medium">หมายเหตุ:</span>{' '}
-                      {repairRequest.approvalNotes}
-                    </p>
-                  )}
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4 flex items-center gap-4 mb-2">
+              <div className="flex-shrink-0">
+                <FaCheckCircle className="text-3xl text-green-500" />
+              </div>
+              <div className="flex-1">
+                <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+                  <h4 className="font-bold text-green-700 text-lg mb-1 md:mb-0">คำขอได้รับการอนุมัติแล้ว</h4>
                 </div>
+                <div className="mt-2 text-sm text-gray-700">
+                  <span className="font-medium">โดย:</span> {repairRequest.responsible_person || 'ไม่ระบุผู้รับผิดชอบ'}
+                </div>
+                {repairRequest.approvalNotes && (
+                  <div className="mt-2 text-sm text-gray-700">
+                    <span className="font-medium">หมายเหตุ:</span> {repairRequest.approvalNotes}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* สำหรับคำขอที่ปฏิเสธ */}
           {repairRequest.status === 'rejected' && (
-            <div className="alert alert-error">
-              <div className="flex items-start gap-3">
-                <FaTimesCircle className="text-xl mt-0.5" />
-                <div>
-                  <h4 className="font-bold">ปฏิเสธคำขอ</h4>
-                  <p className="text-xs mt-1">
-                    วันที่ปฏิเสด: {repairRequest.rejectionDate}
-                  </p>
-                  {repairRequest.approvalNotes && (
-                    <p className="text-sm mt-2">
-                      <span className="font-medium">เหตุผล:</span>{' '}
-                      {repairRequest.approvalNotes}
-                    </p>
-                  )}
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-4 mb-2">
+              <div className="flex-shrink-0">
+                <FaTimesCircle className="text-3xl text-red-500" />
+              </div>
+              <div className="flex-1">
+                <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+                  <h4 className="font-bold text-red-700 text-lg mb-1 md:mb-0">คำขอถูกปฏิเสธ</h4>
                 </div>
+                {repairRequest.approvalNotes && (
+                  <div className="mt-2 text-sm text-gray-700">
+                    <span className="font-medium">เหตุผล:</span> {repairRequest.approvalNotes}
+                  </div>
+                )}
               </div>
             </div>
           )}
