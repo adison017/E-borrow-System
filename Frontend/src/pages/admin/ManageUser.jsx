@@ -1,4 +1,4 @@
-import { ImMail4 } from "react-icons/im"; 
+import { ImMail4 } from "react-icons/im";
 import {
   MagnifyingGlassIcon,
   TrashIcon
@@ -32,6 +32,8 @@ import AddUserDialog from "./dialog/AddUserDialog";
 import DeleteUserDialog from "./dialog/DeleteUserDialog";
 import EditUserDialog from "./dialog/EditUserDialog";
 import ViewUserDialog from "./dialog/ViewUserDialog";
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -65,7 +67,7 @@ function ManageUser() {
     user_id: "",
     student_id: "",
     username: "",
-    fullname: "",
+    Fullname: "",
     pic:"",
     email: "",
     phone: "",
@@ -84,7 +86,7 @@ function ManageUser() {
   const [addFormData, setAddFormData] = useState({
     student_id: "",
     username: "",
-    fullname: "",
+    Fullname: "",
     pic:"",
     email: "",
     phone: "",
@@ -244,7 +246,7 @@ function ManageUser() {
       user_id: user.user_id,
       student_id: user.user_code,
       username: user.username,
-      fullname: user.Fullname,
+      Fullname: user.Fullname,
       pic: avatarPath,
       email: user.email,
       phone: user.phone || '',
@@ -284,7 +286,7 @@ function ManageUser() {
     setAddFormData({
       student_id: "",
       username: "",
-      fullname: "",
+      Fullname: "",
       pic:"",
       email: "",
       phone: "",
@@ -327,8 +329,9 @@ function ManageUser() {
   const filteredUsers = userList.filter(user => {
     const matchesSearch =
       (user.student_id && String(user.student_id).toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.user_code && String(user.user_code).toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.fullname && user.fullname.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.Fullname && user.Fullname.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.phone && String(user.phone).toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.position_name && user.position_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -361,6 +364,27 @@ function ManageUser() {
       .catch(err => {
         toast.error('เกิดข้อผิดพลาดในการอัปเดตแจ้งเตือน LINE');
       });
+  };
+
+  // ฟังก์ชันสำหรับ export Excel
+  const handleExportExcel = () => {
+    // เตรียมข้อมูลเฉพาะที่แสดงผล (filteredUsers)
+    const exportData = filteredUsers.map(user => ({
+      'รหัสนิสิต': user.student_id || user.user_code || '',
+      'ชื่อผู้ใช้': user.username || '',
+      'ชื่อ-นามสกุล': user.Fullname || '',
+      'อีเมล': user.email || '',
+      'เบอร์โทรศัพท์': user.phone || '',
+      'ตำแหน่ง': user.position_name || '',
+      'สาขา': user.branch_name || '',
+      'แจ้งเตือน LINE': user.line_notify_enabled === 1 ? 'เปิด' : 'ปิด',
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(blob, 'users.xlsx');
   };
 
   return (
@@ -409,7 +433,7 @@ function ManageUser() {
               </div>
             </div>
             <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
-              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
+              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case" onClick={handleExportExcel}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                   <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm7.586 2.586L14.5 7H12V4.5h.086ZM11 10a.75.75 0 0 1 .75.75v1.5h1.5a.75.75 0 0 1 0 1.5h-1.5v1.5a.75.75 0 0 1-1.5 0v-1.5h-1.5a.75.75 0 0 1 0-1.5h1.5v-1.5A.75.75 0 0 1 11 10Z" clipRule="evenodd" />
                 </svg>
@@ -733,7 +757,7 @@ function ManageUser() {
           initialFormData={selectedUser || {
             student_id: "",
             username: "",
-            fullname: "",
+            Fullname: "",
             pic: "",
             email: "",
             phone: "",

@@ -201,18 +201,21 @@ const BorrowList = () => {
 
   const filteredBorrows = borrows
     .filter(borrow => {
-      // รองรับ equipment เป็น array หรือ object
       let equipmentNames = [];
+      let equipmentCodes = [];
       if (Array.isArray(borrow.equipment)) {
         equipmentNames = borrow.equipment.map(eq => eq?.name || "");
+        equipmentCodes = borrow.equipment.map(eq => eq?.item_code || "");
       } else if (borrow.equipment && borrow.equipment.name) {
         equipmentNames = [borrow.equipment.name];
+        equipmentCodes = [borrow.equipment.item_code];
       }
 
       const matchesSearch =
+        (borrow.borrow_code && borrow.borrow_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
         equipmentNames.some(name => name && name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (borrow.borrower?.name && borrow.borrower.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (borrow.borrower?.department && borrow.borrower.department.toLowerCase().includes(searchTerm.toLowerCase()));
+        equipmentCodes.some(code => code && code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (borrow.borrower?.name && borrow.borrower.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
       // แสดงเฉพาะสถานะ pending_approval หรือ pending
       const matchesStatus = borrow.status === "pending_approval" || borrow.status === "pending";
