@@ -69,41 +69,13 @@ const PersonalInfoEdit = () => {
     fetchData();
   }, []);
 
+  // 1. ปรับ getAvatarUrl ให้เติม /user/ ถ้า path เป็นชื่อไฟล์
   const getAvatarUrl = (path) => {
-    console.log('getAvatarUrl input:', path);
-    if (!path) {
-      console.log('No path provided, using default image');
-      return '/logo_it.png';
-    }
-
-    // ถ้าเป็น URL เต็มแล้ว
-    if (path.startsWith('http://localhost:5000/uploads/')) {
-      console.log('Full URL detected:', path);
-      return path;
-    }
-
-    // ถ้าเป็นชื่อไฟล์ธรรมดา
-    const fullUrl = `http://localhost:5000/uploads/${path}`;
-    console.log('Generated URL:', fullUrl);
-
-    // ตรวจสอบว่าไฟล์มีอยู่จริง
-    fetch(fullUrl)
-      .then(response => {
-        if (!response.ok) {
-          console.error('Image file not found:', fullUrl);
-          console.error('Response status:', response.status);
-          return '/logo_it.png';
-        } else {
-          console.log('Image file exists:', fullUrl);
-          return fullUrl;
-        }
-      })
-      .catch(error => {
-        console.error('Error checking image:', error);
-        return '/logo_it.png';
-      });
-
-    return fullUrl;
+    if (!path) return '/logo_it.png';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('/uploads/')) return `http://localhost:5000${path}`;
+    // ถ้าเป็นชื่อไฟล์อย่างเดียว
+    return `http://localhost:5000/uploads/user/${path}`;
   };
 
   useEffect(() => {
@@ -179,6 +151,92 @@ const PersonalInfoEdit = () => {
       window.removeEventListener('profileImageUpdated', handleProfileImageUpdate);
     };
   }, []);
+
+  // 2. เพิ่ม state สำหรับจังหวัด/อำเภอ/ตำบล
+  const [provinces, setProvinces] = useState([]);
+  const [amphures, setAmphures] = useState([]);
+  const [tambons, setTambons] = useState([]);
+  const [selected, setSelected] = useState({
+    province_id: undefined,
+    amphure_id: undefined,
+    tambon_id: undefined
+  });
+
+  // 3. useEffect สำหรับ fetch จังหวัด/อำเภอ/ตำบล
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json')
+      .then(res => res.json())
+      .then(data => setProvinces(data))
+      .catch(() => setProvinces([]));
+  }, []);
+
+  // เมื่อ provinces หรือ formData.province/district/parish เปลี่ยน ให้ sync dropdown
+  useEffect(() => {
+    if (provinces.length && formData.province) {
+      const provinceObj = provinces.find(p => p.name_th === formData.province);
+      if (provinceObj) {
+        setAmphures(provinceObj.amphure);
+        let amphure_id, tambon_id;
+        if (formData.district) {
+          const amphureObj = provinceObj.amphure.find(a => a.name_th === formData.district);
+          if (amphureObj) {
+            setTambons(amphureObj.tambon);
+            amphure_id = amphureObj.id;
+            if (formData.parish) {
+              const tambonObj = amphureObj.tambon.find(t => t.name_th === formData.parish);
+              if (tambonObj) {
+                tambon_id = tambonObj.id;
+              }
+            }
+          }
+        }
+        setSelected({
+          province_id: provinceObj.id,
+          amphure_id: amphure_id,
+          tambon_id: tambon_id
+        });
+      }
+    }
+  }, [provinces, formData.province, formData.district, formData.parish]);
+
+  // 4. handleAddressChange สำหรับ province/amphure/tambon
+  const handleAddressChange = (event, type) => {
+    const value = event.target.value;
+    const id = Number(value);
+    if (type === 'province') {
+      setAmphures([]);
+      setTambons([]);
+      setSelected({ province_id: id, amphure_id: undefined, tambon_id: undefined });
+      const provinceObj = provinces.find(p => p.id === id);
+      setFormData(prev => ({
+        ...prev,
+        province: provinceObj ? provinceObj.name_th : '',
+        district: '',
+        parish: '',
+        postal_no: ''
+      }));
+      if (provinceObj) setAmphures(provinceObj.amphure);
+    } else if (type === 'amphure') {
+      setTambons([]);
+      setSelected(prev => ({ ...prev, amphure_id: id, tambon_id: undefined }));
+      const amphureObj = amphures.find(a => a.id === id);
+      setFormData(prev => ({
+        ...prev,
+        district: amphureObj ? amphureObj.name_th : '',
+        parish: '',
+        postal_no: ''
+      }));
+      if (amphureObj) setTambons(amphureObj.tambon);
+    } else if (type === 'tambon') {
+      setSelected(prev => ({ ...prev, tambon_id: id }));
+      const tambonObj = tambons.find(t => t.id === id);
+      setFormData(prev => ({
+        ...prev,
+        parish: tambonObj ? tambonObj.name_th : '',
+        postal_no: tambonObj ? tambonObj.zip_code : ''
+      }));
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -601,7 +659,7 @@ const PersonalInfoEdit = () => {
                         <input
                           type="tel"
                           name="phone"
-                          className="input input-bordered w-full pl-10 focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
+                          className="input input-bordered w-full pl-3 focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0 text-left"
                           value={formData.phone}
                           onChange={handleChange}
                           required
@@ -639,14 +697,14 @@ const PersonalInfoEdit = () => {
                       </label>
                       <select
                         name="province"
-                        value={formData.province}
-                        onChange={handleChange}
+                        value={selected.province_id || ''}
+                        onChange={e => handleAddressChange(e, 'province')}
                         className="select select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
                       >
-                        <option value="" disabled>เลือกจังหวัด</option>
-                        {['มหาสารคาม', 'ชัยภูมิ', 'ขอนแก่น'].map(opt =>
-                          <option key={opt} value={opt}>{opt}</option>
-                        )}
+                        <option value=''>เลือกจังหวัด</option>
+                        {provinces.map(p => (
+                          <option key={p.id} value={p.id}>{p.name_th}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="form-control">
@@ -655,14 +713,15 @@ const PersonalInfoEdit = () => {
                       </label>
                       <select
                         name="district"
-                        value={formData.district}
-                        onChange={handleChange}
+                        value={selected.amphure_id || ''}
+                        onChange={e => handleAddressChange(e, 'amphure')}
                         className="select select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
+                        disabled={!amphures.length}
                       >
-                        <option value="" disabled>เลือกอำเภอ</option>
-                        {['กันทรวิชัย', 'เมือง'].map(opt =>
-                          <option key={opt} value={opt}>{opt}</option>
-                        )}
+                        <option value=''>เลือกอำเภอ</option>
+                        {amphures.map(a => (
+                          <option key={a.id} value={a.id}>{a.name_th}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="form-control">
@@ -671,14 +730,15 @@ const PersonalInfoEdit = () => {
                       </label>
                       <select
                         name="parish"
-                        value={formData.parish}
-                        onChange={handleChange}
+                        value={selected.tambon_id || ''}
+                        onChange={e => handleAddressChange(e, 'tambon')}
                         className="select select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
+                        disabled={!tambons.length}
                       >
-                        <option value="" disabled>เลือกตำบล</option>
-                        {['ขามเรียง', 'ท่าขอนยาง', 'คันธารราษฎร์'].map(opt =>
-                          <option key={opt} value={opt}>{opt}</option>
-                        )}
+                        <option value=''>เลือกตำบล</option>
+                        {tambons.map(t => (
+                          <option key={t.id} value={t.id}>{t.name_th}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="form-control">

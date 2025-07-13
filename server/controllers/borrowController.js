@@ -622,7 +622,10 @@ export const updateBorrowStatus = async (req, res) => {
         `• ${eq.name} (${eq.item_code}) x${eq.quantity}`
       ).join('\n');
       const user = await User.findById(borrow.user_id);
-      if (user?.line_id) {
+      if (
+        user?.line_id &&
+        (user.line_notify_enabled === 1 || user.line_notify_enabled === true || user.line_notify_enabled === '1')
+      ) {
         const flexMessageUser = {
           type: 'flex',
           altText: '📢 แจ้งสถานะคำขอยืมของคุณ',
