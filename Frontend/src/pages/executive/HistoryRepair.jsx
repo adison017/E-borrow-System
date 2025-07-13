@@ -2,10 +2,11 @@ import {
   CheckCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  FunnelIcon,
   MagnifyingGlassIcon,
   XCircleIcon
 } from "@heroicons/react/24/outline";
+import { BsFillFilterCircleFill } from "react-icons/bs";
+
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { BiSearchAlt2 } from "react-icons/bi";
@@ -25,34 +26,29 @@ export default function HistoryRepair() {
     message: "",
     type: "success"
   });
-  // ...existing code...
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   // สถานะของคำขอซ่อม (ใช้ approved, completed, incomplete, rejected)
   const statusOptions = [
     { value: "approved", label: "กำลังซ่อม", count: 0 },
-    { value: "completed", label: "เสร็จสิ้น", count: 0 },
     { value: "incomplete", label: "ไม่สำเร็จ", count: 0 },
+    { value: "completed", label: "เสร็จสิ้น", count: 0 },
     { value: "rejected", label: "ปฏิเสธ", count: 0 }
   ];
 
   const statusBadgeStyle = {
     approved: "bg-blue-50 text-blue-800 border-blue-200",
-    completed: "bg-purple-50 text-purple-800 border-purple-200",
-    incomplete: "bg-red-50 text-red-800 border-red-200",
+    completed: "bg-green-50 text-green-800 border-green-200",
+    incomplete: "bg-gray-100 text-gray-800 border-gray-200",
     rejected: "bg-red-100 text-red-800 border-red-300"
-  };
-
-  const statusIconStyle = {
-    approved: "text-blue-500",
-    completed: "text-purple-500",
-    incomplete: "text-red-500",
-    rejected: "text-red-500"
   };
 
   const statusTranslation = {
     approved: "กำลังซ่อม",
-    completed: "เสร็จสิ้น",
     incomplete: "ไม่สำเร็จ",
+    completed: "เสร็จสิ้น",
     rejected: "ปฏิเสธ"
   };
 
@@ -181,6 +177,23 @@ export default function HistoryRepair() {
     return matchSearch && matchStatus;
   });
 
+  // Sort so that: approved > rejected > incomplete > completed
+  const statusOrder = ['approved', 'rejected', 'incomplete', 'completed'];
+  const sortedRequests = [...filteredRequests].sort((a, b) => {
+    const aIndex = statusOrder.indexOf(a.status);
+    const bIndex = statusOrder.indexOf(b.status);
+    return aIndex - bIndex;
+  });
+  // Pagination logic
+  const totalPages = Math.ceil(sortedRequests.length / rowsPerPage);
+  const paginatedRequests = sortedRequests.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+  // When rowsPerPage changes, reset to page 1 if needed
+  const handleRowsPerPageChange = (e) => {
+    setRowsPerPage(Number(e.target.value));
+    setPage(1);
+  };
+
   const handleStatusFilterChange = (status) => {
     setStatusFilter(prev => 
       prev.includes(status)
@@ -196,7 +209,7 @@ export default function HistoryRepair() {
   }, {});
 
   return (
-    <div className="container mx-auto py-6 max-w-8xl">
+    <div className="container mx-auto p-6 max-w-8xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอแจ้งซ่อม</h1>
@@ -211,19 +224,19 @@ export default function HistoryRepair() {
             </div>
             <input
               type="text"
-              placeholder="ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้ขอยืม"
+              placeholder="ค้นหาด้วยรหัส อุปกรณ์ ชื่อผู้ขอยืม"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl text-sm border-gray-200"
+              className="block w-full pl-10 pr-3 py-3 bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-full text-sm border-gray-200"
             />
           </div>
 
           <div className="relative">
             <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="btn btn-outline flex items-center gap-2 shadow-md bg-white rounded-2xl transition-colors border-gray-200 hover:text-white hover:bg-blue-700 hover:border-blue-700"
+              className="btn btn-outline flex items-center gap-2 shadow-lg bg-white rounded-2xl transition-colors border-gray-200 hover:text-white hover:bg-blue-700 hover:border-blue-700"
             >
-              <FunnelIcon className="w-4 h-4" />
+              <BsFillFilterCircleFill className="w-4 h-4" />
               <span>กรองสถานะ</span>
               {isFilterOpen ? (
                 <ChevronUpIcon className="w-4 h-4" />
@@ -233,25 +246,33 @@ export default function HistoryRepair() {
             </button>
             
             {isFilterOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-10 border border-gray-200 p-2">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 mb-1">สถานะคำขอ</label>
-                  {statusOptions.map(option => (
-                    <label key={option.value} className="flex items-center justify-between cursor-pointer">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={statusFilter.includes(option.value)}
-                          onChange={() => handleStatusFilterChange(option.value)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-gray-700">{option.label}</span>
-                      </div>
-                      <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                        {countByStatus[option.value] || 0}
-                      </span>
-                    </label>
-                  ))}
+              <div className="absolute right-0 mt-2 min-w-[220px] bg-white rounded-4xl shadow-xl z-20 border border-gray-100 p-3">
+                <div className="flex flex-col gap-1">
+                  {statusOptions.map(option => {
+                    const active = statusFilter.includes(option.value);
+                    const colorMap = {
+                      approved: 'blue',
+                      incomplete: 'gray',
+                      completed: 'green',
+                      rejected: 'red',
+                    };
+                    const color = colorMap[option.value] || 'gray';
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleStatusFilterChange(option.value)}
+                        className={`flex items-center justify-between w-full gap-2 p-3 text-sm transition-colors duration-200 cursor-pointer text-left font-normal rounded-full hover:bg-${color}-100 ${active ? `bg-${color}-100 text-${color}-700 font-semibold` : ''}`}
+                        style={{ outline: 'none', border: 'none', background: active ? undefined : 'none' }}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className={`h-2.5 w-2.5 rounded-full bg-${color}-500`}></span>
+                          <span>{option.label}</span>
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${active ? `bg-${color}-200 text-${color}-700` : 'bg-gray-100 text-gray-500'}`}>{countByStatus[option.value] || 0}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -283,7 +304,7 @@ export default function HistoryRepair() {
                     รหัสคำขอ
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    อุปกรณ์
+                    ครุภัณฑ์
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     ผู้แจ้งซ่อม
@@ -292,7 +313,7 @@ export default function HistoryRepair() {
                     วันที่แจ้ง
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    ค่าใช้จ่าย (บาท)
+                    ค่าใช้จ่าย
                   </th>
                   <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
                     สถานะ
@@ -303,16 +324,16 @@ export default function HistoryRepair() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.map((request) => (
+        {paginatedRequests.map((request) => (
                   <tr key={request.requestId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{request.repair_code || request.requestId}</div>
+                      <div className="text-gray-900 font-bold">{request.repair_code || request.requestId}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-15 w-15">
                           <img
-                            className="h-15 w-15 object-contain rounded-lg"
+                            className="h-full w-full object-contain rounded-lg"
                             src={request.equipment?.image || request.equipment_pic || (request.equipment_pic_filename ? `http://localhost:5000/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
                             alt={request.equipment?.name || request.equipment_name}
                             onError={e => { e.target.src = "/placeholder-equipment.png"; }}
@@ -326,9 +347,9 @@ export default function HistoryRepair() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
+                        <div className="flex-shrink-0 h-12 w-12">
                           <img
-                            className="h-8 w-8 rounded-full object-cover"
+                            className="h-full w-full rounded-full object-cover"
                             src={request.requester?.avatar ? request.requester.avatar : (request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png")}
                             alt={request.requester?.name || request.requester_name}
                           />
@@ -340,11 +361,15 @@ export default function HistoryRepair() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.requestDate || (request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : '-')}</div>
+                      <div className="text-base text-gray-900">{request.requestDate || (request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : '-')}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {(request.estimatedCost || request.estimated_cost)?.toLocaleString()}
+                      <div className="text-base text-gray-900">
+                        {request.estimatedCost !== undefined && request.estimatedCost !== null
+                          ? `${parseInt(request.estimatedCost).toLocaleString('th-TH', { maximumFractionDigits: 0 })} บาท`
+                          : request.estimated_cost !== undefined && request.estimated_cost !== null
+                            ? `${parseInt(request.estimated_cost).toLocaleString('th-TH', { maximumFractionDigits: 0 })} บาท`
+                            : '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -367,7 +392,50 @@ export default function HistoryRepair() {
                     </td>
                   </tr>
                 ))}
-              </tbody>
+            </tbody>
+            {/* Pagination Footer */}
+            <tfoot>
+              <tr>
+                <td colSpan={7} className="bg-white px-6 py-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <span className="text-gray-600 text-sm">
+                      แสดง {paginatedRequests.length > 0 ? (page - 1) * rowsPerPage + 1 : 0} ถึง {(page - 1) * rowsPerPage + paginatedRequests.length} จากทั้งหมด {filteredRequests.length} รายการ
+                    </span>
+                    <div className="flex items-center gap-2 mb-3 sm:mb-0">
+                      <span className="text-gray-600 text-sm">แสดง</span>
+                      <select
+                        className="border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full "
+                        value={rowsPerPage}
+                        onChange={handleRowsPerPageChange}
+                        style={{ minWidth: 60 }}
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                      <span className="text-gray-600 text-sm">รายการ</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        className="text-gray-700 border border-gray-300 rounded-full px-4 py-2 text-sm font-medium normal-case transition-colors hover:text-white hover:bg-blue-600"
+                        onClick={() => setPage(page - 1)}
+                        disabled={page === 1}
+                      >
+                        ก่อนหน้า
+                      </button>
+                      <button
+                        className="text-gray-700 border border-gray-300 rounded-full px-4 py-2 text-sm font-medium normal-case transition-colors hover:text-white hover:bg-blue-600"
+                        onClick={() => setPage(page + 1)}
+                        disabled={page === totalPages}
+                      >
+                        ถัดไป
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
             </table>
           </div>
         )}

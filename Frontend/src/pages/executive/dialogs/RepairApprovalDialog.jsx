@@ -673,7 +673,7 @@ export default function RepairApprovalDialog({
                   <h4 className="font-bold text-green-700 text-lg mb-1 md:mb-0">คำขอได้รับการอนุมัติแล้ว</h4>
                 </div>
                 <div className="mt-2 text-sm text-gray-700">
-                  <span className="font-medium">โดย:</span> {repairRequest.responsible_person || 'ไม่ระบุผู้รับผิดชอบ'}
+                  <span className="font-medium">รับผิดชอบโดย:</span> {repairRequest.responsible_person || 'ไม่ระบุผู้รับผิดชอบ'}
                 </div>
                 {repairRequest.approvalNotes && (
                   <div className="mt-2 text-sm text-gray-700">

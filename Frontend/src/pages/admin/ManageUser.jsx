@@ -1,3 +1,4 @@
+import { ImMail4 } from "react-icons/im"; 
 import {
   MagnifyingGlassIcon,
   TrashIcon
@@ -24,14 +25,13 @@ import {
   MenuList,
   ThemeProvider,
   Tooltip,
-  Typography,
-  Switch
+  Typography
 } from "@material-tailwind/react";
+import { BsChatDots } from "react-icons/bs";
 import AddUserDialog from "./dialog/AddUserDialog";
 import DeleteUserDialog from "./dialog/DeleteUserDialog";
 import EditUserDialog from "./dialog/EditUserDialog";
 import ViewUserDialog from "./dialog/ViewUserDialog";
-import { BsChatDots } from "react-icons/bs";
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -548,15 +548,17 @@ function ManageUser() {
                 {TABLE_HEAD.map((head, index) => (
                     <th
                       key={head}
-                      className={`px-6 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
-                        index === 0 ? "w-15 text-left" :
-                        index === 1 ? "w-20 text-center" :
-                        index === 2 ? "w-40 text-left" :
-                        index === 3 ? "w-20 text-left" :
-                        index === 4 ? "w-20 text-left" :
-                        index === 5 ? "w-20 text-center" :
-                        index === 6 ? "w-24 text-left" :
-                        index === 7 ? "w-20 text-center" : ""
+                      className={`px-3 py-3 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
+                        index === 0 ? "w-24 text-left" :      // รหัสนิสิต
+                        index === 1 ? "w-16 text-center" :    // รูปภาพ
+                        index === 2 ? "w-30 text-left" :      // ชื่อ-นามสกุล
+                        index === 3 ? "w-36 text-left" :      // อีเมล
+                        index === 4 ? "w-28 text-left" :      // เบอร์โทรศัพท์
+                        index === 5 ? "w-28 text-center" :    // ตำแหน่ง
+                        index === 6 ? "w-32 text-left" :      // สาขา
+                        index === 7 ? "w-28 text-center" :    // แจ้งเตือน LINE
+                        index === 8 ? "w-24 text-center" :    // จัดการ
+                        ""
                       }`}
                     >
                       {head}
@@ -584,12 +586,12 @@ function ManageUser() {
                     const { user_id, user_code, username, Fullname, avatar, email, phone, position_name, branch_name, role_name, line_notify_enabled } = user;
                     return (
                       <tr key={user_id} className="hover:bg-gray-50 cursor-pointer" onClick={e => {
-                        if (e.target.closest('button')) return;
+                        if (e.target.closest('button') || e.target.closest('.line-notify-switch')) return;
                         setViewUser(user);
                         setViewDialogOpen(true);
                       }}>
-                        <td className="px-6 py-4 whitespace-nowrap text-md font-bold text-gray-900">{user_code}</td>
-                        <td className="px-6 py-4 w-full h-full whitespace-nowrap">
+                        <td className="px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900">{user_code}</td>
+                        <td className="px-3 py-4 w-15 h-full whitespace-nowrap">
                           <div className="flex items-center justify-center object-cover">
                             <Avatar
                               src={avatar ? `http://localhost:5000/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
@@ -599,19 +601,21 @@ function ManageUser() {
                             />
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{Fullname}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{phone}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900 text-center">{position_name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-md text-gray-900">{branch_name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <td className="px-3 py-4 whitespace-nowrap text-md text-gray-900">{Fullname}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{email}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{phone}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">{position_name}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{branch_name}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-center">
                           <Tooltip content={line_notify_enabled ? 'ปิดการแจ้งเตือน LINE' : 'เปิดการแจ้งเตือน LINE'} placement="top">
                             <div className="flex flex-col items-center justify-center gap-1">
-                              <Switch
-                                checked={!!line_notify_enabled}
-                                onChange={async (e) => {
+                              <button
+                                type="button"
+                                className={`line-notify-switch relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none border-2 ${line_notify_enabled ? 'bg-green-400 border-green-500' : 'bg-white border-gray-400'}`}
+                                aria-pressed={!!line_notify_enabled}
+                                onClick={async (e) => {
                                   e.stopPropagation();
-                                  const newValue = e.target.checked ? 1 : 0;
+                                  const newValue = !line_notify_enabled ? 1 : 0;
                                   await fetch(`http://localhost:5000/users/${user_id}/line-notify`, {
                                     method: 'PATCH',
                                     headers: { 'Content-Type': 'application/json' },
@@ -622,19 +626,23 @@ function ManageUser() {
                                   ));
                                   toast.success(newValue ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
                                 }}
-                                color={line_notify_enabled ? "green" : "gray"}
-                                className="mx-auto scale-125"
-                                ripple={false}
-                                icon={<BsChatDots className={`w-5 h-5 ${line_notify_enabled ? 'text-green-600' : 'text-gray-400'}`} />}
-                              />
-                              <span className={`text-xs font-semibold ${line_notify_enabled ? 'text-green-600' : 'text-gray-400'}`}
-                                style={{marginTop: '2px'}}>
-                                {line_notify_enabled ? "เปิด" : "ปิด"}
+                              >
+                                <span
+                                  className={`absolute left-1 top-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-300 ${line_notify_enabled ? 'translate-x-6' : 'translate-x-0'}`}
+                                >
+                                  <ImMail4 className={`w-5 h-5 ${line_notify_enabled ? 'text-green-600' :  'text-black'} transition-colors duration-300`} />
+                                </span>
+                              </button>
+                              <span
+                                className={`mt-1 px-3 py-0.5 rounded-full text-xs font-bold transition-colors duration-200 ${line_notify_enabled ? 'bg-green-100 text-green-700 border border-green-400' : 'bg-gray-100 text-gray-700 border border-gray-300'}`}
+                                style={{marginTop: '2px'}}
+                              >
+                                {line_notify_enabled ? 'เปิด' : 'ปิด'}
                               </span>
                             </div>
                           </Tooltip>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <td className="px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex gap-1 justify-center">
                             <Tooltip content="แก้ไข">
                               <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100"

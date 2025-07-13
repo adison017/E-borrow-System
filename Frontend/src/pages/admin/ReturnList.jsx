@@ -41,7 +41,7 @@ import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
 
 
 
-import { getAllBorrows, UPLOAD_BASE } from "../../utils/api";
+import { UPLOAD_BASE } from "../../utils/api";
 // Import services
 // import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
 
@@ -63,7 +63,6 @@ const TABLE_HEAD = [
   "วันที่ยืม",
   "กำหนดคืน",
   "สถานะ",
-  "วัตถุประสงค์",
   "จัดการ"
 ];
 
@@ -132,7 +131,7 @@ const ReturnList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
   const [page, setPage] = useState(1);
-  const rowsPerPage = 4;
+  const rowsPerPage = 5;
 
   // Dialog states
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -399,7 +398,7 @@ const ReturnList = () => {
             <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
               <Menu>
                 <MenuHandler>
-                  <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
+                  <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-full flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
                     <FunnelIcon className="h-4 w-4" />
                     ตัวกรอง
                     {statusFilter !== "ทั้งหมด" && (
@@ -439,9 +438,7 @@ const ReturnList = () => {
                 </MenuList>
               </Menu>
               <Button
-                className="flex items-center gap-2"
-                color="blue"
-                size="sm"
+                className="flex items-center gap-2 px-4 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200"
                 onClick={() => setIsScannerOpen(true)}
               >
                 <QrCodeIcon strokeWidth={2} className="h-4 w-4" /> สแกนเพื่อคืน
@@ -464,8 +461,7 @@ const ReturnList = () => {
                         index === 3 ? "w-28 text-left" : // วันที่ยืม
                         index === 4 ? "w-28 text-left" : // กำหนดคืน
                         index === 5 ? "w-32 text-center" : // สถานะ
-                        index === 6 ? "w-22 text-left" : // วัตถุประสงค์
-                        index === 7 ? "w-40 text-center" : ""
+                        index === 6 ? "w-40 text-center" : ""
                       }`}
                     >
                       {head}
@@ -532,7 +528,6 @@ const ReturnList = () => {
 
                         {getStatusBadge(item.status)}
                       </td>
-                      <td className="w-22 px-4 py-4 whitespace-nowrap text-center text-gray-900">{item.purpose || '-'}</td>
                       <td className="w-40 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           <Tooltip content="ดูรายละเอียด" placement="top">
@@ -582,13 +577,26 @@ const ReturnList = () => {
         </CardBody>
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
           <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
-            แสดง {paginatedReturns.length > 0 ? '1' : '0'} ถึง {paginatedReturns.length} จากทั้งหมด {returns.length} รายการ
+            แสดง {filteredReturns.length === 0 ? 0 : ((page - 1) * rowsPerPage + 1)} ถึง {filteredReturns.length === 0 ? 0 : Math.min(page * rowsPerPage, filteredReturns.length)} จากทั้งหมด {filteredReturns.length} รายการ
           </Typography>
           <div className="flex gap-2">
-            <Button variant="outlined" size="sm" className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case" onClick={() => setPage(page - 1)} disabled={page === 1}>
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+            >
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm" className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
+            <span className="text-gray-700 text-sm px-2 py-1">{page} / {totalPages || 1}</span>
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setPage(page + 1)}
+              disabled={page === totalPages || totalPages === 0}
+            >
               ถัดไป
             </Button>
           </div>

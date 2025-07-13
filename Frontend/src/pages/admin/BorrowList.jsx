@@ -195,6 +195,10 @@ const BorrowList = () => {
     return acc;
   }, {});
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   const filteredBorrows = borrows
     .filter(borrow => {
       // รองรับ equipment เป็น array หรือ object
@@ -226,6 +230,15 @@ const BorrowList = () => {
       }
       return new Date(b.borrow_date) - new Date(a.borrow_date);
     });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredBorrows.length / itemsPerPage);
+  const paginatedBorrows = filteredBorrows.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset to first page when filter/search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, borrows.length]);
 
   return (
     <ThemeProvider value={theme}>
@@ -329,8 +342,8 @@ const BorrowList = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredBorrows.length > 0 ? (
-                  filteredBorrows.map((item, index) => (
+                {paginatedBorrows.length > 0 ? (
+                  paginatedBorrows.map((item, index) => (
                     <tr key={item.borrow_id} className="hover:bg-gray-50">
                       <td className="w-28 px-3 py-3 whitespace-nowrap font-bold text-gray-900">{item.borrow_code}</td>
                       <td className="w-40 px-3 py-3 whitespace-nowrap">
@@ -423,13 +436,26 @@ const BorrowList = () => {
         </CardBody>
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
           <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
-            แสดง {filteredBorrows.length > 0 ? '1' : '0'} ถึง {filteredBorrows.length} จากทั้งหมด {borrows.length} รายการ
+            แสดง {filteredBorrows.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage + 1)} ถึง {filteredBorrows.length === 0 ? 0 : Math.min(currentPage * itemsPerPage, filteredBorrows.length)} จากทั้งหมด {filteredBorrows.length} รายการ
           </Typography>
           <div className="flex gap-2">
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <span className="text-gray-700 text-sm px-2 py-1">{currentPage} / {totalPages || 1}</span>
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
               ถัดไป
             </Button>
           </div>

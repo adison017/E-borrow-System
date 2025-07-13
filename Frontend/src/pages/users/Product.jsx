@@ -174,7 +174,14 @@ const Home = () => {
   const filteredEquipment = equipmentData.filter(equipment => {
     const matchesSearch = equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (equipment.code && String(equipment.code).toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = selectedStatus === 'ทั้งหมด' || equipment.status === selectedStatus;
+    let matchesStatus = false;
+    if (selectedStatus === 'ทั้งหมด') {
+      matchesStatus = true;
+    } else if (selectedStatus === 'กำลังซ่อม') {
+      matchesStatus = ['รออนุมัติซ่อม', 'ชำรุด', 'กำลังซ่อม'].includes(equipment.status);
+    } else {
+      matchesStatus = equipment.status === selectedStatus;
+    }
     const matchesCategory = selectedCategory === 'ทั้งหมด' || equipment.category === selectedCategory;
     return matchesSearch && matchesStatus && matchesCategory;
   });
@@ -189,7 +196,7 @@ const Home = () => {
         return <span className={`${baseClasses} badge-warning text-black`}>ถูกยืม</span>;
       case 'รออนุมัติซ่อม':
       case 'ชำรุด':
-      case 'ระหว่างซ่อม':
+      case 'กำลังซ่อม':
         return <span className={`${baseClasses} badge-error text-white`}>กำลังซ่อม</span>;
       default:
         return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>{status}</span>;

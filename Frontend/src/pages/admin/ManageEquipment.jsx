@@ -473,10 +473,10 @@ function ManageEquipment() {
                     const { pic, item_code, name, category, quantity, status, unit } = item;
                     return (
                       <tr key={item_code} className="hover:bg-gray-50">
-                        <td className="w-16 px-3 py-4 whitespace-nowrap text-center">
+                        <td className="w-15 px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
                             <img
-                              className="h-16 w-20 object-contain rounded"
+                              className="h-full w-18 object-contain rounded"
                               src={pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"}
                               alt={name}
                               onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
