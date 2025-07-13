@@ -76,7 +76,7 @@ function Success() {
   const [selectedBorrow, setSelectedBorrow] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: "", type: "success" });
   const [page, setPage] = useState(1);
-  const rowsPerPage = 4;
+  const rowsPerPage = 5;
 
   useEffect(() => {
     fetch(`${UPLOAD_BASE}/api/returns/success-borrows`)

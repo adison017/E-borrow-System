@@ -60,6 +60,9 @@ function ManageCategory() {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     getCategories().then(setCategoryList);
@@ -190,6 +193,13 @@ function ManageCategory() {
       (category.category_code && String(category.category_code).toLowerCase().includes(searchTerm.toLowerCase())) ||
       (category.name && category.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+  const paginatedCategories = filteredCategories.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset to first page when search or list changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, categoryList.length]);
 
   return (
     <ThemeProvider value={theme}>
@@ -252,8 +262,8 @@ function ManageCategory() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCategories.length > 0 ? (
-                  filteredCategories.map(({ category_id, category_code, name, created_at }, index) => (
+                {paginatedCategories.length > 0 ? (
+                  paginatedCategories.map(({ category_id, category_code, name, created_at }, index) => (
                     <tr key={category_id} className="hover:bg-gray-50 transition-colors duration-200">
                       <td className="w-32 px-3 py-3 whitespace-nowrap  font-bold  text-left">{category_code}</td>
                       <td className="w-48 px-3 py-3 whitespace-nowrap text-gray-700 text-left">{name}</td>
@@ -304,13 +314,26 @@ function ManageCategory() {
         </CardBody>
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
           <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
-            แสดง {filteredCategories.length > 0 ? '1' : '0'} ถึง {filteredCategories.length} จากทั้งหมด {categoryList.length} รายการ
+            แสดง {filteredCategories.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage + 1)} ถึง {filteredCategories.length === 0 ? 0 : Math.min(currentPage * itemsPerPage, filteredCategories.length)} จากทั้งหมด {filteredCategories.length} รายการ
           </Typography>
           <div className="flex gap-2">
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <span className="text-gray-700 text-sm px-2 py-1">{currentPage} / {totalPages || 1}</span>
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
               ถัดไป
             </Button>
           </div>

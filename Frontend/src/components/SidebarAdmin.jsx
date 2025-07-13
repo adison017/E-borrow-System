@@ -1,3 +1,9 @@
+import { TbPackages } from "react-icons/tb"; 
+import { GiBackForth } from "react-icons/gi"; 
+import { FaNewspaper } from "react-icons/fa"; 
+import { BsFillClipboardPlusFill } from "react-icons/bs"; 
+import { BsClipboardCheckFill } from "react-icons/bs"; 
+import { GiHandTruck } from "react-icons/gi"; 
 import React, { useEffect, useState } from 'react';
 import { BiPackage } from "react-icons/bi";
 import { BsGraphUp } from "react-icons/bs";
@@ -9,14 +15,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const menuItems = [
   { to: '/DashboardAd', icon: <BsGraphUp size={22} />, label: 'รายงาน', key: 'dashboardAd' },
-  { to: '/equipment', icon: <MdOutlineEditNote size={22} />, label: 'จัดการครุภัณฑ์', key: 'equipment' },
-  { to: '/category', icon: <TbCategory size={22} />, label: 'จัดการประเภทครุภัณฑ์', key: 'category' },
+  { to: '/equipment', icon: <BiPackage size={22} />, label: 'จัดการครุภัณฑ์', key: 'equipment' },
+  { to: '/category', icon: <TbPackages size={22} />, label: 'จัดการประเภทครุภัณฑ์', key: 'category' },
   { to: '/members', icon: <MdManageAccounts size={22} />, label: 'จัดการสมาชิก', key: 'members' },
-  { to: '/borrow-list', icon: <MdViewList size={22} />, label: 'รายการขอยืมครุภัณฑ์', key: 'borrowList' },
-  { to: '/ReceiveItem', icon: <BiPackage size={22} />, label: 'ส่งมอบครุภัณฑ์', key: 'receiveItem' },
-  { to: '/return-list', icon: <RiArrowGoBackLine size={22} />, label: 'รายการคืนครุภัณฑ์', key: 'returnList' },
-  { to: '/success', icon: <FaHandshake size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
-  { to: '/manage-news', icon: <MdAnnouncement size={22} />, label: 'จัดการข่าวสาร', key: 'manageNews' },
+  { to: '/borrow-list', icon: <BsFillClipboardPlusFill size={22} />, label: 'รายการขอยืมครุภัณฑ์', key: 'borrowList' },
+  { to: '/ReceiveItem', icon: <GiHandTruck size={30} />, label: 'ส่งมอบครุภัณฑ์', key: 'receiveItem' },
+  { to: '/return-list', icon: <GiBackForth size={23} />, label: 'รายการคืนครุภัณฑ์', key: 'returnList' },
+  { to: '/success', icon: <BsClipboardCheckFill size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
+  { to: '/manage-news', icon: <FaNewspaper  size={22} />, label: 'จัดการข่าวสาร', key: 'manageNews' },
   { to: '/edit_profile', icon: <FaUserEdit size={22} />, label: 'แก้ไขข้อมูลส่วนตัว', key: 'profile' },
 ];
 

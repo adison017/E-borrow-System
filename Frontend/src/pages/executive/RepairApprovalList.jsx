@@ -1,5 +1,7 @@
 
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import { IconButton, Tooltip } from "@material-tailwind/react";
 import axios from 'axios';
 import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
@@ -12,8 +14,11 @@ export default function RepairApprovalList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState("all");
   // ไม่ใช้ notification state แบบเดิม ใช้ react-toastify แทน
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 5;
 
   // สถานะของคำขอซ่อม
   const statusOptions = [
@@ -107,7 +112,7 @@ export default function RepairApprovalList() {
 
     } catch (error) {
       console.error('Error fetching repair requests:', error);
-      showNotification("เกิดข้อผิดพลาดในการดึงข้อมูลคำขอซ่อม", "error");
+      toast.error("เกิดข้อผิดพลาดในการดึงข้อมูลคำขอซ่อม");
     } finally {
       setLoading(false);
     }
@@ -192,6 +197,15 @@ export default function RepairApprovalList() {
     return matchSearch && matchStatus;
   });
 
+  // Reset page to 1 when searchTerm or statusFilter changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredRequests.length / rowsPerPage);
+  const paginatedRequests = filteredRequests.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
   // จำนวนคำขอแต่ละสถานะ
   const countByStatus = repairRequests.reduce((acc, request) => {
     acc[request.status] = (acc[request.status] || 0) + 1;
@@ -199,7 +213,7 @@ export default function RepairApprovalList() {
   }, {});
 
   return (
-    <div className="container mx-auto py-6 max-w-8xl">
+    <div className="container mx-auto p-6 max-w-8xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอแจ้งซ่อม</h1>
@@ -231,7 +245,7 @@ export default function RepairApprovalList() {
                     รหัสคำขอ
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    อุปกรณ์
+                    ครุภัณฑ์
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     ผู้แจ้งซ่อม
@@ -240,7 +254,7 @@ export default function RepairApprovalList() {
                     วันที่แจ้ง
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    ค่าใช้จ่าย (บาท)
+                    ค่าใช้จ่าย
                   </th>
                   <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
                     สถานะ
@@ -251,10 +265,10 @@ export default function RepairApprovalList() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {repairRequests.map((request) => (
+                {paginatedRequests.map((request) => (
                   <tr key={request.requestId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{request.repair_code}</div>
+                      <div className="text-gray-900 font-bold">{request.repair_code}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
@@ -276,9 +290,9 @@ export default function RepairApprovalList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
+                        <div className="flex-shrink-0 h-11 w-11">
                           <img
-                            className="h-8 w-8 rounded-full object-cover"
+                            className="h-full w-full rounded-full object-cover"
                             src={request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png"}
                             alt={request.requester_name}
                           />
@@ -290,11 +304,13 @@ export default function RepairApprovalList() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : '-'}</div>
+                      <div className="text-base text-gray-900">{request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {request.estimated_cost?.toLocaleString()}
+                      <div className="text-base text-gray-900">
+                        {request.estimated_cost !== undefined && request.estimated_cost !== null
+                          ? `${parseInt(request.estimated_cost).toLocaleString('th-TH', { maximumFractionDigits: 0 })} บาท`
+                          : '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -303,25 +319,50 @@ export default function RepairApprovalList() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      {request.status === "รออนุมัติซ่อม" ? (
-                        <button
-                          onClick={() => handleOpenDialog(request)}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
-                        >
-                          พิจารณา
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenDialog(request)}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 hover:text-blue-700 transition-all duration-200"
-                        >
-                          ดูรายละเอียด
-                        </button>
-                      )}
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        <Tooltip content="ดูรายละเอียด" placement="top">
+                          <IconButton
+                            variant="text"
+                            color="green"
+                            className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2"
+                            onClick={() => handleOpenDialog(request)}
+                          >
+                            <CheckCircleIcon className="h-6 w-6" />
+                          </IconButton>
+                        </Tooltip>
+                        {/* ปุ่มยกเลิกการยืมถูกลบตามคำขอ */}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={7} className="bg-white px-6 py-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between">
+                      <span className="text-gray-600 mb-3 sm:mb-0 text-sm">
+                        แสดง {paginatedRequests.length > 0 ? (page - 1) * rowsPerPage + 1 : 0} ถึง {(page - 1) * rowsPerPage + paginatedRequests.length} จากทั้งหมด {filteredRequests.length} รายการ
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                          onClick={() => setPage(page - 1)}
+                          disabled={page === 1}
+                        >
+                          ก่อนหน้า
+                        </button>
+                        <button
+                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                          onClick={() => setPage(page + 1)}
+                          disabled={page === totalPages || totalPages === 0}
+                        >
+                          ถัดไป
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}

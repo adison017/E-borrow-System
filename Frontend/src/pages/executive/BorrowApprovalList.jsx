@@ -1,6 +1,8 @@
 import {
   MagnifyingGlassIcon
 } from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import { IconButton, Tooltip } from "@material-tailwind/react";
 import { useEffect, useState } from "react";
 import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
 
@@ -19,6 +21,9 @@ export default function BorrowApprovalList() {
   const [statusFilter, setStatusFilter] = useState("pending_approval");
   // ไม่ใช้ notification state แบบเดิม ใช้ react-toastify แทน
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 5;
 
   // สถานะของคำขอยืม
   const statusOptions = [
@@ -159,6 +164,10 @@ export default function BorrowApprovalList() {
     return matchSearch && matchStatus;
   });
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredRequests.length / rowsPerPage);
+  const paginatedRequests = filteredRequests.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
   // จำนวนคำขอแต่ละสถานะ
   const countByStatus = borrowRequests.reduce((acc, request) => {
     acc[request.status] = (acc[request.status] || 0) + 1;
@@ -166,7 +175,7 @@ export default function BorrowApprovalList() {
   }, {});
 
   return (
-    <div className="container mx-auto py-6 max-w-8xl">
+    <div className="container mx-auto p-6 max-w-8xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอยืมอุปกรณ์</h1>
@@ -218,14 +227,14 @@ export default function BorrowApprovalList() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.map((request) => (
+                {paginatedRequests.map((request) => (
                   <tr key={request.borrow_id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{request.borrow_code}</div>
+                      <div className="text-gray-900 font-bold">{request.borrow_code}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-18 w-18 rounded-lg">
+                        <div className="flex-shrink-0 h-15 w-15 rounded-lg">
                           <img
                             className="h-full w-full object-contain"
                             src={Array.isArray(request.equipment) && request.equipment[0]?.pic ? `${request.equipment[0].pic.startsWith('http') ? request.equipment[0].pic : '/lo.png'}` : '/placeholder-equipment.png'}
@@ -249,7 +258,7 @@ export default function BorrowApprovalList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-13 w-13">
+                        <div className="flex-shrink-0 h-12 w-12">
                           <img
                             className="h-full w-full rounded-full bg-white shadow-sm"
                             src={
@@ -270,10 +279,10 @@ export default function BorrowApprovalList() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.borrow_date ? new Date(request.borrow_date).toLocaleDateString('th-TH') : '-'}</div>
+                      <div className="text-base text-gray-900">{request.borrow_date ? new Date(request.borrow_date).toLocaleDateString('th-TH') : '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH') : '-'}</div>
+                      <div className="text-base text-gray-900">{request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH') : '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
@@ -281,25 +290,51 @@ export default function BorrowApprovalList() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      {request.status === "pending_approval" ? (
-                        <button
-                          onClick={() => handleOpenDialog(request)}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
-                        >
-                          พิจารณา
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenDialog(request)}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-medium shadow hover:bg-gray-200 hover:text-blue-700 transition-all duration-200"
-                        >
-                          ดูรายละเอียด
-                        </button>
-                      )}
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        <Tooltip content="ดูรายละเอียด" placement="top">
+                          <IconButton
+                            variant="text"
+                            color="green"
+                            className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2"
+                            onClick={() => handleOpenDialog(request)}
+                          >
+                            <CheckCircleIcon className="h-6 w-6" />
+                          </IconButton>
+                        </Tooltip>
+                        {/* ปุ่มยกเลิกการยืมถูกลบตามคำขอ */}
+                      </div>
                     </td>
                   </tr>
                 ))}
-              </tbody>
+            </tbody>
+            {/* Pagination Footer */}
+            <tfoot>
+              <tr>
+                <td colSpan={7} className="bg-white px-6 py-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between">
+                    <span className="text-gray-600 mb-3 sm:mb-0 text-sm">
+                      แสดง {paginatedRequests.length > 0 ? (page - 1) * rowsPerPage + 1 : 0} ถึง {(page - 1) * rowsPerPage + paginatedRequests.length} จากทั้งหมด {filteredRequests.length} รายการ
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                        onClick={() => setPage(page - 1)}
+                        disabled={page === 1}
+                      >
+                        ก่อนหน้า
+                      </button>
+                      <button
+                        className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                        onClick={() => setPage(page + 1)}
+                        disabled={page === totalPages}
+                      >
+                        ถัดไป
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
             </table>
           </div>
         )}

@@ -5,7 +5,6 @@ import {
 import { useEffect, useState } from "react";
 
 import {
-  CheckCircleIcon,
   CheckCircleIcon as CheckCircleSolidIcon,
   ClockIcon
 } from "@heroicons/react/24/solid";
@@ -74,6 +73,9 @@ const statusConfig = {
 const ReceiveItem = () => {
   const [borrows, setBorrows] = useState([]);
   const [filteredDeliveries, setFilteredDeliveries] = useState([]);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("carry");
 
@@ -99,6 +101,7 @@ const ReceiveItem = () => {
     // Filter by status
     const filtered = borrows.filter(b => b.status === statusFilter);
     setFilteredDeliveries(filtered);
+    setCurrentPage(1); // Reset to first page when filter changes
   }, [borrows, statusFilter]);
 
   useEffect(() => {
@@ -118,6 +121,7 @@ const ReceiveItem = () => {
       );
       setFilteredDeliveries(filtered);
     }
+    setCurrentPage(1); // Reset to first page when search changes
   }, [searchTerm, statusFilter, borrows]);
 
   const handleSearch = (e) => setSearchTerm(e.target.value);
@@ -225,6 +229,10 @@ const ReceiveItem = () => {
     delivered: borrows.filter(b => b.status === "delivered").length
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredDeliveries.length / itemsPerPage);
+  const paginatedDeliveries = filteredDeliveries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <ThemeProvider value={theme}>
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
@@ -287,9 +295,7 @@ const ReceiveItem = () => {
                 </MenuList>
               </Menu>
               <Button
-                className="flex items-center gap-2 px-4 py-3"
-                color="blue"
-                size="sm"
+                className="flex items-center gap-2 px-4 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200"
                 onClick={() => setIsScannerOpen(true)}
               >
                 <QrCodeIcon strokeWidth={2} className="h-4 w-4" /> สแกนเพื่อส่งมอบ
@@ -313,8 +319,8 @@ const ReceiveItem = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredDeliveries.length > 0 ? (
-                  filteredDeliveries.map((item, index) => (
+                {paginatedDeliveries.length > 0 ? (
+                  paginatedDeliveries.map((item, index) => (
                     <tr key={item.borrow_id} className="hover:bg-gray-50">
                       <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{item.borrow_code}</td>
                       <td className="w-48 px-4 py-4 whitespace-nowrap text-left">
@@ -405,13 +411,26 @@ const ReceiveItem = () => {
         </CardBody>
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 p-6 bg-white rounded-b-2xl">
           <Typography variant="small" className="font-normal text-gray-600 mb-3 sm:mb-0 text-sm">
-            แสดง {filteredDeliveries.length > 0 ? '1' : '0'} ถึง {filteredDeliveries.length} จากทั้งหมด {statusFilter === "carry" ? borrows.filter(b => b.status === "carry").length : borrows.filter(b => b.status === "delivered").length} รายการ
+            แสดง {filteredDeliveries.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage + 1)} ถึง {filteredDeliveries.length === 0 ? 0 : Math.min(currentPage * itemsPerPage, filteredDeliveries.length)} จากทั้งหมด {filteredDeliveries.length} รายการ
           </Typography>
           <div className="flex gap-2">
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
               ก่อนหน้า
             </Button>
-            <Button variant="outlined" size="sm" disabled className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case">
+            <span className="text-gray-700 text-sm px-2 py-1">{currentPage} / {totalPages || 1}</span>
+            <Button
+              variant="outlined"
+              size="sm"
+              className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
               ถัดไป
             </Button>
           </div>

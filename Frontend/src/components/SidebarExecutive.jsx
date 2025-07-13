@@ -9,8 +9,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 const menuItems = [
   { to: '/DashboardEx', icon: <BsGraphUp size={22} />, label: 'รายงาน', key: 'dashboardEx' },
   { to: '/BorrowApprovalList', icon: <FaShoppingCart size={22} />, label: 'รายการขอยืมครุภัณฑ์', key: 'borrowApproval' },
-  { to: '/History', icon: <AiOutlineHistory size={22} />, label: 'ประวัติอนุมัติการยืม', key: 'history' },
   { to: '/Repair', icon: <MdAnnouncement size={22} />, label: 'อนุมัติการซ่อมครุภัณฑ์', key: 'repairApproval' },
+  { to: '/History', icon: <AiOutlineHistory size={22} />, label: 'ประวัติอนุมัติการยืม', key: 'history' },
   { to: '/History_Repair', icon: <GiAutoRepair size={22} />, label: 'ประวัติซ่อมครุภัณฑ์', key: 'historyRepair' },
   { to: '/edit_profile', icon: <FaUserEdit size={22} />, label: 'แก้ไขข้อมูลส่วนตัว', key: 'profile' },
 ];

@@ -173,7 +173,7 @@ export default function HistoryBorrow() {
   }, {});
 
   return (
-    <div className="container mx-auto py-6 max-w-8xl">
+    <div className="container mx-auto max-w-8xl p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอยืมอุปกรณ์</h1>
@@ -190,17 +190,17 @@ export default function HistoryBorrow() {
             </div>
             <input
               type="text"
-              placeholder="ค้นหาด้วยรหัส, อุปกรณ์, หรือชื่อผู้ขอยืม"
+              placeholder="ค้นหาด้วยรหัส อุปกรณ์ ชื่อผู้ขอยืม"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl text-sm border-gray-200"
+              className="block w-full pl-10 pr-3 py-3 bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-full text-sm border-gray-200"
             />
           </div>
 
           <div className="relative">
             <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="btn btn-outline flex items-center gap-2 shadow-md bg-white rounded-2xl transition-colors border-gray-200 hover:text-white hover:bg-blue-700 hover:border-blue-700"
+              className="btn btn-outline flex items-center gap-2 shadow-lg bg-white rounded-2xl transition-colors border-gray-200 hover:text-white hover:bg-blue-700 hover:border-blue-700"
             >
               <BsFillFilterCircleFill className="w-4 h-4" />
               <span>กรองสถานะ</span>
@@ -212,24 +212,34 @@ export default function HistoryBorrow() {
             </button>
             
             {isFilterOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-10 border border-gray-200 p-2">
+              <div className="absolute right-0 mt-2 min-w-[220px] bg-white rounded-4xl shadow-xl z-20 border border-gray-100 p-3">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 mb-1">สถานะคำขอ</label>
                   {statusOptions.map(option => (
-                    <label key={option.value} className="flex items-center justify-between cursor-pointer">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox" // เปลี่ยนจาก radio เป็น checkbox
-                          checked={statusFilter.includes(option.value)}
-                          onChange={() => handleStatusFilterChange(option.value)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-gray-700">{option.label}</span>
-                      </div>
-                      <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                        {option.count}
-                      </span>
-                    </label>
+                    (() => {
+                      const active = statusFilter.includes(option.value);
+                      const colorMap = {
+                        approved: 'blue',
+                        rejected: 'red',
+                        completed: 'green',
+                        waiting_payment: 'yellow',
+                      };
+                      const color = colorMap[option.value] || 'gray';
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => handleStatusFilterChange(option.value)}
+                          className={`flex items-center justify-between w-full gap-2 p-3 text-sm transition-colors duration-200 cursor-pointer text-left font-normal rounded-full hover:bg-${color}-100 ${active ? `bg-${color}-100 text-${color}-700 font-semibold` : ''}`}
+                          style={{ outline: 'none', border: 'none', background: active ? undefined : 'none' }}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={`h-2.5 w-2.5 rounded-full bg-${color}-500`}></span>
+                            <span>{option.label}</span>
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${active ? `bg-${color}-200 text-${color}-700` : 'bg-gray-100 text-gray-500'}`}>{option.count}</span>
+                        </button>
+                      );
+                    })()
                   ))}
                 </div>
               </div>
@@ -294,9 +304,9 @@ export default function HistoryBorrow() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
+                        <div className="flex-shrink-0 h-13 w-13">
                           <img
-                            className="h-10 w-10 rounded-full"
+                            className="h-full w-full rounded-full"
                             src={request.borrower?.avatar ? (request.borrower.avatar.startsWith('http') ? request.borrower.avatar : `${UPLOAD_BASE}/uploads/user/${request.borrower.avatar}`) : "/placeholder-user.png"}
                             alt={request.borrower?.name}
                           />
@@ -312,7 +322,7 @@ export default function HistoryBorrow() {
                         {Array.isArray(request.equipment) && request.equipment.length > 0 ? (
                           <>
                             <div className="flex items-center">
-                              <span className=" text-gray-900 break-words text-sm">
+                              <span className=" text-gray-900 break-words font-medium">
                                 {request.equipment[0]?.name || '-'}
                               </span>
                               {request.equipment.length > 1 &&
@@ -331,13 +341,13 @@ export default function HistoryBorrow() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatDate(request.borrow_date || request.borrowDate)}</div>
+                      <div className="text-base text-gray-900">{formatDate(request.borrow_date || request.borrowDate)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatDate(request.due_date || request.return_date || request.dueDate)}</div>
+                      <div className="text-base text-gray-900">{formatDate(request.due_date || request.return_date || request.dueDate)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatDate(request.return_date)}</div>
+                      <div className="text-base text-gray-900">{formatDate(request.return_date)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
