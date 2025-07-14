@@ -11,16 +11,13 @@ import {
 } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 
-// เพิ่มฟังก์ชัน getAvatarUrl แบบเดียวกับ EditUserDialog
+// ปรับ getAvatarUrl ให้เหมือน edit_profile.jsx
 const getAvatarUrl = (path) => {
-  if (!path) return 'logo_it.png';
-  if (path.startsWith('http')) return path;
-  let filename = path;
-  filename = filename.replace(/^http:\/\/localhost:5000\//, '')
-    .replace(/^[\\/]+/, '')
-    .replace(/^imgEborow\//, '')
-    .replace(/^uploads\//, '');
-  return filename;
+  if (!path) return '/logo_it.png';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (path.startsWith('/uploads/')) return `http://localhost:5000${path}`;
+  // ถ้าเป็นชื่อไฟล์อย่างเดียว
+  return `http://localhost:5000/uploads/user/${path}`;
 };
 
 export default function ViewUserDialog({ open, onClose, userData }) {
@@ -61,7 +58,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
         user_code: userData.user_code || '',
         username: userData.username || '',
         Fullname: userData.Fullname || '',
-        pic: userData.avatar ? `http://localhost:5000/uploads/${getAvatarUrl(userData.avatar)}` : 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+        pic: userData.avatar ? getAvatarUrl(userData.avatar) : '/logo_it.png',
         email: userData.email || '',
         phone: userData.phone || '',
         position_name: userData.position_name || '',
@@ -73,7 +70,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
         postal_no: userData.postal_no || '',
         password: ''
       });
-      setPreviewImage(userData.avatar ? `http://localhost:5000/uploads/${getAvatarUrl(userData.avatar)}` : 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png');
+      setPreviewImage(userData.avatar ? getAvatarUrl(userData.avatar) : '/logo_it.png');
     }
   }, [userData]);
 
