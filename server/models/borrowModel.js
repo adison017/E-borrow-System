@@ -34,7 +34,8 @@ export const getAllBorrows = async () => {
   bt.borrow_date,
   bt.return_date,
   bt.status,
-  bt.purpose
+  bt.purpose,
+  bt.rejection_reason
 FROM borrow_transactions bt
 JOIN users u ON bt.user_id = u.user_id
 JOIN borrow_items bi ON bt.borrow_id = bi.borrow_id
@@ -64,6 +65,7 @@ LEFT JOIN roles r ON u.role_id = r.role_id;`
         due_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
         status: row.status,
         purpose: row.purpose,
+        rejection_reason: row.rejection_reason, 
       };
     }
     grouped[row.borrow_id].equipment.push({

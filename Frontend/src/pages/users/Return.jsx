@@ -1,74 +1,54 @@
-import React, { useState } from "react";
+
+import { useEffect, useState } from "react";
+import { globalUserData } from '../../components/Header';
 import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
 
 const RequirementList = () => {
-  const borrowingRequests = [
-    {
-      id: "IT-2023-001",
-      status: "รออนุมัติ",
-      statusColor: "badge-warning",
-      reason: "ต้องการใช้สำหรับการจัดกิจกรรมสัปดาห์วิทยาศาสตร์ ระหว่างวันที่ 15-20 สิงหาคม 2566",
-      items: [
-        { 
-          name: "โน้ตบุ๊ก", 
-          quantity: 3,
-          equipmentId: "IT-LAPTOP-001",
-          image: "https://media-cdn.bnn.in.th/366788/lenovo-notebook-ideapad-duet-5-12iru8-83b30058ta-storm-grey-1-square_medium.jpg"
-        },
-        { 
-          name: "โปรเจคเตอร์", 
-          quantity: 1,
-          equipmentId: "IT-LAPTOP-001",
-          image: "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
-        },
-        { 
-          name: "ลำโพง", 
-          quantity: 2,
-          equipmentId: "IT-LAPTOP-001",
-          image: "https://images.unsplash.com/photo-1593784991095-a205069470b6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
-        }
-      ],
-      total: 6,
-      dueDate: "20 สิงหาคม 2566",
-      borrowedDate: "15 สิงหาคม 2566",
-      currentStep: 2
-    },
-    {
-      id: "BR-003",
-      status: "กำหนดคืน",
-      statusColor: "badge-warning",
-      reason: "ใช้สำหรับการประชุมสัมมนาวิชาการ วันที่ 10 กันยายน 2566",
-      items: [
-        { 
-          name: "ไมโครโฟน", 
-          quantity: 2,
-          image: "https://audiocity.co.th/pub/media/catalog/product/cache/765fdf86a9e550514b9df31691b36e7f/n/t/nt1-5th-generation-silver.jpg"
-        },
-        { 
-          name: "จอภาพ", 
-          quantity: 1,
-          image: "https://ihcupload.s3.ap-southeast-1.amazonaws.com/img/product/product33238_150.png"
-        }
-      ],
-      total: 3,
-      dueDate: "20 สิงหาคม 2566",
-      borrowedDate: "15 สิงหาคม 2566",
-      currentStep: 3
-    }
-  ];
-
-  const pendingRequests = borrowingRequests.filter(request => request.status === "กำหนดคืน");
+  const [borrowList, setBorrowList] = useState([]);
   const [currentImageIndices, setCurrentImageIndices] = useState({});
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleNext = (requestId) => {
+  useEffect(() => {
+    const user_id = globalUserData?.user_id;
+    if (!user_id) {
+      setLoading(false);
+      setBorrowList([]);
+      return;
+    }
+    setLoading(true);
+    fetch(`http://localhost:5000/api/borrows?user_id=${user_id}`)
+      .then(async res => {
+        if (!res.ok) return [];
+        try {
+          const data = await res.json();
+          // filter เฉพาะของ user_id และ status === 'approved' (หรือ 'carry' ถ้า backend ใช้ค่านี้)
+          if (Array.isArray(data)) {
+            return data.filter(b => b.user_id == user_id && (b.status === 'approved' || b.status === 'carry'));
+          }
+          return [];
+        } catch {
+          return [];
+        }
+      })
+      .then(data => {
+        setBorrowList(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setBorrowList([]);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleNext = (borrowId) => {
     setCurrentImageIndices(prev => {
-      const currentIndex = prev[requestId] || 0;
-      const items = borrowingRequests.find(req => req.id === requestId)?.items || [];
+      const currentIndex = prev[borrowId] || 0;
+      const items = borrowList.find(req => req.borrow_id === borrowId)?.equipment || [];
       return {
         ...prev,
-        [requestId]: currentIndex === items.length - 1 ? 0 : currentIndex + 1
+        [borrowId]: currentIndex === items.length - 1 ? 0 : currentIndex + 1
       };
     });
   };
@@ -83,85 +63,97 @@ const RequirementList = () => {
     setSelectedRequest(null);
   };
 
+  if (loading) return <div>Loading...</div>;
+
+  // กรองเฉพาะ approved หรือ carry
+  const approvedList = borrowList.filter(req => req.status === 'approved' || req.status === 'carry');
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">รายการคืนครุภัณฑ์</h1>
-      
       <div className="space-y-6">
-        {pendingRequests.map((request) => {
-          const currentIndex = currentImageIndices[request.id] || 0;
-          const currentItem = request.items[currentIndex];
-          
+        {approvedList.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="bg-yellow-100 rounded-full p-6 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-yellow-600 mb-2">ไม่พบรายการที่ต้องคืน</h3>
+            <p className="text-gray-500 text-base">คุณไม่มีรายการที่ต้องคืนในขณะนี้</p>
+          </div>
+        )}
+        {approvedList.map((request) => {
+          const currentIndex = currentImageIndices[request.borrow_id] || 0;
+          const items = request.equipment || [];
+          const currentItem = items[currentIndex];
+          const total = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
           return (
-            <div key={request.id} className="card bg-white shadow-xl overflow-hidden ">
+            <div key={request.borrow_id} className="card bg-white shadow-xl overflow-hidden ">
               <div className="flex flex-col md:flex-row">
                 {/* Image Carousel Section */}
                 <div className="relative group md:w-1/3 w-full h-full md:h-auto flex items-center justify-center transition-transform duration-300 hover:scale-[1.01]">
                   <div>
                     <img
-                      src={currentItem?.image || "https://via.placeholder.com/500?text=No+Image"}
-                      alt="ครุภัณฑ์"
+                      src={currentItem?.pic || "https://via.placeholder.com/500?text=No+Image"}
+                      alt={currentItem?.name || "ครุภัณฑ์"}
                       className="object-cover w-90 h-full md:max-h-80 md:max-w-90"
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src = "https://via.placeholder.com/500?text=No+Image";
                       }}
                     />
-                    
                     {/* Navigation Arrows - Right Side */}
                     <div className="absolute right-0 top-0 h-full w-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <button 
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleNext(request.id);
+                          handleNext(request.borrow_id);
                         }}
                         className="h-full w-full bg-black/20 hover:bg-black/30 flex items-center justify-center"
                       >
-                        <svg 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          className="h-8 w-8 text-white" 
-                          fill="none" 
-                          viewBox="0 0 24 24" 
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-8 w-8 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
                           stroke="currentColor"
                         >
-                          <path 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
-                            strokeWidth={2} 
-                            d="M9 5l7 7-7 7" 
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
                           />
                         </svg>
                       </button>
                     </div>
                   </div>
                 </div>
-                
                 {/* Content section */}
                 <div className="md:w-2/3 w-full">
                   <div className="card-body p-4 md:p-6">
                     <div className="flex flex-col md:flex-row md:justify-between justify-center md:items-start items-center gap-2">
                       <h2 className="card-title text-gray-800 text-lg md:text-xl">
-                        {request.id}
+                        {request.borrow_code}
                       </h2>
-                      <div className={`badge ${request.statusColor} text-black md:text-base px-4 py-4 rounded-full text-sm font-medium`}>
-                        {request.status}
+                      <div className={`badge badge-info text-white md:text-base px-4 py-4 rounded-full text-sm font-medium`}>
+                        กำลังใช้งาน
                       </div>
                     </div>
-                  
                     <div className="my-4">
                       <h3 className="font-semibold text-gray-700 mb-1">เหตุผลการขอยืม</h3>
-                      <p className="text-gray-600 text-sm md:text-base">{request.reason}</p>
+                      <p className="text-gray-600 text-sm md:text-base">{request.purpose || '-'}</p>
                     </div>
-                    
                     <div className="mb-4">
                       <h3 className="font-semibold text-gray-700 mb-2">รายการครุภัณฑ์</h3>
                       <div className="flex flex-wrap gap-2">
-                        {request.items.map((item, index) => (
-                          <span 
-                            key={index} 
+                        {items.map((item, index) => (
+                          <span
+                            key={item.item_id}
                             className={`px-3 py-1 rounded-full text-xs md:text-sm ${
-                              index === currentIndex 
-                                ? 'bg-blue-100 text-blue-800' 
+                              index === currentIndex
+                                ? 'bg-blue-100 text-blue-800'
                                 : 'bg-gray-100 text-gray-700'
                             }`}
                           >
@@ -170,58 +162,46 @@ const RequirementList = () => {
                         ))}
                       </div>
                     </div>
-
                     <div className="mb-4 grid grid-cols-2 gap-4 ">
                       <div className="bg-gray-100 px-4 py-4 rounded-lg text-sm font-medium">
                         <h3 className="font-semibold text-gray-700 mb-1">วันที่ยืม</h3>
-                        <p className="text-gray-600 text-sm md:text-base">{request.borrowedDate}</p>
+                        <p className="text-gray-600 text-sm md:text-base">{request.borrow_date ? new Date(request.borrow_date).toLocaleDateString() : '-'}</p>
                       </div>
                       <div className="bg-gray-100 px-4 py-4 rounded-lg text-sm font-medium">
                         <h3 className="font-semibold text-gray-700 mb-1">วันที่ครบกำหนดคืน</h3>
-                        <p className="text-gray-600 text-sm md:text-base">{request.dueDate}</p>
+                        <p className="text-gray-600 text-sm md:text-base">{request.due_date ? new Date(request.due_date).toLocaleDateString() : '-'}</p>
                       </div>
                     </div>
-
                     {/* Footer */}
                     <div className="pt-4 border-t border-gray-200 mt-auto">
                       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         <div className="text-gray-700 font-medium text-sm md:text-base">
-                          รวมทั้งหมด {request.total} ชิ้น
+                          รวมทั้งหมด {total} ชิ้น
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
-                        <button 
-                          className={`btn rounded-xl ${request.status === "ค้างชำระเงิน" ? "btn-outline" : "btn-outline"}  text-white btn-sm md:btn-md flex-2 md:flex-none hover:bg-blue-600 hover:border-blue-500 border-gray-200 bg-black transition-colors`}
-                          onClick={() => openDialog(request)}
-                        >
-                          {request.status === "กำหนดคืน" ? (
-                            "คืนครุภัณฑ์" 
-                          ) : (
-                            <>
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                              </svg>
-                              ดูรายละเอียด
-                            </>
-                          )}
-                        </button>
+                          <button
+                            className="btn btn-outline btn-sm md:btn-md flex-2 md:flex-none rounded-xl hover:bg-blue-600 hover:border-blue-500 border-gray-200 bg-black text-white transition-colors"
+                            onClick={() => openDialog(request)}
+                          >
+                            คืนครุภัณฑ์
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+              {/* Dialog for showing details */}
+              {isDialogOpen && selectedRequest?.borrow_id === request.borrow_id && (
+                <BorrowingRequestDialog
+                  request={selectedRequest}
+                  onClose={closeDialog}
+                />
+              )}
             </div>
           );
         })}
       </div>
-
-      {/* Dialog for showing details */}
-      {isDialogOpen && (
-        <BorrowingRequestDialog 
-          request={selectedRequest} 
-          onClose={closeDialog} 
-        />
-      )}
     </div>
   );
 };

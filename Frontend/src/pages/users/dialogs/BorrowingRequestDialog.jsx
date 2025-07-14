@@ -1,19 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BsBoxSeamFill, BsCalendarDateFill } from "react-icons/bs";
 import {
-  FaCalendarAlt,
   FaCheck,
   FaChevronRight,
-  FaExchangeAlt,
   FaFileAlt,
   FaMoneyBillAlt,
   FaMoneyBillWave,
-  FaQrcode,
+  FaMoneyCheckAlt,
   FaSearch,
   FaTimes,
-  FaCheckCircle,
-  FaUpload,
-  FaMoneyCheckAlt
+  FaUpload
 } from "react-icons/fa";
 import { RiArrowGoBackLine } from "react-icons/ri";
 import QRCode from "react-qr-code";
@@ -112,17 +108,17 @@ const mapStatusToColor = (status) => {
     case "carry": // ส่งมอบครุภัณฑ์
       return "badge-info";
     case "completed": // เสร็จสิ้น
-      return "badge-success";
+      return "badge-neutral";
     case "waiting_payment": // ค้างชำระเงิน
       return "badge-error";
     case "rejected": // ไม่อนุมัติ/ปฏิเสธ
-      return "badge-neutral";
+      return "badge-error";
     case "pending_approval": // รอการอนุมัติ
       return "badge-warning";
     case "pending": // รอดำเนินการ
       return "badge-warning";
     case "approved": // ได้รับการอนุมัติ
-      return "badge-success";
+      return "badge-info";
     default:
       return "badge-neutral";
   }
@@ -137,13 +133,13 @@ const mapStatusToLabel = (status) => {
     case "waiting_payment":
       return "ค้างชำระเงิน";
     case "rejected":
-      return "ไม่อนุมัติ/ปฏิเสธ";
+      return "ปฏิเสธ";
     case "pending_approval":
       return "รอการอนุมัติ";
     case "pending":
       return "รอดำเนินการ";
     case "approved":
-      return "ได้รับการอนุมัติ";
+      return "กำลังใช้งาน";
     default:
       return status;
   }
@@ -173,18 +169,18 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
   if (typeof activeStep === 'number') {
     currentStep = activeStep;
   } else {
-    if (request.status === "รออนุมัติ") currentStep = 2;
-    if (request.status === "อนุมัติ") currentStep = 3;
-    if (request.status === "กำหนดคืน") currentStep = 4;
-    if (request.status === "ค้างชำระเงิน") currentStep = 5;
-    if (request.status === "เสร็จสิ้น") currentStep = 6;
-    if (request.status === "ปฏิเสธ") currentStep = 2;
+    if (request.status === "pending") currentStep = 2;
+    if (request.status === "carry") currentStep = 3;
+    if (request.status === "approved") currentStep = 4;
+    if (request.status === "waiting_payment") currentStep = 5;
+    if (request.status === "completed") currentStep = 6;
+    if (request.status === "rejected") currentStep = 2;
   }
 
   // Check if we should show QR code
-  const showQRCode = request.status === "อนุมัติ" || request.status === "กำหนดคืน";
-  const showReason = request.status === "ปฏิเสธ";
-  const showFine = (request.status === "ค้างชำระเงิน") || currentStep === 5;
+  const showQRCode = request.status === "carry" || request.status === "approved";
+  const showReason = request.status === "rejected";
+  const showFine = (request.status === "waiting_payment") || currentStep === 5;
 
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [slipFile, setSlipFile] = useState(null);
@@ -251,7 +247,9 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                 </h3>
                 <div className="p-2 bg-white rounded-lg border border-gray-200 mb-2">
                   <QRCode
-                    value={request.id}
+                    value={
+                      request.borrow_code || request.borrow_id?.toString() || request.id?.toString() || ''
+                    }
                     size={128}
                     level="H"
                   />
@@ -290,12 +288,12 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                   </div>
                   <div>
                     <p className="text-red-800 font-medium mb-1">สาเหตุ</p>
-                    <p className="text-red-700">{request.cencalReason}</p>
+                    <p className="text-red-700">{request.rejection_reason}</p>
 
                     {request.rejectionDetails && (
                       <div className="mt-3">
                         <p className="text-red-800 font-medium mb-1 text-sm">รายละเอียดเพิ่มเติม:</p>
-                        <p className="text-red-600 text-sm">{request.rejectionDetails}</p>
+                        <p className="text-red-600 text-sm">{request.rejection_reason}</p>
                       </div>
                     )}
                   </div>
@@ -477,7 +475,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                 <div className="steps steps-horizontal md:gap-4 sm:gap-2">
                   {[1, 2, 3, 4, 5, 6].map((step) => {
                     const isActive = currentStep >= step;
-                    const isRejected = request.status === "ปฏิเสธ" && step === 2;
+                    const isRejected = request.status === "rejected" && step === 2;
 
                     return (
                       <div
