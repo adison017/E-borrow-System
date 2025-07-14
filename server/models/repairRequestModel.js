@@ -25,7 +25,7 @@ export const getHistoryRequests = async () => {
       LEFT JOIN branches b ON requester.branch_id = b.branch_id
       LEFT JOIN roles r ON requester.role_id = r.role_id
       LEFT JOIN equipment e ON rr.item_id = e.item_id
-      WHERE rr.status IN ('approved', 'completed', 'incomplete')
+      WHERE rr.status IN ('approved', 'completed', 'incomplete','rejected')
     `);
 
     // Parse images for each repair request

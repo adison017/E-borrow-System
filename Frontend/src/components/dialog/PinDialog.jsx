@@ -15,7 +15,7 @@ export default function PinDialog({ open, pin, setPin, pinError, onCancel, onSub
         <form onSubmit={onSubmit} className="space-y-4">
           <input
             type="password"
-            className={`w-full px-5 py-3 border ${pinError ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-400 text-lg tracking-widest text-center transition`}
+            className={`w-full px-5 py-3 border ${pinError ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-400 text-lg tracking-widest text-center transition text-black`}
             value={pin}
             onChange={e => setPin(e.target.value)}
             autoFocus
