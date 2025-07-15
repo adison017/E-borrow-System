@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
-import { globalUserData } from '../../components/Header';
+// import { globalUserData } from '../../components/Header';
 import AlertDialog from '../../components/Notification.jsx';
 import { FaBarcode } from "react-icons/fa";
 import { MdPayment } from "react-icons/md";
 import { FaMoneyCheckAlt } from "react-icons/fa";
+import { authFetch } from '../../utils/api';
 
 const Fine = () => {
   const [fineList, setFineList] = useState([]);
@@ -16,6 +17,15 @@ const Fine = () => {
   const [dialogShouldClose, setDialogShouldClose] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
+  // Get user info from localStorage
+  const userStr = localStorage.getItem('user');
+  let globalUserData = null;
+  if (userStr) {
+    try {
+      globalUserData = JSON.parse(userStr);
+    } catch (e) {}
+  }
+
   useEffect(() => {
     const user_id = globalUserData?.user_id;
     if (!user_id) {
@@ -23,7 +33,7 @@ const Fine = () => {
       setFineList([]);
       return;
     }
-    fetch(`http://localhost:5000/api/returns/summary?user_id=${user_id}`)
+    authFetch(`http://localhost:5000/api/returns/summary?user_id=${user_id}`)
       .then(res => res.json())
       .then(data => {
         setFineList(data);
@@ -68,7 +78,7 @@ const Fine = () => {
     const user_id = globalUserData?.user_id;
     if (user_id) {
       setLoading(true);
-      fetch(`http://localhost:5000/api/returns/summary?user_id=${user_id}`)
+      authFetch(`http://localhost:5000/api/returns/summary?user_id=${user_id}`)
         .then(res => res.json())
         .then(data => {
           setFineList(data);
@@ -95,7 +105,9 @@ const Fine = () => {
 
   if (loading) return <div>Loading...</div>;
 
-  const pendingList = fineList.filter(req => req.pay_status === 'pending');
+  // ป้องกัน error .filter is not a function
+  const safeFineList = Array.isArray(fineList) ? fineList : [];
+  const pendingList = safeFineList.filter(req => req.pay_status === 'pending');
   // const paidList = fineList.filter(req => req.pay_status === 'paid'); // ลบส่วนนี้ออก
 
   return (

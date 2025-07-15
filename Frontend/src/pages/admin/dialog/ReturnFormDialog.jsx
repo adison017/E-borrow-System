@@ -6,7 +6,8 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { Button } from "@material-tailwind/react";
-import { globalUserData } from '../../../components/Header.jsx';
+import { API_BASE, authFetch } from '../../../utils/api';
+// import { globalUserData } from '../../../components/Header.jsx';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -34,13 +35,24 @@ const ReturnFormDialog = ({
   const [slipVerifyResult, setSlipVerifyResult] = useState(null);
 
   const userId = borrowedItem?.user_id; // ผู้ยืม
+  // Get returnById (ผู้ตรวจรับ) จาก localStorage
+  const userStr = localStorage.getItem('user');
+  let globalUserData = null;
+  if (userStr) {
+    try {
+      globalUserData = JSON.parse(userStr);
+    } catch (e) {}
+  }
   const returnById = globalUserData?.user_id; // ผู้ตรวจรับ
 
   // fallback ถ้า parent ไม่ได้ส่ง showNotification มา
   const notify = showNotification || ((msg, type) => alert(msg));
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/damage-levels")
+    const token = localStorage.getItem('token');
+    fetch("http://localhost:5000/api/damage-levels", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(res => res.json())
       .then(data => setDamageLevels(data));
   }, []);
@@ -183,7 +195,7 @@ const ReturnFormDialog = ({
     };
     console.log('submit payload', payload);
     try {
-      const res = await fetch('http://localhost:5000/api/returns', {
+      const res = await authFetch(`${API_BASE}/returns`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

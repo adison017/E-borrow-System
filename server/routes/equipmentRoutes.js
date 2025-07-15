@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as equipmentController from '../controllers/equipmentController.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -62,6 +63,9 @@ router.post('/upload', upload.single('image'), (req, res) => {
   // คืน path ใหม่
   res.json({ url: `/uploads/equipment/${newFilename}` });
 });
+
+// Protect all equipment routes
+router.use(authMiddleware);
 
 // Use item_code as canonical identifier for all CRUD routes
 router.get('/', equipmentController.getAllEquipment);

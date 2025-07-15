@@ -3,6 +3,7 @@ import express from 'express';
 import * as repairRequestController from '../controllers/repairRequestController.js';
 import db from '../db.js';
 import { processRepairImages, uploadRepairImages } from '../utils/imageUtils.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 // GET /api/repair-requests/history (approved, completed, incomplete)
@@ -82,5 +83,8 @@ router.post('/upload-images', (req, res, next) => {
     }
   });
 });
+
+// Protect all repair request routes
+router.use(authMiddleware);
 
 export default router;

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import cors from 'cors';
 
 import userRoutes from './routes/userRoutes.js';
@@ -60,7 +61,7 @@ userRouter.use('/', userRoutes);
 userRouter.use('/positions', positionRoutes);
 userRouter.use('/branches', branchRoutes);
 userRouter.use('/roles', roleRoutes);
-app.use('/users', userRouter);
+app.use('/api/users', userRouter);
 
 // Route อื่นๆ ที่ต้องการอ่าน req.body
 app.use('/api/borrows', borrowRoutes);

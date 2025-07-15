@@ -39,7 +39,9 @@ import Homes from './pages/users/Product';
 import Return from './pages/users/Return';
 
 function AppInner() {
-  const [userRole, setUserRole] = useState('admin'); // Default role, can be changed based on login);
+  // เปลี่ยน default userRole เป็น null
+  const [userRole, setUserRole] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -68,6 +70,54 @@ function AppInner() {
   // if (!userRole) {
   //   return <AuthSystem onLoginSuccess={changeRole} />;
   // }
+
+  // ตรวจสอบ token ใน localStorage ทุกครั้งที่โหลดหน้า
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setUserRole(null);
+      setCheckingAuth(false);
+      return;
+    }
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      // เช็ค exp
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        setUserRole(null);
+        localStorage.removeItem('token');
+        setCheckingAuth(false);
+        navigate('/login', { replace: true });
+        return;
+      }
+      setUserRole(payload.role);
+
+      // Verify กับ backend (ใช้ endpoint ที่ require auth เช่น /api/users/verify-token)
+      fetch('http://localhost:5000/api/users/verify-token', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            setUserRole(null);
+            localStorage.removeItem('token');
+            setCheckingAuth(false);
+            navigate('/login', { replace: true });
+          } else {
+            setCheckingAuth(false);
+          }
+        })
+        .catch(() => {
+          setUserRole(null);
+          localStorage.removeItem('token');
+          setCheckingAuth(false);
+          navigate('/login', { replace: true });
+        });
+    } catch (e) {
+      setUserRole(null);
+      localStorage.removeItem('token');
+      setCheckingAuth(false);
+      navigate('/login', { replace: true });
+    }
+  }, []);
 
   // Navigate to the first menu item on application startup
   useEffect(() => {
@@ -99,6 +149,33 @@ function AppInner() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // ถ้ายังไม่ได้ login และ path ไม่ใช่ /login ให้เปลี่ยน path เป็น /login
+  useEffect(() => {
+    if (!userRole && location.pathname !== '/login') {
+      navigate('/login', { replace: true });
+    }
+  }, [userRole, location.pathname, navigate]);
+
+  // ถ้ายังเช็ค token อยู่ ให้ render null (หรือ loading)
+  // if (checkingAuth) return null;
+
+  useEffect(() => {
+    if (checkingAuth) return;
+    if (!userRole) {
+      if (location.pathname !== '/login') {
+        navigate('/login', { replace: true });
+      }
+    } else {
+      // ถ้า login แล้ว และไม่ได้อยู่ที่ defaultRoutes[userRole] ให้ redirect
+      if (location.pathname === '/login' || location.pathname === '/') {
+        navigate(defaultRoutes[userRole], { replace: true });
+      }
+    }
+  }, [userRole, checkingAuth, location.pathname, navigate]);
+
+  // ถ้ายังเช็ค token อยู่ ให้ render null (หรือ loading)
+  if (checkingAuth) return null;
+
   const renderSidebar = () => {
     switch (userRole) {
       case 'admin':
@@ -127,8 +204,8 @@ function AppInner() {
     }
   };
 
-  // ถ้ายังไม่ได้ login ให้แสดงหน้า AuthSystem
-  if (!userRole) {
+  // ถ้ายังไม่ได้ login หรือ path เป็น /login ให้แสดงหน้า AuthSystem อย่างเดียว (ไม่มี sidebar/menu)
+  if (!userRole || location.pathname === '/login') {
     return <AuthSystem onLoginSuccess={changeRole} />;
   }
 
@@ -187,6 +264,7 @@ function AppInner() {
         {/* Content */}
         <div className="bg-white p-4 m-4 rounded-xl flex-1 min-h-0">
           <Routes>
+            <Route path="/login" element={<AuthSystem onLoginSuccess={changeRole} />} />
             {/* Admin Routes */}
             {userRole === 'admin' && (
               <>

@@ -2,6 +2,7 @@ import { Announcement as AnnouncementIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getNews } from '../../utils/api';
 
 // Renamed component from DashboardUser to NewsPage
 const NewsPage = () => {
@@ -15,8 +16,13 @@ const NewsPage = () => {
 
   const fetchNews = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/news');
-      setNewsItems(response.data);
+      const data = await getNews();
+      if (Array.isArray(data)) {
+        setNewsItems(data);
+      } else {
+        setNewsItems([]);
+        if (data && data.message) setError(data.message); // Show backend error
+      }
       setLoading(false);
     } catch (err) {
       setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
@@ -106,10 +112,15 @@ const NewsPage = () => {
         initial="hidden"
         animate="visible"
       >
-        {newsItems.length === 0 ? (
+        {error ? (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong className="font-bold">เกิดข้อผิดพลาด! </strong>
+            <span className="block sm:inline">{error}</span>
+          </div>
+        ) : Array.isArray(newsItems) && newsItems.length === 0 ? (
           <p className="text-gray-500">ยังไม่มีข่าวสารในระบบ</p>
         ) : (
-          newsItems.map((item) => (
+          Array.isArray(newsItems) && newsItems.map((item) => (
             <motion.div
               key={item.id}
               className="bg-blue-100/20 p-6 rounded-4xl shadow-md hover:shadow-xl transition-shadow"

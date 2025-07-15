@@ -5,6 +5,7 @@ import { MdAccessTimeFilled, MdCancel, MdClose, MdKeyboardArrowRight, MdMenu } f
 import { RiArrowGoBackLine } from "react-icons/ri";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './sidebar.css';
+import Notification from './Notification';
 
 const borrowingMenus = [
   { to: '/borrow', icon: <MdAccessTimeFilled size={30} />, label: 'รออนุมัติ', key: 'borrow' },
@@ -25,6 +26,7 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
   const [openSubMenu, setOpenSubMenu] = useState(false);
   const [menuReady, setMenuReady] = useState(false);
   const [animating, setAnimating] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -62,9 +64,17 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+  const confirmLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    sessionStorage.clear();
     if (setMobileOpen) setMobileOpen(false);
+    setShowLogoutConfirm(false);
     navigate('/login');
   };
+  const cancelLogout = () => setShowLogoutConfirm(false);
 
   const handleMenuClick = (to) => {
     if (setMobileOpen) setMobileOpen(false);
@@ -74,6 +84,7 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
   const iconSize = 22;
 
   return (
+    <>
           <div
       className={
         mobileOpen
@@ -256,7 +267,21 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
           </button>
         </div>
       </div>
+      {showLogoutConfirm && (
+        <Notification
+          show={showLogoutConfirm}
+          title="ยืนยันออกจากระบบ"
+          message="คุณต้องการออกจากระบบใช่หรือไม่?"
+          type="warning"
+          onClose={cancelLogout}
+          actions={[
+            { label: 'ยกเลิก', onClick: cancelLogout },
+            { label: 'ออกจากระบบ', onClick: confirmLogout }
+          ]}
+        />
+      )}
     </div>
+    </>
   );
 }
 

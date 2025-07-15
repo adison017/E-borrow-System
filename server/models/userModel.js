@@ -46,6 +46,7 @@ const User = {
           u.user_id,
           u.user_code,
           u.username,
+          u.password,
           u.Fullname,
           u.email,
           u.phone,
@@ -85,6 +86,7 @@ const User = {
           u.user_id,
           u.user_code,
           u.username,
+          u.password,
           u.Fullname,
           u.email,
           u.phone,
@@ -123,6 +125,7 @@ const User = {
           u.user_id,
           u.user_code,
           u.username,
+          u.password,
           u.Fullname,
           u.email,
           u.phone,
@@ -161,6 +164,7 @@ const User = {
           u.user_id,
           u.user_code,
           u.username,
+          u.password,
           u.Fullname,
           u.email,
           u.phone,
@@ -272,7 +276,7 @@ const User = {
           avatar || null,
           Fullname,
           line_id || null, // เพิ่ม line_id
-          line_notify_enabled || null // เพิ่ม line_notify_enabled
+          typeof line_notify_enabled === 'undefined' || line_notify_enabled === null ? 0 : line_notify_enabled // default 0
         ]
       );
 

@@ -41,7 +41,7 @@ import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
 
 
 
-import { UPLOAD_BASE } from "../../utils/api";
+import { UPLOAD_BASE, API_BASE, authFetch } from "../../utils/api";
 // Import services
 // import { calculateReturnStatus, createNewReturn } from "../../components/returnService";
 
@@ -163,26 +163,36 @@ const ReturnList = () => {
 
   // ฟังก์ชัน fetch returns ใหม่ (ใช้ทั้งใน useEffect และหลังคืนของ)
   const fetchReturns = async () => {
-    const res = await fetch(`${UPLOAD_BASE}/api/returns`);
+    const res = await authFetch(`${API_BASE}/returns`);
+    if (res.status === 401) {
+      window.location.href = '/login';
+      return;
+    }
     const data = await res.json();
+    if (!Array.isArray(data)) {
+      setReturns([]);
+      return;
+    }
     // Mapping: ให้แน่ใจว่ามี field borrower และ equipment เป็น array
-    const mapped = data.map(item => ({
-      ...item,
-      borrower: item.borrower
-        ? item.borrower
-        : {
-            name: item.fullname,
-            position: item.position_name,
-            department: item.branch_name,
-            avatar: item.avatar,
-            role: item.role_name,
-          },
-      equipment: Array.isArray(item.equipment)
-        ? item.equipment
-        : item.equipment
-          ? [item.equipment]
-          : [],
-    }));
+    const mapped = data.map(item => {
+      return {
+        ...item,
+        borrower: item.borrower
+          ? item.borrower
+          : {
+              name: item.fullname,
+              position: item.position_name,
+              department: item.branch_name,
+              avatar: item.avatar,
+              role: item.role_name,
+            },
+        equipment: Array.isArray(item.equipment)
+          ? item.equipment
+          : item.equipment
+            ? [item.equipment]
+            : [],
+      };
+    });
     setReturns(mapped);
   };
 

@@ -147,7 +147,16 @@ function ManageUser() {
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/users');
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
       if (!response.ok) throw new Error('Failed to fetch users');
       const data = await response.json();
       setUserList(data);
@@ -188,9 +197,9 @@ function ManageUser() {
     const fetchFilters = async () => {
       try {
         const [rolesRes, branchesRes, positionsRes] = await Promise.all([
-          fetch('http://localhost:5000/users/roles'),
-          fetch('http://localhost:5000/users/branches'),
-          fetch('http://localhost:5000/users/positions'),
+          fetch('http://localhost:5000/api/users/roles'),
+          fetch('http://localhost:5000/api/users/branches'),
+          fetch('http://localhost:5000/api/users/positions'),
         ]);
         setRoles(await rolesRes.json());
         setBranches(await branchesRes.json());
@@ -217,7 +226,7 @@ function ManageUser() {
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/users/id/${selectedUser.user_id}`, {
+      const response = await fetch(`http://localhost:5000/api/users/id/${selectedUser.user_id}`, {
         method: 'DELETE'
       });
 
@@ -311,7 +320,7 @@ function ManageUser() {
       console.log('New User Data:', newUser);
 
       // Refresh user list after adding new user
-      const response = await axios.get('http://localhost:5000/users');
+      const response = await axios.get('http://localhost:5000/api/users');
       if (response.data) {
         setUserList(response.data);
         notifyUserAction('add');
@@ -348,7 +357,7 @@ function ManageUser() {
   // เพิ่มฟังก์ชัน handleToggleLineNotify
   const handleToggleLineNotify = (userId, checked) => {
     // ตัวอย่าง: เรียก API เพื่ออัปเดต line_notify_enabled
-    fetch(`http://localhost:5000/users/${userId}/line-notify`, {
+    fetch(`http://localhost:5000/api/users/${userId}/line-notify`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ line_notify_enabled: checked ? 1 : 0 })
@@ -640,7 +649,7 @@ function ManageUser() {
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   const newValue = !line_notify_enabled ? 1 : 0;
-                                  await fetch(`http://localhost:5000/users/${user_id}/line-notify`, {
+                                  await fetch(`http://localhost:5000/api/users/${user_id}/line-notify`, {
                                     method: 'PATCH',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ line_notify_enabled: newValue })

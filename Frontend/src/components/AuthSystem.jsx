@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FaBuilding, FaEnvelope, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt } from 'react-icons/fa';
+import { FaBuilding, FaEnvelope, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
 import {
   LoginErrorDialog,
   LoginSuccessDialog,
@@ -7,42 +7,32 @@ import {
   RegisterErrorDialog,
   RegisterSuccessDialog
 } from './dialog/AlertDialog';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import Notification from './Notification';
 
-// ข้อมูลจังหวัด อำเภอ และตำบล (ตัวอย่างบางส่วน)
-const provinces = [
-  { id: 1, name: 'มหาสารคาม' },
-  { id: 2, name: 'กรุงเทพมหานคร' },
-  { id: 3, name: 'เชียงใหม่' },
-  // เพิ่มจังหวัดอื่นๆ ตามต้องการ
-];
+// ลบ const provinces, districts, subdistricts ที่เป็น mock data ออก
 
-const districts = {
-  1: [
-    { id: 101, name: 'กันทรวิชัย' },
-    { id: 102, name: 'เมืองมหาสารคาม' },
-    { id: 103, name: 'แกดำ' },
-    // เพิ่มอำเภออื่นๆ ของมหาสารคาม
-  ],
-  2: [
-    { id: 201, name: 'บางนา' },
-    { id: 202, name: 'บางพลี' },
-    // เพิ่มอำเภออื่นๆ ของกรุงเทพ
-  ],
-  // เพิ่มอำเภอของจังหวัดอื่นๆ
+const defaultRoutes = {
+  admin: '/DashboardAd',
+  user: '/DashboardUs',
+  executive: '/DashboardEx'
 };
 
-const subdistricts = {
-  101: [
-    { id: 10101, name: 'ขามเรียง', postalCode: '44150' },
-    { id: 10102, name: 'คันธารราษฎร์', postalCode: '44150' },
-    // เพิ่มตำบลอื่นๆ ของอำเภอกันทรวิชัย
-  ],
-  102: [
-    { id: 10201, name: 'ตลาด', postalCode: '44000' },
-    // เพิ่มตำบลอื่นๆ ของอำเภอเมืองมหาสารคาม
-  ],
-  // เพิ่มตำบลของอำเภออื่นๆ
-};
+// เพิ่ม helper สำหรับแปล error message
+function getRegisterErrorMessage(error) {
+  let errorMsg = error.response?.data?.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+  if (errorMsg.includes('Duplicate entry') && errorMsg.includes('users.email')) {
+    return 'อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น';
+  }
+  if (errorMsg.includes('Duplicate entry') && errorMsg.includes('users.user_code')) {
+    return 'รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว กรุณาตรวจสอบ';
+  }
+  if (errorMsg.includes('Duplicate entry') && errorMsg.includes('users.username')) {
+    return 'ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว กรุณาเลือกชื่อใหม่';
+  }
+  return errorMsg;
+}
 
 const AuthSystem = (props) => {
   const [activeTab, setActiveTab] = useState('login');
@@ -50,6 +40,17 @@ const AuthSystem = (props) => {
   const [isMounted, setIsMounted] = useState(false);
   const [availableDistricts, setAvailableDistricts] = useState([]);
   const [availableSubdistricts, setAvailableSubdistricts] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [amphures, setAmphures] = useState([]);
+  const [tambons, setTambons] = useState([]);
+  const [selected, setSelected] = useState({ province_id: undefined, amphure_id: undefined, tambon_id: undefined });
+  const [notification, setNotification] = useState({ show: false, type: 'info', title: '', message: '', onClose: null });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordMatch, setPasswordMatch] = useState(true);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [positions, setPositions] = useState([]);
+  const [branches, setBranches] = useState([]);
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -69,29 +70,90 @@ const AuthSystem = (props) => {
     position: '',
     department: '',
     currentAddress: '',
-    province: 'มหาสารคาม',
-    district: 'กันทรวิชัย',
-    subdistrict: 'ขามเรียง',
-    postalCode: '44150'
+    provinceId: '',
+    amphureId: '',
+    tambonId: '',
+    postalCode: ''
   });
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsMounted(true);
     // โหลดอำเภอเริ่มต้นตามจังหวัดเริ่มต้น
     const initialProvince = provinces.find(p => p.name === registerData.province);
     if (initialProvince) {
-      const provinceDistricts = districts[initialProvince.id] || [];
+      const provinceDistricts = amphures.find(a => a.id === Number(registerData.amphureId))?.tambon || [];
       setAvailableDistricts(provinceDistricts);
 
       // โหลดตำบลเริ่มต้นตามอำเภอเริ่มต้น
       const initialDistrict = provinceDistricts.find(d => d.name === registerData.district);
       if (initialDistrict) {
-        const districtSubdistricts = subdistricts[initialDistrict.id] || [];
+        const districtSubdistricts = tambons.find(t => t.id === Number(registerData.tambonId))?.zip_code || '';
         setAvailableSubdistricts(districtSubdistricts);
       }
     }
     return () => setIsMounted(false);
   }, []);
+
+  useEffect(() => {
+    // fetch จังหวัด/อำเภอ/ตำบล จาก github
+    fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json')
+      .then(res => res.json())
+      .then(data => {
+        setProvinces(data);
+        // โหลดอำเภอเริ่มต้นตามจังหวัดเริ่มต้น
+        const initialProvince = data.find(p => p.name === registerData.province);
+        if (initialProvince) {
+          setAmphures(initialProvince.amphure);
+          const initialDistrict = initialProvince.amphure.find(d => d.name === registerData.district);
+          if (initialDistrict) {
+            setTambons(initialDistrict.tambon);
+          }
+        }
+      });
+    // fetch positions
+    axios.get('http://localhost:5000/api/users/positions')
+      .then(res => setPositions(res.data))
+      .catch(() => setPositions([]));
+    // fetch branches
+    axios.get('http://localhost:5000/api/users/branches')
+      .then(res => setBranches(res.data))
+      .catch(() => setBranches([]));
+  }, []);
+
+  // Inline validation: ตรวจสอบรหัสผ่านตรงกันทันที
+  useEffect(() => {
+    if (registerData.password && registerData.confirmPassword) {
+      setPasswordMatch(registerData.password === registerData.confirmPassword);
+    } else {
+      setPasswordMatch(true);
+    }
+  }, [registerData.password, registerData.confirmPassword]);
+
+  useEffect(() => {
+    // ตรวจสอบ token ทุกครั้งที่ mount
+    const token = localStorage.getItem('token');
+    console.log('token in localStorage:', token);
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    fetch('http://localhost:5000/api/users/verify-token', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        console.log('verify-token status:', res.status);
+        if (!res.ok) throw new Error('Invalid token');
+        return res.json();
+      })
+      .catch((err) => {
+        console.log('verify-token error:', err);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      });
+  }, [navigate]);
 
   const handleLoginChange = (e) => {
     const { name, value } = e.target;
@@ -100,110 +162,169 @@ const AuthSystem = (props) => {
 
   const handleRegisterChange = (e) => {
     const { name, value } = e.target;
-    setRegisterData(prev => ({ ...prev, [name]: value }));
+    if (name === 'idNumber') {
+      setRegisterData(prev => ({ ...prev, idNumber: value, username: value }));
+    } else {
+      setRegisterData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleProvinceChange = (e) => {
-    const provinceName = e.target.value;
-    const selectedProvince = provinces.find(p => p.name === provinceName);
-
-    setRegisterData(prev => ({
-      ...prev,
-      province: provinceName,
-      district: '',
-      subdistrict: '',
-      postalCode: ''
-    }));
-
-    if (selectedProvince) {
-      const provinceDistricts = districts[selectedProvince.id] || [];
-      setAvailableDistricts(provinceDistricts);
-      setAvailableSubdistricts([]);
-    } else {
-      setAvailableDistricts([]);
-      setAvailableSubdistricts([]);
-    }
+    const provinceId = Number(e.target.value);
+    setSelected({ province_id: provinceId, amphure_id: undefined, tambon_id: undefined });
+    const provinceObj = provinces.find(p => p.id === provinceId);
+    setRegisterData(prev => ({ ...prev, provinceId, amphureId: '', tambonId: '', postalCode: '' }));
+    setAmphures(provinceObj ? provinceObj.amphure : []);
+    setTambons([]);
   };
-
   const handleDistrictChange = (e) => {
-    const districtName = e.target.value;
-    const selectedDistrict = availableDistricts.find(d => d.name === districtName);
-
-    setRegisterData(prev => ({
-      ...prev,
-      district: districtName,
-      subdistrict: '',
-      postalCode: ''
-    }));
-
-    if (selectedDistrict) {
-      const districtSubdistricts = subdistricts[selectedDistrict.id] || [];
-      setAvailableSubdistricts(districtSubdistricts);
-    } else {
-      setAvailableSubdistricts([]);
-    }
+    const amphureId = Number(e.target.value);
+    setSelected(prev => ({ ...prev, amphure_id: amphureId, tambon_id: undefined }));
+    const amphureObj = amphures.find(a => a.id === amphureId);
+    setRegisterData(prev => ({ ...prev, amphureId, tambonId: '', postalCode: '' }));
+    setTambons(amphureObj ? amphureObj.tambon : []);
   };
-
   const handleSubdistrictChange = (e) => {
-    const subdistrictName = e.target.value;
-    const selectedSubdistrict = availableSubdistricts.find(s => s.name === subdistrictName);
-
-    setRegisterData(prev => ({
-      ...prev,
-      subdistrict: subdistrictName,
-      postalCode: selectedSubdistrict ? selectedSubdistrict.postalCode : ''
-    }));
+    const tambonId = Number(e.target.value);
+    setSelected(prev => ({ ...prev, tambon_id: tambonId }));
+    const tambonObj = tambons.find(t => t.id === tambonId);
+    setRegisterData(prev => ({ ...prev, tambonId, postalCode: tambonObj ? tambonObj.zip_code : '' }));
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // กำหนด username และ password สำหรับแต่ละบทบาท
-    const credentials = {
-      admin: { username: 'admin', password: 'admin123' },
-      user: { username: 'user', password: 'user123' },
-      executive: { username: 'executive', password: 'executive123' }
-    };
-
-    // ตรวจสอบ credentials
-    let role = null;
-    if (loginData.username === credentials.admin.username && loginData.password === credentials.admin.password) {
-      role = 'admin';
-    } else if (loginData.username === credentials.user.username && loginData.password === credentials.user.password) {
-      role = 'user';
-    } else if (loginData.username === credentials.executive.username && loginData.password === credentials.executive.password) {
-      role = 'executive';
-    }
-
-    // Simulate API call delay
-    setTimeout(() => {
+    try {
+      const response = await axios.post('http://localhost:5000/api/users/login', {
+        username: loginData.username,
+        password: loginData.password
+      });
       setIsLoading(false);
-      if (role) {
-        props.onLoginSuccess(role);
-        document.getElementById('login-success-alert').showModal();
+      if (response.data && response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        setNotification({
+          show: true,
+          type: 'success',
+          title: 'เข้าสู่ระบบสำเร็จ',
+          message: 'ยินดีต้อนรับ ' + (response.data.user.Fullname || response.data.user.username),
+          onClose: () => {
+            setNotification(n => ({ ...n, show: false }));
+            if (props.onLoginSuccess) {
+              props.onLoginSuccess(response.data.user.role);
+            }
+          }
+        });
       } else {
-        document.getElementById('login-error-alert').showModal();
+        setNotification({
+          show: true,
+          type: 'error',
+          title: 'เข้าสู่ระบบไม่สำเร็จ',
+          message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
+          onClose: () => setNotification(n => ({ ...n, show: false }))
+        });
       }
-    }, 1000);
+    } catch (error) {
+      setIsLoading(false);
+      setNotification({
+        show: true,
+        type: 'error',
+        title: 'เข้าสู่ระบบไม่สำเร็จ',
+        message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
+        onClose: () => setNotification(n => ({ ...n, show: false }))
+      });
+    }
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (registerData.password !== registerData.confirmPassword) {
-      document.getElementById('password-mismatch-alert').showModal();
-    } else {
-      document.getElementById('register-success-alert').showModal();
+      setNotification({ show: true, type: 'warning', title: 'รหัสผ่านไม่ตรงกัน', message: 'กรุณายืนยันรหัสผ่านให้ถูกต้อง', onClose: () => setNotification(n => ({ ...n, show: false })) });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      // map id เป็นชื่อจริง
+      const provinceObj = provinces.find(p => p.id === Number(registerData.provinceId));
+      const amphureObj = amphures.find(a => a.id === Number(registerData.amphureId));
+      const tambonObj = tambons.find(t => t.id === Number(registerData.tambonId));
+      const payload = {
+        user_code: registerData.idNumber,
+        username: registerData.username,
+        password: registerData.password,
+        email: registerData.email,
+        phone: registerData.phone,
+        Fullname: registerData.fullName,
+        position_id: registerData.position, // ส่ง id
+        branch_id: registerData.department, // ส่ง id
+        role_id: 3,
+        street: registerData.currentAddress,
+        province: provinceObj ? provinceObj.name_th : '',
+        district: amphureObj ? amphureObj.name_th : '',
+        parish: tambonObj ? tambonObj.name_th : '',
+        postal_no: registerData.postalCode
+      };
+      await axios.post('http://localhost:5000/api/users', payload);
+      setIsLoading(false);
+      setRegisterData({
+        idNumber: '',
+        fullName: '',
+        username: '',
+        password: '',
+        confirmPassword: '',
+        email: '',
+        phone: '',
+        position: '',
+        department: '',
+        currentAddress: '',
+        provinceId: '',
+        amphureId: '',
+        tambonId: '',
+        postalCode: ''
+      });
+      setNotification({
+        show: true,
+        type: 'success',
+        title: 'สมัครสมาชิกสำเร็จ',
+        message: 'คุณสามารถเข้าสู่ระบบได้ทันที',
+        onClose: () => {
+          setNotification(n => ({ ...n, show: false }));
+          navigate('/login');
+        }
+      });
+    } catch (error) {
+      setIsLoading(false);
+      setNotification({
+        show: true,
+        type: 'error',
+        title: 'สมัครสมาชิกไม่สำเร็จ',
+        message: getRegisterErrorMessage(error),
+        onClose: () => setNotification(n => ({ ...n, show: false }))
+      });
     }
   };
 
   return (
-    <div data-theme="light" className="min-h-screen bg-gradient-to-br from-indigo-950 to-blue-700  flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-8xl bg-white/5 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row transition-all duration-500 hover:shadow-glow">
+    <div data-theme="light" className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
+      {/* Blurred background image */}
+      <div
+        className="fixed inset-0 z-0 w-full h-full"
+        style={{
+          backgroundImage: 'url(/itmsu.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'blur(2px) brightness(0.85)',
+          WebkitFilter: 'blur(2px) brightness(0.85)',
+          pointerEvents: 'none',
+        }}
+      />
+      {/* Overlay for extra dimming if needed */}
+      <div className="fixed inset-0 z-10 bg-black/20" style={{pointerEvents: 'none'}} />
+      <div className="relative z-20 w-full max-w-8xl bg-white/20 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row transition-all duration-500 hover:shadow-glow">
 
         {/* Left: Logo and Welcome */}
-        <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 md:p-8 text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-white z-0"></div>
+        <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 md:p-8 text-center relative overflow-hidden bg-blue-200">
+          <div className="absolute inset-0 bg-blue-200 z-0"></div>
           <div className="relative z-10 w-full max-w-md">
             <div className="p-4 rounded-full mb-8 inline-flex justify-center">
               <img
@@ -221,7 +342,7 @@ const AuthSystem = (props) => {
             <div className="hidden lg:block">
               <div className="h-1 w-24 bg-indigo-400 mx-auto mb-6 rounded-full"></div>
               <p className="text-sm text-black/80">
-                ระบบยืม-คืนครุภัณฑ์คณะเทคโนโลยีสารสนเทศ
+                ระบบยืม-คืนครุภัณฑ์คณะวิทยาการสารสนเทส
               </p>
             </div>
           </div>
@@ -262,7 +383,7 @@ const AuthSystem = (props) => {
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm text-white/90 font-medium mb-2 flex items-center">
-                        <FaUser className="mr-2 text-indigo-300" />
+                        <FaUser className="mr-2 text-blue-600" />
                         ชื่อผู้ใช้งาน
                       </label>
                       <div className="relative">
@@ -275,26 +396,29 @@ const AuthSystem = (props) => {
                           placeholder="กรอกชื่อผู้ใช้งาน"
                           required
                         />
-                        <FaUserAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600" />
+                        <FaUserAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
                       </div>
                     </div>
 
                     <div>
                       <label className="text-sm text-white/90 font-medium mb-2 flex items-center">
-                        <FaLock className="mr-2 text-indigo-300" />
+                        <FaLock className="mr-2 text-pink-500" />
                         รหัสผ่าน
                       </label>
                       <div className="relative">
                         <input
-                          type="password"
+                          type={showLoginPassword ? 'text' : 'password'}
                           name="password"
                           value={loginData.password}
                           onChange={handleLoginChange}
-                          className="w-full h-12 pl-12 pr-5 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none transition-all duration-200 placeholder-gray-500 text-gray-800"
+                          className="w-full h-12 pl-12 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none transition-all duration-200 placeholder-gray-500 text-gray-800"
                           placeholder="กรอกรหัสผ่าน"
                           required
                         />
-                        <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600" />
+                        <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowLoginPassword(v => !v)}>
+                          {showLoginPassword ? <FaEyeSlash /> : <FaEye />}
+                        </button>
+                        <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-pink-500" />
                       </div>
                     </div>
 
@@ -332,7 +456,7 @@ const AuthSystem = (props) => {
                   {/* Basic Info Section */}
                   <div className="space-y-4">
                     <div className="flex items-center mb-4">
-                      <FaIdCard className="text-indigo-400 text-lg mr-3" />
+                      <FaIdCard className="text-blue-600 text-lg mr-3" />
                       <h3 className="text-lg font-semibold text-white">ข้อมูลพื้นฐาน</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -350,7 +474,7 @@ const AuthSystem = (props) => {
                             placeholder="เช่น 65011211033"
                             required
                           />
-                          <FaIdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <FaIdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
                         </div>
                       </div>
                       <div>
@@ -367,7 +491,7 @@ const AuthSystem = (props) => {
                             placeholder="กรอกชื่อ-นามสกุล"
                             required
                           />
-                          <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 text-sm" />
                         </div>
                       </div>
                       <div>
@@ -383,11 +507,11 @@ const AuthSystem = (props) => {
                             required
                           >
                             <option value="">เลือกตำแหน่ง</option>
-                            <option value="นิสิต">นิสิต</option>
-                            <option value="บุคลากร">บุคลากร</option>
-                            <option value="อาจารย์">อาจารย์</option>
+                            {positions.map(pos => (
+                              <option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>
+                            ))}
                           </select>
-                          <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 text-sm" />
                         </div>
                       </div>
                       <div>
@@ -403,11 +527,11 @@ const AuthSystem = (props) => {
                             required
                           >
                             <option value="">เลือกสาขา</option>
-                            <option value="วิทยาการคอมพิวเตอร์">วิทยาการคอมพิวเตอร์</option>
-                            <option value="เทคโนโลยีสารสนเทศ">เทคโนโลยีสารสนเทศ</option>
-                            <option value="ภูมิสารสนเทศศาสตร์">ภูมิสารสนเทศศาสตร์</option>
+                            {branches.map(branch => (
+                              <option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>
+                            ))}
                           </select>
-                          <FaGraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <FaGraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 text-sm" />
                         </div>
                       </div>
                     </div>
@@ -429,12 +553,13 @@ const AuthSystem = (props) => {
                             type="text"
                             name="username"
                             value={registerData.username}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
-                            placeholder="กรอกชื่อผู้ใช้งาน"
+                            readOnly
+                            tabIndex={-1}
+                            className="w-full h-10 pl-10 pr-3 bg-gray-300 border-gray-400 text-gray-600 rounded-lg focus:ring-0 focus:outline-none text-sm cursor-not-allowed select-none"
+                            placeholder="ชื่อผู้ใช้งานจะตรงกับรหัสนิสิต/บุคลากร"
                             required
                           />
-                          <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
                         </div>
                       </div>
                       <div>
@@ -443,15 +568,18 @@ const AuthSystem = (props) => {
                         </label>
                         <div className="relative">
                           <input
-                            type="password"
+                            type={showPassword ? 'text' : 'password'}
                             name="password"
                             value={registerData.password}
                             onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
+                            className="w-full h-10 pl-10 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
                             placeholder="กรอกรหัสผ่าน"
                             required
                           />
-                          <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowPassword(v => !v)}>
+                            {showPassword ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                          <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
                         </div>
                       </div>
                       <div>
@@ -460,24 +588,30 @@ const AuthSystem = (props) => {
                         </label>
                         <div className="relative">
                           <input
-                            type="password"
+                            type={showConfirmPassword ? 'text' : 'password'}
                             name="confirmPassword"
                             value={registerData.confirmPassword}
                             onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
+                            className="w-full h-10 pl-10 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
                             placeholder="ยืนยันรหัสผ่าน"
                             required
                           />
-                          <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>
+                            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                          <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
                         </div>
                       </div>
+                      {!passwordMatch && (
+                        <div className="text-red-500 text-xs mt-1">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</div>
+                      )}
                     </div>
                   </div>
 
                   {/* Contact Info Section */}
                   <div className="space-y-4">
                     <div className="flex items-center mb-4">
-                      <FaEnvelope className="text-indigo-400 text-lg mr-3" />
+                      <FaEnvelope className="text-pink-500 text-lg mr-3" />
                       <h3 className="text-lg font-semibold text-white">ข้อมูลติดต่อ</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -495,7 +629,7 @@ const AuthSystem = (props) => {
                             placeholder="example@email.com"
                             required
                           />
-                          <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
                         </div>
                       </div>
                       <div>
@@ -512,7 +646,7 @@ const AuthSystem = (props) => {
                             placeholder="กรอกเบอร์โทรศัพท์"
                             required
                           />
-                          <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 text-sm" />
                         </div>
                       </div>
                     </div>
@@ -521,7 +655,7 @@ const AuthSystem = (props) => {
                   {/* Address Info Section */}
                   <div className="space-y-4">
                     <div className="flex items-center mb-4">
-                      <FaMapMarkerAlt className="text-indigo-400 text-lg mr-3" />
+                      <FaMapMarkerAlt className="text-red-500 text-lg mr-3" />
                       <h3 className="text-lg font-semibold text-white">ข้อมูลที่อยู่</h3>
                     </div>
                     <div className="grid grid-cols-1 gap-4">
@@ -539,7 +673,7 @@ const AuthSystem = (props) => {
                             placeholder="บ้านเลขที่, ถนน, ซอย"
                             required
                           ></textarea>
-                          <FaMapMarkerAlt className="absolute left-3 top-3 text-gray-600 text-sm" />
+                          <FaMapMarkerAlt className="absolute left-3 top-3 text-red-500 text-sm" />
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -550,19 +684,17 @@ const AuthSystem = (props) => {
                           <div className="relative">
                             <select
                               name="province"
-                              value={registerData.province}
+                              value={registerData.provinceId}
                               onChange={handleProvinceChange}
                               className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none"
                               required
                             >
                               <option value="">เลือกจังหวัด</option>
                               {provinces.map(province => (
-                                <option key={province.id} value={province.name}>
-                                  {province.name}
-                                </option>
+                                <option key={province.id} value={province.id}>{province.name_th}</option>
                               ))}
                             </select>
-                            <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                            <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
                           </div>
                         </div>
                         <div>
@@ -572,20 +704,18 @@ const AuthSystem = (props) => {
                           <div className="relative">
                             <select
                               name="district"
-                              value={registerData.district}
+                              value={registerData.amphureId}
                               onChange={handleDistrictChange}
                               className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none"
                               required
-                              disabled={!registerData.province}
+                              disabled={!registerData.provinceId}
                             >
                               <option value="">เลือกอำเภอ/เขต</option>
-                              {availableDistricts.map(district => (
-                                <option key={district.id} value={district.name}>
-                                  {district.name}
-                                </option>
+                              {amphures.map(amphure => (
+                                <option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>
                               ))}
                             </select>
-                            <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                            <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
                           </div>
                         </div>
                         <div>
@@ -595,20 +725,18 @@ const AuthSystem = (props) => {
                           <div className="relative">
                             <select
                               name="subdistrict"
-                              value={registerData.subdistrict}
+                              value={registerData.tambonId}
                               onChange={handleSubdistrictChange}
                               className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none"
                               required
-                              disabled={!registerData.district}
+                              disabled={!registerData.amphureId}
                             >
                               <option value="">เลือกตำบล/แขวง</option>
-                              {availableSubdistricts.map(subdistrict => (
-                                <option key={subdistrict.id} value={subdistrict.name}>
-                                  {subdistrict.name}
-                                </option>
+                              {tambons.map(tambon => (
+                                <option key={tambon.id} value={tambon.id}>{tambon.name_th}</option>
                               ))}
                             </select>
-                            <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                            <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
                           </div>
                         </div>
                       </div>
@@ -627,7 +755,7 @@ const AuthSystem = (props) => {
                             required
                             readOnly
                           />
-                          <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm" />
+                          <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-500 text-sm" />
                         </div>
                       </div>
                     </div>
@@ -663,6 +791,13 @@ const AuthSystem = (props) => {
       <RegisterSuccessDialog />
       <RegisterErrorDialog />
       <PasswordMismatchDialog />
+      <Notification
+        show={notification.show}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+        onClose={notification.onClose}
+      />
     </div>
   );
 };

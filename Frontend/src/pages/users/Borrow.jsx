@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { globalUserData } from '../../components/Header';
 import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
+import { authFetch } from '../../utils/api';
 
 const RequirementList = () => {
   const [borrowList, setBorrowList] = useState([]);
@@ -10,6 +10,14 @@ const RequirementList = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Get user info from localStorage
+    const userStr = localStorage.getItem('user');
+    let globalUserData = null;
+    if (userStr) {
+      try {
+        globalUserData = JSON.parse(userStr);
+      } catch (e) {}
+    }
     const user_id = globalUserData?.user_id;
     if (!user_id) {
       setLoading(false);
@@ -17,7 +25,7 @@ const RequirementList = () => {
       return;
     }
     setLoading(true);
-    fetch(`http://localhost:5000/api/borrows?user_id=${user_id}`)
+    authFetch(`http://localhost:5000/api/borrows?user_id=${user_id}`)
       .then(async res => {
         if (!res.ok) return [];
         try {
