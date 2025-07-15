@@ -6,7 +6,7 @@ import {
   CheckCircleIcon as CheckCircleSolidIcon
 } from "@heroicons/react/24/solid";
 import { useState, useEffect } from "react";
-import { UPLOAD_BASE } from '../../utils/api';
+import { UPLOAD_BASE, authFetch } from '../../utils/api';
 
 // Components
 import Notification from "../../components/Notification";
@@ -79,11 +79,24 @@ function Success() {
   const rowsPerPage = 5;
 
   useEffect(() => {
-    fetch(`${UPLOAD_BASE}/api/returns/success-borrows`)
-      .then(res => res.json())
-      .then(data => setBorrows(data))
+    authFetch(`${UPLOAD_BASE}/api/returns/success-borrows`)
+      .then(async res => {
+        if (res.status === 401) {
+          setNotification({ show: true, message: "หมดเวลาการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง", type: "error" });
+          setBorrows([]);
+          return;
+        }
+        if (!res.ok) {
+          setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", type: "error" });
+          setBorrows([]);
+          return;
+        }
+        const data = await res.json();
+        setBorrows(Array.isArray(data) ? data : []);
+      })
       .catch(err => {
         setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", type: "error" });
+        setBorrows([]);
       });
   }, []);
 
@@ -137,20 +150,21 @@ function Success() {
   };
 
   // Compute filtered borrows
-  const filteredBorrows = borrows
-    .filter(borrow => ['completed', 'rejected'].includes(borrow.status))
-    .filter(borrow => {
-      const searchTermLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        (borrow.borrow_code && borrow.borrow_code.toLowerCase().includes(searchTermLower)) ||
-        (borrow.borrower?.name && borrow.borrower.name.toLowerCase().includes(searchTermLower)) ||
-        (borrow.borrower?.department && borrow.borrower.department.toLowerCase().includes(searchTermLower)) ||
-        (Array.isArray(borrow.equipment) && borrow.equipment.some(
-          eq => (eq.name && eq.name.toLowerCase().includes(searchTermLower)) ||
-                (eq.code && String(eq.code).toLowerCase().includes(searchTermLower))
-        ));
-      return matchesSearch;
-    });
+  const filteredBorrows = Array.isArray(borrows)
+    ? borrows.filter(borrow => ['completed', 'rejected'].includes(borrow.status))
+      .filter(borrow => {
+        const searchTermLower = searchTerm.toLowerCase();
+        const matchesSearch =
+          (borrow.borrow_code && borrow.borrow_code.toLowerCase().includes(searchTermLower)) ||
+          (borrow.borrower?.name && borrow.borrower.name.toLowerCase().includes(searchTermLower)) ||
+          (borrow.borrower?.department && borrow.borrower.department.toLowerCase().includes(searchTermLower)) ||
+          (Array.isArray(borrow.equipment) && borrow.equipment.some(
+            eq => (eq.name && eq.name.toLowerCase().includes(searchTermLower)) ||
+                  (eq.code && String(eq.code).toLowerCase().includes(searchTermLower))
+          ));
+        return matchesSearch;
+      })
+    : [];
 
   const totalPages = Math.ceil(filteredBorrows.length / rowsPerPage);
   const paginatedBorrows = filteredBorrows.slice((page - 1) * rowsPerPage, page * rowsPerPage);

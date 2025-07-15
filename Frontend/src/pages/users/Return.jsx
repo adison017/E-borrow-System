@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
-import { globalUserData } from '../../components/Header';
 import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
+import { getAllBorrows } from '../../utils/api';
 
 const RequirementList = () => {
   const [borrowList, setBorrowList] = useState([]);
@@ -11,6 +11,14 @@ const RequirementList = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Get user info from localStorage
+    const userStr = localStorage.getItem('user');
+    let globalUserData = null;
+    if (userStr) {
+      try {
+        globalUserData = JSON.parse(userStr);
+      } catch (e) {}
+    }
     const user_id = globalUserData?.user_id;
     if (!user_id) {
       setLoading(false);
@@ -18,22 +26,14 @@ const RequirementList = () => {
       return;
     }
     setLoading(true);
-    fetch(`http://localhost:5000/api/borrows?user_id=${user_id}`)
-      .then(async res => {
-        if (!res.ok) return [];
-        try {
-          const data = await res.json();
-          // filter เฉพาะของ user_id และ status === 'approved' (หรือ 'carry' ถ้า backend ใช้ค่านี้)
-          if (Array.isArray(data)) {
-            return data.filter(b => b.user_id == user_id && (b.status === 'approved' || b.status === 'carry'));
-          }
-          return [];
-        } catch {
-          return [];
-        }
-      })
+    getAllBorrows()
       .then(data => {
-        setBorrowList(data);
+        // filter เฉพาะของ user_id และ status === 'approved'
+        if (Array.isArray(data)) {
+          setBorrowList(data.filter(b => b.user_id == user_id && b.status === 'approved'));
+        } else {
+          setBorrowList([]);
+        }
         setLoading(false);
       })
       .catch(() => {
@@ -65,8 +65,8 @@ const RequirementList = () => {
 
   if (loading) return <div>Loading...</div>;
 
-  // กรองเฉพาะ approved หรือ carry
-  const approvedList = borrowList.filter(req => req.status === 'approved' || req.status === 'carry');
+  // กรองเฉพาะ approved
+  const approvedList = borrowList.filter(req => req.status === 'approved');
 
   return (
     <div className="container mx-auto px-4 py-8">

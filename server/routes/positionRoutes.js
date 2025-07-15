@@ -1,7 +1,11 @@
 import express from 'express';
 import positionController from '../controllers/positionController.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Protect all position routes
+router.use(authMiddleware);
 
 // GET all positions
 router.get('/', positionController.getAllPositions);

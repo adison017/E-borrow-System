@@ -3,6 +3,7 @@ import * as line from "@line/bot-sdk";
 import dotenv from "dotenv";
 dotenv.config();
 import User from "../models/userModel.js";
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -151,6 +152,9 @@ const handleLineEvent = async (event) => {
     });
   }
 };
+
+// Protect all line routes
+// router.use(authMiddleware);
 
 router.post("/", line.middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleLineEvent))

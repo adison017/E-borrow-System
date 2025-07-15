@@ -1,7 +1,11 @@
 import express from 'express';
 import * as newsController from '../controllers/newsController.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Protect all news routes
+router.use(authMiddleware);
 
 // Get all news
 router.get('/', newsController.getAllNews);

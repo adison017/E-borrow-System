@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import { FaClipboardList, FaImage, FaTimes, FaTools, FaUser } from 'react-icons/fa';
 import { RiCoinsFill } from "react-icons/ri";
-import { globalUserData } from '../../../components/Header';
+// import { globalUserData } from '../../../components/Header';
 import Notification from '../../../components/Notification';
 
 export default function RepairRequestDialog({
@@ -38,7 +38,14 @@ export default function RepairRequestDialog({
     return `RP-${randomNum}`;
   };
 
-  // Get requester info from globalUserData
+  // Get requester info from localStorage
+  const userStr = localStorage.getItem('user');
+  let globalUserData = null;
+  if (userStr) {
+    try {
+      globalUserData = JSON.parse(userStr);
+    } catch (e) {}
+  }
   const requesterInfo = {
     name: globalUserData?.Fullname || 'ไม่ระบุชื่อ',
     department: globalUserData?.branch_name || 'ไม่ระบุแผนก'
