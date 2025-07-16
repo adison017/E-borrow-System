@@ -79,3 +79,24 @@ export const getLastItemCode = async () => {
     throw error;
   }
 };
+
+// ดึงอุปกรณ์ทั้งหมด พร้อม dueDate (วันที่ต้องคืน) ถ้ามีการยืมที่ยังไม่คืน
+export const getAllEquipmentWithDueDate = async () => {
+  try {
+    const [rows] = await connection.query(`
+      SELECT
+        e.*,
+        (
+          SELECT bt.return_date
+          FROM borrow_items bi
+          JOIN borrow_transactions bt ON bi.borrow_id = bt.borrow_id
+          WHERE bi.item_id = e.item_id AND bt.status IN ('approved', 'waiting_payment', 'pending')
+          ORDER BY bt.return_date DESC LIMIT 1
+        ) AS dueDate
+      FROM equipment e
+    `);
+    return rows;
+  } catch (error) {
+    throw error;
+  }
+};

@@ -5,6 +5,8 @@ import * as DamageLevelModel from '../models/damageLevelModel.js';
 import { updateProofImageAndPayStatus } from '../models/returnModel.js';
 import User from '../models/userModel.js';
 import { sendLineNotify } from '../utils/lineNotify.js';
+import { broadcastBadgeCounts } from '../index.js';
+import * as RepairRequest from '../models/repairRequestModel.js';
 
 // Helper function for strict check
 function isLineNotifyEnabled(val) {
@@ -29,8 +31,6 @@ export const createReturn = async (req, res) => {
     return_date,
     return_by,
     user_id, // เพิ่ม user_id
-    condition_level_id,
-    condition_text,
     fine_amount,
     damage_fine,
     late_fine,
@@ -40,6 +40,7 @@ export const createReturn = async (req, res) => {
     notes,
     pay_status = 'pending',
     paymentMethod = 'cash',
+    item_conditions // เพิ่มรับ item_conditions
   } = req.body;
   try {
     // 1. บันทึกการคืน
@@ -48,8 +49,6 @@ export const createReturn = async (req, res) => {
       return_date,
       return_by,
       user_id, // user_id ต้องอยู่ลำดับที่ 4
-      condition_level_id,
-      condition_text,
       fine_amount,
       damage_fine,
       late_fine,
@@ -60,6 +59,19 @@ export const createReturn = async (req, res) => {
       pay_status,
       paymentMethod
     );
+
+    // 1.5 บันทึก return_items ทีละชิ้น
+    if (item_conditions && typeof item_conditions === 'object') {
+      for (const [item_id, cond] of Object.entries(item_conditions)) {
+        await ReturnModel.createReturnItem(
+          return_id,
+          item_id,
+          cond.damageLevelId || null,
+          cond.note || '',
+          cond.fine_amount || 0
+        );
+      }
+    }
 
     // 2. อัปเดตสถานะ borrow
     let newStatus = null;
@@ -74,14 +86,26 @@ export const createReturn = async (req, res) => {
       // อัปเดตสถานะอุปกรณ์ที่นี่เท่านั้น
       const borrow = await BorrowModel.getBorrowById(borrow_id);
       const equipmentList = borrow && borrow.equipment ? borrow.equipment : [];
-      const damageLevels = await DamageLevelModel.getAllDamageLevels();
-      const selectedDamage = damageLevels.find(dl => dl.damage_id === Number(condition_level_id) || dl.id === Number(condition_level_id));
-      const isMajorDamage = selectedDamage && (selectedDamage.name === 'ชำรุดหนัก' || Number(selectedDamage.fine_percent) >= 70);
+      // ไม่ต้องเช็ค selectedDamage หรือ isMajorDamage อีกต่อไป
       for (const eq of equipmentList) {
-        const newStatus = isMajorDamage ? 'ชำรุด' : 'พร้อมใช้งาน';
-        await EquipmentModel.updateEquipmentStatus(eq.item_code, newStatus);
+        await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
       }
     }
+
+    // หลังอัปเดตสถานะ borrow ให้ query count ใหม่แล้ว broadcast
+    const [pending, carry, pendingApproval] = await Promise.all([
+      BorrowModel.getBorrowsByStatus(['pending']),
+      BorrowModel.getBorrowsByStatus(['carry']),
+      BorrowModel.getBorrowsByStatus(['pending_approval'])
+    ]);
+    const allRepairs = await RepairRequest.getAllRepairRequests();
+    const repairApprovalCount = allRepairs.length;
+    broadcastBadgeCounts({
+      pendingCount: pending.length + pendingApproval.length, // รวม pending + pending_approval สำหรับ admin
+      carryCount: carry.length,
+      borrowApprovalCount: pendingApproval.length, // สำหรับ executive
+      repairApprovalCount
+    });
 
     // === แจ้งเตือน LINE ===
     if (newStatus === 'waiting_payment' || newStatus === 'completed') {
@@ -295,13 +319,23 @@ export const updatePayStatus = async (req, res) => {
       // 4. อัปเดตสถานะอุปกรณ์ที่นี่ (เหมือนใน createReturn)
       const borrow = await BorrowModel.getBorrowById(ret.borrow_id);
       const equipmentList = borrow && borrow.equipment ? borrow.equipment : [];
-      const damageLevels = await DamageLevelModel.getAllDamageLevels();
-      const selectedDamage = damageLevels.find(dl => dl.damage_id === Number(ret.condition_level_id) || dl.id === Number(ret.condition_level_id));
-      const isMajorDamage = selectedDamage && (selectedDamage.name === 'ชำรุดหนัก' || Number(selectedDamage.fine_percent) >= 70);
       for (const eq of equipmentList) {
-        const newStatus = isMajorDamage ? 'ชำรุด' : 'พร้อมใช้งาน';
-        await EquipmentModel.updateEquipmentStatus(eq.item_code, newStatus);
+        await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
       }
+      // หลังอัปเดตสถานะ borrow ให้ query count ใหม่แล้ว broadcast
+      const [pending, carry, pendingApproval] = await Promise.all([
+        BorrowModel.getBorrowsByStatus(['pending']),
+        BorrowModel.getBorrowsByStatus(['carry']),
+        BorrowModel.getBorrowsByStatus(['pending_approval'])
+      ]);
+      const allRepairs = await RepairRequest.getAllRepairRequests();
+      const repairApprovalCount = allRepairs.length;
+      broadcastBadgeCounts({
+        pendingCount: pending.length + pendingApproval.length, // รวม pending + pending_approval สำหรับ admin
+        carryCount: carry.length,
+        borrowApprovalCount: pendingApproval.length, // สำหรับ executive
+        repairApprovalCount
+      });
       // === แจ้งเตือน LINE ===
       const user = await User.findById(borrow.user_id);
       console.log('[DEBUG] LINE Notify user:', {

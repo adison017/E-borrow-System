@@ -1,10 +1,9 @@
 import { MdClose } from "react-icons/md";
 
-const EquipmentDetailDialog = ({ 
-  showDetailDialog, 
-  setShowDetailDialog, 
-  selectedEquipment, 
-  historyData,
+const EquipmentDetailDialog = ({
+  showDetailDialog,
+  setShowDetailDialog,
+  selectedEquipment,
   showImageModal,
   getStatusBadge
 }) => {
@@ -14,7 +13,7 @@ const EquipmentDetailDialog = ({
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl xl:max-w-6xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              {/* Header */}              
+              {/* Header */}
               <div className="bg-gradient-to-r from-indigo-950 to-blue-700 -mx-6 -mt-6 px-6 py-6 rounded-t-xl mb-8">
                 <div className="flex justify-between items-center">
                   <div className="text-white">
@@ -32,7 +31,7 @@ const EquipmentDetailDialog = ({
 
               {/* Main Content */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                {/* Image Column */}                
+                {/* Image Column */}
                 <div className="lg:col-span-1 mt-10">
                   <div className="rounded-xl overflow-hidden transition-all duration-300 flex items-center justify-center bg-white p-4 group">
                     <img
@@ -83,52 +82,9 @@ const EquipmentDetailDialog = ({
                   ประวัติการใช้งาน
                 </h3>
                 <div className="space-y-4">
-                  {historyData[selectedEquipment.id]?.length > 0 ? (
-                    historyData[selectedEquipment.id].map((history, index) => (
-                      <div 
-                        key={index} 
-                        className={`rounded-xl p-4 shadow-md bg-white/90 backdrop-blur-sm border ${history.type === 'borrow' ? 'border-blue-200' : 'border-emerald-200'}`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center  rounded-full text-lg font-medium ${
-                                history.type === 'borrow' ? 'text-black' : 'text-black'
-                              }`}>
-                                {history.type === 'borrow' ? 'การยืม' : 'การซ่อมบำรุง'}
-                              </span>
-                              <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
-                                history.status === 'คืนแล้ว' || history.status === 'ซ่อมเสร็จแล้ว' 
-                                  ? 'bg-green-600 text-white' 
-                                  : 'bg-yellow-400 '
-                              }`}>
-                                {history.status}
-                              </span>
-                            </div>
-                            
-                            {history.type === 'borrow' ? (
-                              <>
-                                <p className="text-sm"><span className="font-medium">ผู้ยืม:</span> {history.borrower}</p>
-                                <p className="text-sm"><span className="font-medium">วันที่ยืม:</span> {history.date}</p>
-                                <p className="text-sm"><span className="font-medium">วันที่คืน:</span> {history.returnDate || '-'}</p>
-                                <p className="text-sm"><span className="font-medium">เหตุผล:</span> {history.reason}</p>
-                              </>
-                            ) : (
-                              <>
-                                <p className="text-sm"><span className="font-medium">วันที่ซ่อม:</span> {history.date}</p>
-                                <p className="text-sm"><span className="font-medium">รายละเอียด:</span> {history.description}</p>
-                                <p className="text-sm"><span className="font-medium">ค่าใช้จ่าย:</span> {history.cost}</p>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
                     <div className="text-center py-8 bg-gray-50 rounded-lg">
                       <p className="text-gray-500">ไม่มีประวัติการใช้งาน</p>
                     </div>
-                  )}
                 </div>
               </div>
             </div>

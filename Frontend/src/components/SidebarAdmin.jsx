@@ -13,6 +13,10 @@ import { RiArrowGoBackLine } from "react-icons/ri";
 import { TbCategory } from "react-icons/tb";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Notification from './Notification';
+import { getAllBorrows } from '../utils/api';
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:5000'); // เปลี่ยน URL ถ้า backend อยู่ที่อื่น
 
 const menuItems = [
   { to: '/DashboardAd', icon: <BsGraphUp size={22} />, label: 'รายงาน', key: 'dashboardAd' },
@@ -32,12 +36,39 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
   const location = useLocation();
   const [menuReady, setMenuReady] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  // เพิ่ม state สำหรับ badge
+  const [pendingCount, setPendingCount] = useState(0);
+  const [carryCount, setCarryCount] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setMenuReady(true);
     }, 100);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // รับ badge real-time จาก backend
+    socket.on('badgeCountsUpdated', (badges) => {
+      if (typeof badges.pendingCount === 'number') setPendingCount(badges.pendingCount);
+      if (typeof badges.carryCount === 'number') setCarryCount(badges.carryCount);
+    });
+    // cleanup
+    return () => {
+      socket.off('badgeCountsUpdated');
+    };
+  }, []);
+
+  useEffect(() => {
+    // ดึงข้อมูลจาก API โดยตรง (สำหรับ initial load)
+    getAllBorrows().then(data => {
+      if (Array.isArray(data)) {
+        const count = data.filter(b => b.status === 'pending' || b.status === 'pending_approval').length;
+        setPendingCount(count);
+        const carry = data.filter(b => b.status === 'carry').length;
+        setCarryCount(carry);
+      }
+    });
   }, []);
 
   const isActive = (path) => location.pathname === path;
@@ -141,6 +172,17 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
                     className={`transition-all duration-700 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? 'max-w-0 opacity-0 ms-0' : 'max-w-xs opacity-100 ms-3'} font-medium`}
                   >
                     {item.label}
+                    {/* เพิ่ม badge เฉพาะเมนู borrow-list และ receiveItem */}
+                    {item.key === 'borrowList' && pendingCount > 0 && (
+                      <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                        {pendingCount}
+                      </span>
+                    )}
+                    {item.key === 'receiveItem' && carryCount > 0 && (
+                      <span className="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                        {carryCount}
+                      </span>
+                    )}
                   </span>
                 </button>
               </li>

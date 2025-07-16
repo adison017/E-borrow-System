@@ -10,6 +10,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { getAllBorrows } from "../../utils/api";
+import io from 'socket.io-client';
 
 // Components
 import { ToastContainer, toast } from "react-toastify";
@@ -110,6 +111,8 @@ const BorrowList = () => {
   const [selectedBorrowId, setSelectedBorrowId] = useState(null);
   // ลบ state notification เดิม (ใช้ react-toastify แทน)
 
+  const socket = io('http://localhost:5000');
+
   useEffect(() => {
     getAllBorrows()
       .then(data => {
@@ -123,6 +126,18 @@ const BorrowList = () => {
         // สามารถแจ้งเตือนหรือ log error ได้
         console.error('เกิดข้อผิดพลาดในการโหลดข้อมูลการยืม:', err);
       });
+    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time ===
+    const handleBadgeUpdate = () => {
+      getAllBorrows()
+        .then(data => {
+          if (Array.isArray(data)) setBorrows(data);
+        });
+    };
+    socket.on('badgeCountsUpdated', handleBadgeUpdate);
+    return () => {
+      socket.off('badgeCountsUpdated', handleBadgeUpdate);
+    };
+    // === จบ logic ===
   }, []);
 
   // ฟังก์ชันกลางสำหรับแจ้งเตือน

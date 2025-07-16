@@ -2,6 +2,8 @@ import * as RepairRequest from '../models/repairRequestModel.js';
 import { getHistoryRequests as getHistoryRequestsModel } from '../models/repairRequestModel.js';
 import User from '../models/userModel.js';
 import { sendLineNotify } from '../utils/lineNotify.js';
+import { broadcastBadgeCounts } from '../index.js';
+import * as BorrowModel from '../models/borrowModel.js';
 
 // ดึงเฉพาะรายการที่ status เป็น approved, completed, incomplete
 export const getHistoryRequests = async (req, res) => {
@@ -300,6 +302,21 @@ export const updateRepairRequest = async (req, res) => {
       responsible_person,
       approval_date,
       images
+    });
+
+    // หลังอัปเดตสถานะ repair ให้ query count ใหม่แล้ว broadcast
+    const [pending, carry, pendingApproval] = await Promise.all([
+      BorrowModel.getBorrowsByStatus(['pending']),
+      BorrowModel.getBorrowsByStatus(['carry']),
+      BorrowModel.getBorrowsByStatus(['pending_approval'])
+    ]);
+    const allRepairs = await RepairRequest.getAllRepairRequests();
+    const repairApprovalCount = allRepairs.length;
+    broadcastBadgeCounts({
+      pendingCount: pending.length + pendingApproval.length, // รวม pending + pending_approval สำหรับ admin
+      carryCount: carry.length,
+      borrowApprovalCount: pendingApproval.length, // สำหรับ executive
+      repairApprovalCount
     });
 
     res.json({

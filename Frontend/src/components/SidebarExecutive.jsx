@@ -6,6 +6,11 @@ import { GiAutoRepair } from "react-icons/gi";
 import { MdAnnouncement, MdClose, MdMenu } from "react-icons/md";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Notification from './Notification';
+import { getAllBorrows } from '../utils/api';
+import axios from 'axios';
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:5000'); // เปลี่ยน URL ถ้า backend อยู่ที่อื่น
 
 const menuItems = [
   { to: '/DashboardEx', icon: <BsGraphUp size={22} />, label: 'รายงาน', key: 'dashboardEx' },
@@ -22,12 +27,43 @@ function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOp
   const [menuReady, setMenuReady] = useState(false);
   const [animating, setAnimating] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [borrowApprovalCount, setBorrowApprovalCount] = useState(0);
+  const [repairApprovalCount, setRepairApprovalCount] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setMenuReady(true);
     }, 100);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // รับ badge real-time จาก backend
+    socket.on('badgeCountsUpdated', (badges) => {
+      if (typeof badges.borrowApprovalCount === 'number') setBorrowApprovalCount(badges.borrowApprovalCount);
+      if (typeof badges.repairApprovalCount === 'number') setRepairApprovalCount(badges.repairApprovalCount);
+    });
+    // cleanup
+    return () => {
+      socket.off('badgeCountsUpdated');
+    };
+  }, []);
+
+  useEffect(() => {
+    // ดึงจำนวนรออนุมัติยืม (สำหรับ initial load)
+    getAllBorrows().then(data => {
+      if (Array.isArray(data)) {
+        const count = data.filter(b => b.status === 'pending_approval').length;
+        setBorrowApprovalCount(count);
+      }
+    });
+    // ดึงจำนวนรออนุมัติซ่อม (สำหรับ initial load)
+    axios.get('http://localhost:5000/api/repair-requests').then(res => {
+      if (Array.isArray(res.data)) {
+        const count = res.data.filter(r => r.status === 'รออนุมัติซ่อม').length;
+        setRepairApprovalCount(count);
+      }
+    });
   }, []);
 
   const isActive = (path) => location.pathname === path;
@@ -130,6 +166,18 @@ function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOp
                     className={`transition-all duration-700 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? 'max-w-0 opacity-0 ms-0' : 'max-w-xs opacity-100 ms-3'} font-medium`}
                   >
                     {item.label}
+                    {/* Badge borrow approval */}
+                    {item.key === 'borrowApproval' && borrowApprovalCount > 0 && (
+                      <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                        {borrowApprovalCount}
+                      </span>
+                    )}
+                    {/* Badge repair approval */}
+                    {item.key === 'repairApproval' && repairApprovalCount > 0 && (
+                      <span className="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                        {repairApprovalCount}
+                      </span>
+                    )}
                   </span>
                 </Link>
               </li>
