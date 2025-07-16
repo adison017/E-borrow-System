@@ -147,7 +147,12 @@ export default function RepairApprovalDialog({
   const fetchAdminUsers = async () => {
     try {
       setLoadingAdmins(true);
-      const response = await axios.get('http://localhost:5000/users/role/admin');
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5000/api/users/role/admin', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       console.log('Admin users response:', response.data);
       setAdminUsers(response.data);
     } catch (error) {
@@ -340,7 +345,16 @@ export default function RepairApprovalDialog({
 
       // Update equipment status to 'ชำรุด'
       if (normalizedRepairRequest.equipment_code) {
-        await axios.put(`http://localhost:5000/api/equipment/${normalizedRepairRequest.equipment_code}/status`, { status: "ชำรุด" });
+        const token = localStorage.getItem('token');
+        await axios.put(
+          `http://localhost:5000/api/equipment/${normalizedRepairRequest.equipment_code}/status`,
+          { status: "ชำรุด" },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
       }
 
       onReject(payload);
@@ -536,7 +550,7 @@ export default function RepairApprovalDialog({
                       <div className="flex-1">
                         <p className="text-sm font-medium">รูปภาพความเสียหาย {index + 1}</p>
                         <p className="text-xs text-gray-500">คลิกเพื่อดูขนาดใหญ่</p>
-                        
+
                       </div>
                     </div>
                   ))}

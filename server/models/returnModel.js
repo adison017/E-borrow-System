@@ -99,8 +99,7 @@ export const getAllReturns_pay = async (user_id = null) => {
     ret.late_fine,
     ret.late_days,
     ret.return_date AS return_date_real,
-    ret.payment_method,
-    dl.fine_percent
+    ret.payment_method
   FROM borrow_transactions bt
   JOIN users u ON bt.user_id = u.user_id
   JOIN borrow_items bi ON bt.borrow_id = bi.borrow_id
@@ -109,7 +108,6 @@ export const getAllReturns_pay = async (user_id = null) => {
   LEFT JOIN positions p ON u.position_id = p.position_id
   LEFT JOIN roles r ON u.role_id = r.role_id
   LEFT JOIN returns ret ON bt.borrow_id = ret.borrow_id
-  LEFT JOIN damage_levels dl ON ret.condition_level_id = dl.damage_id
   WHERE ret.pay_status IN ('pending')`;
 
   const params = [];
@@ -118,6 +116,22 @@ export const getAllReturns_pay = async (user_id = null) => {
     params.push(user_id);
   }
   const [rows] = await db.query(sql, params);
+
+  // ดึง return_items ทั้งหมดที่เกี่ยวข้อง
+  const returnIds = Array.from(new Set(rows.map(row => row.return_id).filter(Boolean)));
+  let returnItemsMap = {};
+  if (returnIds.length > 0) {
+    const [returnItems] = await db.query(
+      `SELECT * FROM return_items WHERE return_id IN (${returnIds.map(() => '?').join(',')})`,
+      returnIds
+    );
+    // สร้าง map: { return_id: { item_id: { ... } } }
+    returnItemsMap = returnItems.reduce((acc, item) => {
+      if (!acc[item.return_id]) acc[item.return_id] = {};
+      acc[item.return_id][item.item_id] = item;
+      return acc;
+    }, {});
+  }
 
   // Group by return_id
   const grouped = {};
@@ -147,8 +161,12 @@ export const getAllReturns_pay = async (user_id = null) => {
         late_days: row.late_days,
         return_date: row.return_date_real,
         payment_method: row.payment_method,
-        fine_percent: row.fine_percent || 0
       };
+    }
+    // เพิ่มข้อมูลสภาพครุภัณฑ์จาก return_items
+    let itemCondition = null;
+    if (row.return_id && returnItemsMap[row.return_id] && returnItemsMap[row.return_id][row.item_id]) {
+      itemCondition = returnItemsMap[row.return_id][row.item_id];
     }
     grouped[row.borrow_id].equipment.push({
       item_id: row.item_id,
@@ -157,19 +175,21 @@ export const getAllReturns_pay = async (user_id = null) => {
       quantity: row.quantity,
       pic: row.pic,
       price: row.price,
-      fine_percent: row.fine_percent || 0
+      fine_amount: itemCondition ? itemCondition.fine_amount : 0,
+      damage_level_id: itemCondition ? itemCondition.damage_level_id : null,
+      damage_note: itemCondition ? itemCondition.damage_note : '',
     });
   });
   return Object.values(grouped);
 };
 
 
-export const createReturn = async (borrow_id, return_date, return_by, user_id, condition_level_id, condition_text, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status = 'pending', payment_method = null) => {
+export const createReturn = async (borrow_id, return_date, return_by, user_id, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status = 'pending', payment_method = null) => {
   const [result] = await db.query(
     `INSERT INTO returns (
-      borrow_id, return_date, return_by, user_id, condition_level_id, condition_text, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status, payment_method, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [borrow_id, return_date, return_by, user_id, condition_level_id, condition_text, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status, payment_method]
+      borrow_id, return_date, return_by, user_id, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status, payment_method, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    [borrow_id, return_date, return_by, user_id, fine_amount, damage_fine, late_fine, late_days, proof_image, status, notes, pay_status, payment_method]
   );
   return result.insertId;
 };
@@ -210,4 +230,26 @@ export const updateProofImageAndPayStatus = async (borrow_id, proof_image) => {
   // อัปเดต borrow_transactions.status = 'completed'
   await db.query('UPDATE borrow_transactions SET status = ? WHERE borrow_id = ?', ['completed', borrow_id]);
   return result.affectedRows;
+};
+
+// เพิ่มฟังก์ชันสำหรับบันทึก return_items
+export const createReturnItem = async (return_id, item_id, damage_level_id, damage_note, fine_amount) => {
+  const [result] = await db.query(
+    `INSERT INTO return_items (return_id, item_id, damage_level_id, damage_note, fine_amount, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    [return_id, item_id, damage_level_id, damage_note, fine_amount]
+  );
+  return result.insertId;
+};
+
+export const getReturnItemsByReturnId = async (return_id) => {
+  const [rows] = await db.query(
+    `SELECT ri.*, e.name AS equipment_name, dl.name AS damage_level_name
+     FROM return_items ri
+     JOIN equipment e ON ri.item_id = e.item_id
+     LEFT JOIN damage_levels dl ON ri.damage_level_id = dl.damage_id
+     WHERE ri.return_id = ?`,
+    [return_id]
+  );
+  return rows;
 };

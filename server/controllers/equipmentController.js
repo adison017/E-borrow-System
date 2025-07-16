@@ -5,7 +5,7 @@ import { getPicUrl } from '../utils/imageUtils.js';
 
 export const getAllEquipment = async (req, res) => {
   try {
-    const results = await Equipment.getAllEquipment();
+    const results = await Equipment.getAllEquipmentWithDueDate();
     const mapped = results.map(item => ({
       ...item,
       pic: getPicUrl(item.pic)
