@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AiOutlineCheckCircle, AiOutlineCloseCircle, AiOutlineInfoCircle, AiOutlineWarning } from "react-icons/ai";
 
-const Notification = ({ 
-  show, 
-  title, 
-  message, 
+const Notification = ({
+  show,
+  title,
+  message,
   type = "info",
   duration = 5000,
   onClose,
@@ -171,14 +171,14 @@ const Notification = ({
         )}
         {/* ปุ่ม action ครึ่งในครึ่งนอกกล่อง dialog */}
         {effectiveActions.length > 0 && (
-          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-50">
+          <div className="w-full flex flex-row gap-4 justify-center items-center mt-4 flex-wrap">
             {effectiveActions.map((action, index) => (
               <button
                 key={index}
                 type="button"
-                className={`px-8 py-2 text-base font-semibold rounded-full shadow-xl border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200
+                className={`min-w-[120px] px-6 py-2 text-base font-semibold rounded-full shadow-xl border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200
                   ${
-                    type === 'warning' 
+                    type === 'warning'
                       ? 'bg-yellow-400 text-yellow-900 border-yellow-500 hover:bg-yellow-500 hover:text-yellow-50 focus:ring-yellow-500' :
                     type === 'error'
                       ? 'bg-red-500 text-white border-red-600 hover:bg-red-600 focus:ring-red-500' :
@@ -188,7 +188,6 @@ const Notification = ({
                   }
                 `}
                 onClick={action.onClick}
-                style={{ minWidth: 120 }}
               >
                 {action.label}
               </button>

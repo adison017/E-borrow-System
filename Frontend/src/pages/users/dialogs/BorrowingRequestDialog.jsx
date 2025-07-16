@@ -14,6 +14,7 @@ import {
 import { RiArrowGoBackLine } from "react-icons/ri";
 import QRCode from "react-qr-code";
 import AlertDialog from '../../../components/Notification.jsx';
+import { API_BASE, authFetch } from '../../../utils/api';
 
 // เพิ่มฟังก์ชัน formatThaiDate ในไฟล์นี้
 function formatThaiDate(dateStr) {
@@ -424,14 +425,14 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                         formData.append("slip", slipFile);
                         formData.append("borrow_id", request.borrow_id);
                         try {
-                          const res = await fetch("http://localhost:5000/api/returns/upload-slip", {
+                          const res = await authFetch(`${API_BASE}/returns/upload-slip`, {
                             method: "POST",
                             body: formData
                           });
                           if (!res.ok) throw new Error("อัปโหลดสลิปไม่สำเร็จ");
                           const data = await res.json();
                           setIsConfirming(true);
-                          const confirmRes = await fetch("http://localhost:5000/api/returns/confirm-payment", {
+                          const confirmRes = await authFetch(`${API_BASE}/returns/confirm-payment`, {
                             method: "POST",
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ borrow_id: request.borrow_id, proof_image: data.filename })
@@ -440,7 +441,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                           setUploadSuccess(true);
                           // เรียก PATCH /api/returns/:return_id/pay เพื่อ trigger LINE Notify รายการเสร็จสิ้น
                           if (request.return_id) {
-                            await fetch(`http://localhost:5000/api/returns/${request.return_id}/pay`, { method: "PATCH" });
+                            await authFetch(`${API_BASE}/returns/${request.return_id}/pay`, { method: "PATCH" });
                           } else {
                             console.error('ไม่พบ return_id ใน request, ไม่สามารถ trigger LINE Notify ได้');
                           }

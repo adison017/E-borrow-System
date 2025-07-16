@@ -1,7 +1,11 @@
 import express from 'express';
 import db from '../db.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Protect all role routes
+router.use(authMiddleware);
 
 // Get all roles
 router.get('/', async (req, res) => {

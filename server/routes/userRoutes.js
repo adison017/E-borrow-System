@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import userController from '../controllers/userController.js';
 import db from '../db.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -148,14 +149,15 @@ router.get('/roles', async (req, res) => {
 });
 
 // User routes
-router.get('/', userController.getAllUsers);
+// Protect sensitive user routes
+router.get('/', authMiddleware, userController.getAllUsers);
 router.get('/username/:username', userController.getUserByUsername);
 router.get('/id/:id', userController.getUserById);
 router.post('/', userController.createUser);
-router.put('/id/:id', userController.updateUser);
-router.patch('/id/:id', userController.updateUser);
+router.put('/id/:id', authMiddleware, userController.updateUser);
+router.patch('/id/:id', authMiddleware, userController.updateUser);
 router.patch('/:id/line-notify', userController.updateLineNotifyEnabled);
-router.delete('/id/:id', async (req, res) => {
+router.delete('/id/:id', authMiddleware, async (req, res) => {
   try {
     // Get user info first
     const [userRows] = await db.query('SELECT avatar, user_code FROM users WHERE user_id = ?', [req.params.id]);
@@ -176,7 +178,15 @@ router.delete('/id/:id', async (req, res) => {
     res.status(500).json({ message: 'Error deleting user or avatar', error: error.message });
   }
 });
-router.get('/role/:role', userController.getUsersByRole);
+router.get('/role/:role', authMiddleware, userController.getUsersByRole);
+
+// เพิ่ม login route
+router.post('/login', userController.login);
+
+// เพิ่ม endpoint สำหรับ verify token
+router.get('/verify-token', authMiddleware, (req, res) => {
+  res.json({ user: req.user });
+});
 
 // Debug route to test server
 router.get('/test', (req, res) => {

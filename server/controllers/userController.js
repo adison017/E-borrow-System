@@ -3,6 +3,8 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import User from '../models/userModel.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,6 +69,8 @@ const upload = multer({
   }
 }).single('avatar');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+
 const userController = {
   getAllUsers: async (req, res) => {
     try {
@@ -107,7 +111,14 @@ const userController = {
         });
       }
 
-      res.json(user);
+      // ปรับโครงสร้างข้อมูลตำแหน่งและสาขาให้ frontend ใช้งานง่าย
+      const userOut = {
+        ...user,
+        position: user.position_id ? { id: user.position_id, name: user.position_name } : null,
+        branch: user.branch_id ? { id: user.branch_id, name: user.branch_name } : null
+      };
+
+      res.json(userOut);
     } catch (err) {
       console.error('Error fetching user:', err);
       res.status(500).json({
@@ -117,10 +128,82 @@ const userController = {
     }
   },
 
+  login: async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ message: 'กรุณากรอก username และ password' });
+      }
+      const user = await User.findByUsername(username);
+      if (!user) {
+        return res.status(401).json({ message: 'ไม่พบผู้ใช้งานนี้' });
+      }
+      // ตรวจสอบรหัสผ่าน (hash)
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
+      }
+      // กำหนด role string สำหรับ frontend
+      let role = 'user';
+      if (user.role_name && user.role_name.toLowerCase().includes('admin')) role = 'admin';
+      else if (user.role_name && user.role_name.toLowerCase().includes('executive')) role = 'executive';
+      // สร้าง JWT token
+      const token = jwt.sign({ user_id: user.user_id, username: user.username, role }, JWT_SECRET, { expiresIn: '7d' });
+      // ส่งข้อมูล user (ไม่รวม password) + token + เฉพาะ field ที่จำเป็น
+      const { user_id, user_code, username: userUsername, Fullname, email, phone, avatar, street, parish, district, province, postal_no } = user;
+      console.log('LOGIN RESPONSE:', {
+        message: 'เข้าสู่ระบบสำเร็จ',
+        token,
+        user: {
+          user_id,
+          user_code,
+          username: userUsername,
+          Fullname,
+          email,
+          phone,
+          avatar,
+          street,
+          parish,
+          district,
+          province,
+          postal_no,
+          role
+        }
+      });
+      res.json({
+        message: 'เข้าสู่ระบบสำเร็จ',
+        token,
+        user: {
+          user_id,
+          user_code,
+          username: userUsername,
+          Fullname,
+          email,
+          phone,
+          avatar,
+          street,
+          parish,
+          district,
+          province,
+          postal_no,
+          role
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', error: error.message });
+    }
+  },
+
   createUser: async (req, res) => {
     try {
       const userData = req.body;
       console.log('Creating user with data:', userData);
+
+      // hash password ก่อนบันทึก
+      if (userData.password) {
+        userData.password = await bcrypt.hash(userData.password, 10);
+      }
 
       // Create the user
       const createdUser = await User.create(userData);

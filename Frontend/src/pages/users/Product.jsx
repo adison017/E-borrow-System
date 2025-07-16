@@ -2,9 +2,9 @@ import { Button, Menu, MenuHandler, MenuItem, MenuList } from "@material-tailwin
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { MdAdd, MdRemove, MdSearch, MdShoppingCart } from "react-icons/md";
-import { globalUserData } from '../../components/Header';
+// import { globalUserData } from '../../components/Header';
 import Notification from '../../components/Notification';
-import { getCategories, getEquipment, updateEquipmentStatus } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
+import { getCategories, getEquipment, updateEquipmentStatus, authFetch } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
@@ -96,11 +96,24 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({ show: false, title: '', message: '', type: 'info' });
 
+  // Get user info from localStorage
+  const userStr = localStorage.getItem('user');
+  let globalUserData = null;
+  if (userStr) {
+    try {
+      globalUserData = JSON.parse(userStr);
+    } catch (e) {}
+  }
+
   // โหลดข้อมูลจาก API
   useEffect(() => {
     setLoading(true);
     getEquipment()
       .then(data => {
+        if (!Array.isArray(data)) {
+          setEquipmentData([]);
+          return;
+        }
         // map field ให้ตรงกับ UI เดิม โดยใช้ item_code เป็น string เสมอ
         const mapped = data.map(item => ({
           id: String(item.item_code), // บังคับเป็น string
@@ -126,6 +139,10 @@ const Home = () => {
   // โหลด category จาก API
   useEffect(() => {
     getCategories().then(data => {
+      if (!Array.isArray(data)) {
+        setCategories(['ทั้งหมด']);
+        return;
+      }
       // สมมติ field ชื่อหมวดหมู่คือ name
       const names = data.map(item => item.name);
       setCategories(['ทั้งหมด', ...names]);
@@ -298,7 +315,7 @@ const Home = () => {
     console.log('payload', payload);
 
     try {
-      const response = await fetch('http://localhost:5000/api/borrows', {
+      const response = await authFetch('http://localhost:5000/api/borrows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

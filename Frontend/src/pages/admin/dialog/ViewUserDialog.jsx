@@ -78,9 +78,9 @@ export default function ViewUserDialog({ open, onClose, userData }) {
     const fetchData = async () => {
       try {
         const [positionsResponse, branchesResponse, rolesResponse, provincesResponse] = await Promise.all([
-          axios.get('http://localhost:5000/users/positions'),
-          axios.get('http://localhost:5000/users/branches'),
-          axios.get('http://localhost:5000/users/roles'),
+          axios.get('http://localhost:5000/api/users/positions'),
+          axios.get('http://localhost:5000/api/users/branches'),
+          axios.get('http://localhost:5000/api/users/roles'),
           fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json').then(res => res.json())
         ]);
         setPositions(positionsResponse.data);

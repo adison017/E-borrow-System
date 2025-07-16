@@ -110,7 +110,7 @@ export const getAllReturns_pay = async (user_id = null) => {
   LEFT JOIN roles r ON u.role_id = r.role_id
   LEFT JOIN returns ret ON bt.borrow_id = ret.borrow_id
   LEFT JOIN damage_levels dl ON ret.condition_level_id = dl.damage_id
-  WHERE ret.pay_status IN ('pending', 'paid')`;
+  WHERE ret.pay_status IN ('pending')`;
 
   const params = [];
   if (user_id) {

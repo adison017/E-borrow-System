@@ -1,6 +1,6 @@
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
-import { globalUserData, globalUpdateProfileImage } from '../../components/Header';
+// import { globalUpdateProfileImage } from '../../components/Header';
 
 const PersonalInfoEdit = () => {
   const [formData, setFormData] = useState({
@@ -49,9 +49,9 @@ const PersonalInfoEdit = () => {
     const fetchData = async () => {
       try {
         const [positionsResponse, branchesResponse, rolesResponse] = await Promise.all([
-          axios.get('http://localhost:5000/users/positions'),
-          axios.get('http://localhost:5000/users/branches'),
-          axios.get('http://localhost:5000/users/roles')
+          axios.get('http://localhost:5000/api/users/positions'),
+          axios.get('http://localhost:5000/api/users/branches'),
+          axios.get('http://localhost:5000/api/users/roles')
         ]);
 
         if (!positionsResponse.data) throw new Error('Failed to fetch positions');
@@ -69,6 +69,18 @@ const PersonalInfoEdit = () => {
     fetchData();
   }, []);
 
+  // หลัง setPositions, setBranches ใน fetchData
+  useEffect(() => {
+    if (positions.length && formData.position_id && !formData.position_name) {
+      const pos = positions.find(p => String(p.position_id) === String(formData.position_id));
+      if (pos) setFormData(prev => ({ ...prev, position_name: pos.position_name }));
+    }
+    if (branches.length && formData.branch_id && !formData.branch_name) {
+      const br = branches.find(b => String(b.branch_id) === String(formData.branch_id));
+      if (br) setFormData(prev => ({ ...prev, branch_name: br.branch_name }));
+    }
+  }, [positions, branches, formData.position_id, formData.branch_id]);
+
   // 1. ปรับ getAvatarUrl ให้เติม /user/ ถ้า path เป็นชื่อไฟล์
   const getAvatarUrl = (path) => {
     if (!path) return '/logo_it.png';
@@ -78,7 +90,17 @@ const PersonalInfoEdit = () => {
     return `http://localhost:5000/uploads/user/${path}`;
   };
 
+  // Get user info from localStorage
   useEffect(() => {
+    // Only run once on mount
+    const userStr = localStorage.getItem('user');
+    let globalUserData = null;
+    if (userStr) {
+      try {
+        globalUserData = JSON.parse(userStr);
+      } catch (e) {}
+    }
+
     if (globalUserData) {
       console.log('=== Initial Data Load ===');
       console.log('Global user data:', globalUserData);
@@ -114,7 +136,7 @@ const PersonalInfoEdit = () => {
     } else {
       console.log('No global user data available');
     }
-  }, [globalUserData]);
+  }, []); // <--- Only run once
 
   // เพิ่ม useEffect สำหรับตรวจสอบการโหลดรูปภาพ
   useEffect(() => {
@@ -240,20 +262,19 @@ const PersonalInfoEdit = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    if (name === 'position_name') {
-      const selectedPosition = positions.find(p => p.position_name === value);
+    if (name === 'position_id') {
+      const pos = positions.find(p => String(p.position_id) === value);
       setFormData(prev => ({
         ...prev,
-        position_name: value,
-        position_id: selectedPosition ? selectedPosition.position_id : prev.position_id
+        position_id: value,
+        position_name: pos ? pos.position_name : ''
       }));
-    } else if (name === 'branch_name') {
-      const selectedBranch = branches.find(b => b.branch_name === value);
+    } else if (name === 'branch_id') {
+      const br = branches.find(b => String(b.branch_id) === value);
       setFormData(prev => ({
         ...prev,
-        branch_name: value,
-        branch_id: selectedBranch ? selectedBranch.branch_id : prev.branch_id
+        branch_id: value,
+        branch_name: br ? br.branch_name : ''
       }));
     } else if (name === 'role_name') {
       const selectedRole = roles.find(r => r.role_name === value);
@@ -313,7 +334,7 @@ const PersonalInfoEdit = () => {
 
         try {
           console.log('Sending upload request to server...');
-          const response = await axios.post('http://localhost:5000/users/upload-image', formDataImage, {
+          const response = await axios.post('http://localhost:5000/api/users/upload-image', formDataImage, {
             headers: {
               'Content-Type': 'multipart/form-data'
             },
@@ -357,6 +378,8 @@ const PersonalInfoEdit = () => {
         role: role ? { id: role.role_id, name: role.role_name } : null
       });
 
+      // --- ก่อนส่ง PUT ---
+      console.log('Final avatar to update:', newAvatarPath); // เพิ่ม log ตรวจสอบ
       const userDataToUpdate = {
         user_code: formData.user_code,
         username: formData.username,
@@ -365,35 +388,53 @@ const PersonalInfoEdit = () => {
         phone: formData.phone || '',
         position_id: position ? position.position_id : formData.position_id,
         branch_id: branch ? branch.branch_id : formData.branch_id,
-        role_id: role ? role.role_id : formData.role_id,
         street: formData.street || '',
         parish: formData.parish || '',
         district: formData.district || '',
         province: formData.province || '',
         postal_no: formData.postal_no || '',
-        avatar: newAvatarPath // ใช้ชื่อไฟล์โดยตรง
+        avatar: (typeof newAvatarPath === 'string' && newAvatarPath.includes('/') ? newAvatarPath.split('/').pop() : newAvatarPath)
       };
+      if (role ? role.role_id : formData.role_id) {
+        userDataToUpdate.role_id = role ? role.role_id : formData.role_id;
+      }
 
       if (formData.password) {
         userDataToUpdate.password = formData.password;
       }
 
       console.log('=== Sending User Data Update ===');
-      console.log('Update URL:', `http://localhost:5000/users/id/${formData.user_id}`);
+      console.log('Update URL:', `http://localhost:5000/api/users/id/${formData.user_id}`);
       console.log('Update data:', userDataToUpdate);
 
-      const updateResponse = await axios.put(`http://localhost:5000/users/id/${formData.user_id}`, userDataToUpdate, {
-        validateStatus: function (status) {
-          return status < 500; // Resolve only if the status code is less than 500
+      const token = localStorage.getItem('token');
+      const updateResponse = await axios.put(
+        `http://localhost:5000/api/users/id/${formData.user_id}`,
+        userDataToUpdate,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          validateStatus: function (status) {
+            return status < 500; // Resolve only if the status code is less than 500
+          }
         }
-      });
+      );
       console.log('Update response:', updateResponse.data);
 
       if (updateResponse.status === 200 && updateResponse.data) {
         console.log('=== Fetching Updated User Data ===');
-        const updatedUserResponse = await axios.get(`http://localhost:5000/users/id/${formData.user_id}`);
+        const updatedUserResponse = await axios.get(`http://localhost:5000/api/users/id/${formData.user_id}`);
         const updatedUser = updatedUserResponse.data;
         console.log('Updated user data:', updatedUser);
+
+        // Update localStorage user ทันที (เรียลไทม์)
+        try {
+          localStorage.setItem('user', JSON.stringify({
+            ...updatedUser,
+            avatar: updatedUser.avatar // อัปเดต avatar ด้วย
+          }));
+        } catch {}
 
         // Update local preview image
         const imageUrl = getAvatarUrl(updatedUser.avatar);
@@ -429,10 +470,7 @@ const PersonalInfoEdit = () => {
         window.dispatchEvent(imageEvent);
         console.log('Profile image update event dispatched');
 
-        if (globalUpdateProfileImage) {
-          console.log('Updating global profile image...');
-          globalUpdateProfileImage(imageUrl);
-        }
+        // หากต้องการอัปเดตรูปโปรไฟล์ ให้ใช้ window.dispatchEvent(new CustomEvent('profileImageUpdated', { detail: { imagePath: 'URL' } }))
 
         console.log('=== Update Process Completed Successfully ===');
         showSuccessDialog();
@@ -452,6 +490,52 @@ const PersonalInfoEdit = () => {
   };
 
   const isFormValid = formData.username && formData.Fullname && formData.email && formData.phone;
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      let userId = null;
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          userId = userObj.user_id;
+        } catch {}
+      }
+      if (!userId) return;
+      try {
+        const res = await fetch(`http://localhost:5000/api/users/id/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const user = await res.json();
+        setFormData(prev => ({
+          ...prev,
+          user_id: user.user_id,
+          user_code: user.user_code,
+          username: user.username,
+          Fullname: user.Fullname,
+          email: user.email,
+          phone: user.phone,
+          position_id: user.position_id,
+          position_name: user.position_name,
+          branch_id: user.branch_id,
+          branch_name: user.branch_name,
+          role_id: user.role_id,
+          role_name: user.role_name,
+          street: user.street,
+          parish: user.parish,
+          district: user.district,
+          province: user.province,
+          postal_no: user.postal_no,
+          pic: user.avatar
+        }));
+      } catch (e) {
+        // ignore
+      }
+    };
+    fetchUser();
+  }, []);
 
   return (
     <div data-theme="light" className="container mx-auto max-w-8xl py-10 px-4 sm:px-6">
@@ -563,15 +647,22 @@ const PersonalInfoEdit = () => {
                         <span className="label-text text-gray-700 font-medium text-left">ตำแหน่ง</span>
                       </label>
                       <select
-                        name="position_name"
+                        name="position_id"
                         className="select select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
-                        value={formData.position_name}
-                        onChange={handleChange}
+                        value={formData.position_id || ''}
+                        onChange={e => {
+                          const pos = positions.find(p => String(p.position_id) === e.target.value);
+                          setFormData(prev => ({
+                            ...prev,
+                            position_id: e.target.value,
+                            position_name: pos ? pos.position_name : ''
+                          }));
+                        }}
                         required
                       >
                         <option value="" disabled>เลือกตำแหน่ง</option>
                         {positions.map(position => (
-                          <option key={position.position_id} value={position.position_name}>
+                          <option key={position.position_id} value={position.position_id}>
                             {position.position_name}
                           </option>
                         ))}
@@ -583,15 +674,22 @@ const PersonalInfoEdit = () => {
                         <span className="label-text text-gray-700 font-medium text-left">สาขา</span>
                       </label>
                       <select
-                        name="branch_name"
+                        name="branch_id"
                         className="select select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
-                        value={formData.branch_name}
-                        onChange={handleChange}
+                        value={formData.branch_id || ''}
+                        onChange={e => {
+                          const br = branches.find(b => String(b.branch_id) === e.target.value);
+                          setFormData(prev => ({
+                            ...prev,
+                            branch_id: e.target.value,
+                            branch_name: br ? br.branch_name : ''
+                          }));
+                        }}
                         required
                       >
                         <option value="" disabled>เลือกสาขา</option>
                         {branches.map(branch => (
-                          <option key={branch.branch_id} value={branch.branch_name}>
+                          <option key={branch.branch_id} value={branch.branch_id}>
                             {branch.branch_name}
                           </option>
                         ))}
