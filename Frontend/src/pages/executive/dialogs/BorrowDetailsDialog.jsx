@@ -265,9 +265,9 @@ export default function BorrowDetailsDialog({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                 {/* ข้อมูลผู้ขอยืมและช่วงเวลา */}
                 <div>
-                  <SectionHeader 
-                    title="ข้อมูลผู้ขอยืม" 
-                    icon={<UserIcon className="h-5 w-5 text-gray-500" />} 
+                  <SectionHeader
+                    title="ข้อมูลผู้ขอยืม"
+                    icon={<UserIcon className="h-5 w-5 text-gray-500" />}
                   />
                   {borrower && (
                     <div className="flex flex-col items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg mt-3 shadow-sm">
@@ -288,9 +288,9 @@ export default function BorrowDetailsDialog({
                     </div>
                   )}
                   <div className="mt-5">
-                    <SectionHeader 
-                      title="ข้อมูลการยืม" 
-                      icon={<CalendarIcon className="h-5 w-5 text-gray-500" />} 
+                    <SectionHeader
+                      title="ข้อมูลการยืม"
+                      icon={<CalendarIcon className="h-5 w-5 text-gray-500" />}
                     />
                     <div className="grid grid-cols-2 gap-4 p-4 bg-white border border-gray-200 rounded-lg mt-3 shadow-sm">
                       <div className="border-r border-gray-200 pr-4">
@@ -304,9 +304,9 @@ export default function BorrowDetailsDialog({
                     </div>
                   </div>
                   <div className="mt-5">
-                    <SectionHeader 
-                      title="วัตถุประสงค์" 
-                      icon={<TagIcon className="h-5 w-5 text-gray-500" />} 
+                    <SectionHeader
+                      title="วัตถุประสงค์"
+                      icon={<TagIcon className="h-5 w-5 text-gray-500" />}
                     />
                     <div className="p-4 bg-white border border-gray-200 rounded-lg mt-3 shadow-sm">
                       <p className="text-sm leading-relaxed text-gray-700">{data.purpose}</p>
@@ -315,9 +315,9 @@ export default function BorrowDetailsDialog({
                 </div>
                 {/* ข้อมูลอุปกรณ์ */}
                 <div>
-                  <SectionHeader 
-                    title="รายการครุภัณฑ์ที่ยืม" 
-                    icon={<CubeIcon className="h-5 w-5 text-gray-500" />} 
+                  <SectionHeader
+                    title="รายการครุภัณฑ์ที่ยืม"
+                    icon={<CubeIcon className="h-5 w-5 text-gray-500" />}
                   />
                   <div className="shadow-sm mt-3">
                     <div className="overflow-x-auto  rounded-lg">
@@ -402,9 +402,9 @@ export default function BorrowDetailsDialog({
                   {/* หมายเหตุการอนุมัติ */}
                   {data.approvalNotes && (
                     <div className="mt-5">
-                      <SectionHeader 
-                        title="หมายเหตุการอนุมัติ" 
-                        icon={<InformationCircleIcon className="h-5 w-5 text-gray-500" />} 
+                      <SectionHeader
+                        title="หมายเหตุการอนุมัติ"
+                        icon={<InformationCircleIcon className="h-5 w-5 text-gray-500" />}
                       />
                       <div className="mt-3">
                         <div
@@ -474,8 +474,8 @@ export default function BorrowDetailsDialog({
                       </button>
                       <button
                         className={`btn btn-ghost hover:opacity-90 text-white rounded-2xl
-                          ${actionType === "approve" 
-                            ? "bg-emerald-600 hover:bg-emerald-700" 
+                          ${actionType === "approve"
+                            ? "bg-emerald-600 hover:bg-emerald-700"
                             : "bg-red-600 hover:bg-red-700"
                           }`}
                         onClick={confirmAction}
@@ -550,8 +550,8 @@ export default function BorrowDetailsDialog({
                     </label>
                     <div className="space-y-2 overflow-y-auto pr-2">
                       {rejectReasonOptions.map((reason) => (
-                        <label 
-                          key={reason} 
+                        <label
+                          key={reason}
                           className={`flex items-start gap-2.5 p-3 cursor-pointer transition-colors duration-150 rounded-lg border
                             ${
                               rejectReason === reason

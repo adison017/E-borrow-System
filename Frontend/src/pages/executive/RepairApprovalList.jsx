@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
+import io from 'socket.io-client';
 
 export default function RepairApprovalList() {
   const [repairRequests, setRepairRequests] = useState([]);
@@ -54,8 +55,19 @@ export default function RepairApprovalList() {
     completed: "เสร็จสิ้น"
   };
 
+  const socket = io('http://localhost:5000');
+
   useEffect(() => {
     fetchRepairRequests();
+    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต repair approval list แบบ real-time ===
+    const handleBadgeUpdate = () => {
+      fetchRepairRequests();
+    };
+    socket.on('badgeCountsUpdated', handleBadgeUpdate);
+    return () => {
+      socket.off('badgeCountsUpdated', handleBadgeUpdate);
+    };
+    // === จบ logic ===
   }, []);
 
   const fetchRepairRequests = async () => {

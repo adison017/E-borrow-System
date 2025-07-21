@@ -31,6 +31,7 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import ScannerDialog from "../../components/ScannerDialog";
 import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
 import EquipmentDeliveryDialog from "./dialog/EquipmentDeliveryDialog";
+import io from 'socket.io-client';
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
@@ -88,6 +89,7 @@ const ReceiveItem = () => {
   const [selectedBorrow, setSelectedBorrow] = useState(null);
   const [selectedBorrowId, setSelectedBorrowId] = useState(null);
 
+  const socket = io('http://localhost:5000');
 
 
   useEffect(() => {
@@ -95,6 +97,17 @@ const ReceiveItem = () => {
     getAllBorrows().then(data => {
       setBorrows(Array.isArray(data) ? data : []);
     });
+    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต receive list แบบ real-time ===
+    const handleBadgeUpdate = () => {
+      getAllBorrows().then(data => {
+        setBorrows(Array.isArray(data) ? data : []);
+      });
+    };
+    socket.on('badgeCountsUpdated', handleBadgeUpdate);
+    return () => {
+      socket.off('badgeCountsUpdated', handleBadgeUpdate);
+    };
+    // === จบ logic ===
   }, []);
 
   useEffect(() => {

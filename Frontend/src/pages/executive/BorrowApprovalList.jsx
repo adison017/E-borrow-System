@@ -9,6 +9,7 @@ import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
+import io from 'socket.io-client';
 
 const API_BASE = "http://localhost:5000";
 
@@ -62,6 +63,8 @@ export default function BorrowApprovalList() {
     returned: "คืนแล้ว"
   };
 
+  const socket = io('http://localhost:5000');
+
   useEffect(() => {
     setLoading(true);
     getAllBorrows()
@@ -73,6 +76,17 @@ export default function BorrowApprovalList() {
         setLoading(false);
         showNotification("เกิดข้อผิดพลาดในการโหลดข้อมูล", "error");
       });
+    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต borrow approval list แบบ real-time ===
+    const handleBadgeUpdate = () => {
+      getAllBorrows().then(data => {
+        setBorrowRequests(data);
+      });
+    };
+    socket.on('badgeCountsUpdated', handleBadgeUpdate);
+    return () => {
+      socket.off('badgeCountsUpdated', handleBadgeUpdate);
+    };
+    // === จบ logic ===
   }, []);
 
   const handleOpenDialog = (request) => {

@@ -9,62 +9,6 @@ import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
 
-// Sample borrowing and repair history data
-const historyData = {
-  1: [
-    {
-      type: 'borrow',
-      date: '10/05/2023',
-      returnDate: '17/05/2023',
-      borrower: 'นายสมชาย ใจดี',
-      status: 'คืนแล้ว',
-      reason: 'ใช้ในการนำเสนอโครงการ'
-    },
-    {
-      type: 'borrow',
-      date: '20/05/2023',
-      returnDate: '27/05/2023',
-      borrower: 'นางสาวสมหญิง ใจกว้าง',
-      status: 'คืนแล้ว',
-      reason: 'ใช้ในการประชุมวิชาการ'
-    }
-  ],
-  2: [
-    {
-      type: 'borrow',
-      date: '01/06/2023',
-      returnDate: '15/06/2023',
-      borrower: 'นายทดสอบ ระบบ',
-      status: 'กำลังยืม',
-      reason: 'ใช้ในการสอนวิชาการโปรแกรมมิ่ง'
-    },
-    {
-      type: 'repair',
-      date: '15/04/2023',
-      description: 'เปลี่ยนหลอดไฟโปรเจคเตอร์',
-      status: 'ซ่อมเสร็จแล้ว',
-      cost: '2,500 บาท'
-    }
-  ],
-  3: [
-    {
-      type: 'repair',
-      date: '10/06/2023',
-      description: 'ตรวจสอบระบบเซ็นเซอร์กล้อง',
-      status: 'กำลังซ่อม',
-      cost: 'ประมาณ 1,800 บาท'
-    },
-    {
-      type: 'borrow',
-      date: '01/05/2023',
-      returnDate: '08/05/2023',
-      borrower: 'นางสาวทดสอบ ระบบ',
-      status: 'คืนแล้ว',
-      reason: 'ใช้ในการถ่ายภาพกิจกรรม'
-    }
-  ]
-};
-
 // ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
 function getTomorrowTH() {
   const now = new Date();
@@ -110,6 +54,7 @@ const Home = () => {
     setLoading(true);
     getEquipment()
       .then(data => {
+        console.log('API equipment data:', data); // เพิ่ม log เพื่อตรวจสอบข้อมูลที่ได้จาก API
         if (!Array.isArray(data)) {
           setEquipmentData([]);
           return;
@@ -122,7 +67,7 @@ const Home = () => {
           code: String(item.item_code), // บังคับเป็น string
           category: item.category,
           status: item.status,
-          dueDate: '',
+          dueDate: item.dueDate || item.return_date || item.due_date || '', // ใช้ข้อมูลจริงจาก API
           image: item.pic,
           available: item.quantity,
           specifications: item.description,
@@ -574,7 +519,18 @@ const Home = () => {
                             {equipment.status === 'พร้อมยืม' && (
                               <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
                             )}
-                            {equipment.dueDate && equipment.status !== 'พร้อมยืม' && (
+                            {/* เพิ่มแสดงวันที่คืนเมื่อสถานะเป็น 'ถูกยืม' */}
+                            {equipment.status === 'ถูกยืม' && equipment.dueDate && (
+                              <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-xl bg-yellow-100 border border-yellow-300 shadow-sm animate-pulse">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-base font-bold text-red-700">
+                                  กำหนดคืน {new Date(equipment.dueDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                                </span>
+                              </div>
+                            )}
+                            {equipment.dueDate && equipment.status !== 'พร้อมยืม' && equipment.status !== 'ถูกยืม' && (
                               <p className="text-sm">กำหนดคืน {equipment.dueDate}</p>
                             )}
                           </div>
@@ -718,7 +674,6 @@ const Home = () => {
           showDetailDialog={showDetailDialog}
           setShowDetailDialog={setShowDetailDialog}
           selectedEquipment={selectedEquipment}
-          historyData={historyData}
           showImageModal={showImageModal}
           getStatusBadge={getStatusBadge}
         />

@@ -103,6 +103,24 @@ const Fine = () => {
     return { text: 'ดี', color: 'bg-green-100 text-green-700 border-green-400' };
   }
 
+  // ฟังก์ชันแปลง damage_level_id เป็นข้อความและสี
+  function getConditionStatus(damage_level_id) {
+    switch (Number(damage_level_id)) {
+      case 5:
+        return { text: 'สภาพดี', color: 'bg-green-100 text-green-700 border-green-400' };
+      case 6:
+        return { text: 'ชำรุดเล็กน้อย', color: 'bg-yellow-100 text-yellow-800 border-yellow-400' };
+      case 7:
+        return { text: 'ชำรุดปานกลาง', color: 'bg-orange-100 text-orange-800 border-orange-400' };
+      case 8:
+        return { text: 'ชำรุดหนัก', color: 'bg-red-100 text-red-700 border-red-400' };
+      case 9:
+        return { text: 'สูญหาย', color: 'bg-gray-300 text-gray-800 border-gray-400' };
+      default:
+        return { text: 'ดี', color: 'bg-green-100 text-green-700 border-green-400' };
+    }
+  }
+
   if (loading) return <div>Loading...</div>;
 
   // ป้องกัน error .filter is not a function
@@ -209,8 +227,7 @@ const Fine = () => {
                       <h3 className="font-semibold text-gray-700 mb-2">รายการครุภัณฑ์</h3>
                       <div className="flex flex-wrap gap-2">
                         {items.map((item, index) => {
-                          console.log('equipment item:', item); // debug log
-                          const cond = getConditionInfo(item.fine_percent);
+                          const cond = getConditionStatus(item.damage_level_id);
                           return (
                             <div key={item.item_id} className="mb-1">
                               <span className={`px-3 py-1 rounded-full text-xs md:text-sm ${

@@ -7,6 +7,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { Button } from "@material-tailwind/react";
 import { API_BASE, authFetch } from '../../../utils/api';
+import { updateEquipmentStatus } from '../../../utils/api';
 // import { globalUserData } from '../../../components/Header.jsx';
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -33,6 +34,7 @@ const ReturnFormDialog = ({
   const [slipFile, setSlipFile] = useState(null);
   const [isVerifyingSlip, setIsVerifyingSlip] = useState(false);
   const [slipVerifyResult, setSlipVerifyResult] = useState(null);
+  const [itemConditions, setItemConditions] = useState({}); // เก็บสภาพรายชิ้น
 
   const userId = borrowedItem?.user_id; // ผู้ยืม
   // Get returnById (ผู้ตรวจรับ) จาก localStorage
@@ -102,9 +104,21 @@ const ReturnFormDialog = ({
   // รวมค่าปรับล่าช้าและค่าปรับเสียหาย
   const totalFineAmount = fineAmount + lateFineAmount;
 
-  // เพิ่มการอ่าน damage_cost จาก paymentDetails (ถ้ามี) และคำนวณยอดรวม
-  const fineAmountValue = Number(paymentDetails?.fine_amount ?? fineAmount) || 0;
-  const damageCost = Number(paymentDetails?.damage_cost ?? 0);
+  const equipmentItems = Array.isArray(borrowedItem?.equipment)
+    ? borrowedItem.equipment
+    : borrowedItem?.equipment
+      ? [borrowedItem.equipment]
+      : [];
+  // คำนวณค่าเสียหายรวมจากแต่ละชิ้น (เปอร์เซ็นต์ * ราคา)
+  const fineAmountValue = equipmentItems.reduce((sum, eq) => {
+    const cond = itemConditions[eq.item_id];
+    if (!cond || !cond.damageLevelId) return sum;
+    const level = damageLevels.find(dl => String(dl.damage_id) === String(cond.damageLevelId));
+    if (!level || !level.fine_percent) return sum;
+    const price = Number(eq.price || 0);
+    const percent = Number(level.fine_percent) / 100;
+    return sum + Math.round(price * percent * (eq.quantity || 1));
+  }, 0);
   const totalAmount = lateFineAmount + fineAmountValue;
 
   useEffect(() => {
@@ -119,6 +133,7 @@ const ReturnFormDialog = ({
       setSlipFile(null);
       setIsVerifyingSlip(false);
       setSlipVerifyResult(null);
+      setItemConditions({}); // รีเซ็ตสภาพรายชิ้นเมื่อเปิด dialog
     }
   }, [isOpen]);
 
@@ -152,39 +167,99 @@ const ReturnFormDialog = ({
     { value: "online", label: "ออนไลน์" },
   ];
 
-  const equipmentItems = Array.isArray(borrowedItem.equipment) ? borrowedItem.equipment : [borrowedItem.equipment];
+  // --- UI สำหรับเลือกสภาพและหมายเหตุรายชิ้น ---
+  // ใส่ไว้ก่อนปุ่มยืนยัน
+  // <div className="mb-6">
+  //   <h3 className="font-bold mb-2">สภาพครุภัณฑ์แต่ละชิ้น</h3>
+  //   {equipmentItems.map(eq => (
+  //     <div key={eq.item_id} className="mb-4 p-2 border rounded bg-gray-50">
+  //       <div className="font-semibold mb-1">{eq.name} ({eq.item_code})</div>
+  //       <select
+  //         className="w-full p-2 border rounded mb-1"
+  //         value={itemConditions[eq.item_id]?.damageLevelId || ''}
+  //         onChange={e => setItemConditions(prev => ({
+  //           ...prev,
+  //           [eq.item_id]: {
+  //             ...prev[eq.item_id],
+  //             damageLevelId: e.target.value
+  //           }
+  //         }))}
+  //       >
+  //         <option value="">เลือกสภาพ</option>
+  //         {damageLevels.map(dl => (
+  //           <option key={dl.damage_id} value={dl.damage_id}>{dl.detail}</option>
+  //         ))}
+  //       </select>
+  //       <textarea
+  //         className="w-full p-2 border rounded"
+  //         placeholder="หมายเหตุ (ถ้ามี)"
+  //         value={itemConditions[eq.item_id]?.note || ''}
+  //         onChange={e => setItemConditions(prev => ({
+  //           ...prev,
+  //           [eq.item_id]: {
+  //             ...prev[eq.item_id],
+  //             note: e.target.value
+  //           }
+  //         }))}
+  //       />
+  //     </div>
+  //   ))}
+  // </div>
 
   const handleSubmit = async () => {
     // Validate ข้อมูลก่อนส่ง
     if (!borrowedItem?.borrow_id) {
       notify('ไม่พบข้อมูลการยืม', 'error');
+      alert('ไม่พบข้อมูลการยืม');
       return;
     }
     if (!userId) {
       notify('ไม่พบข้อมูลผู้คืน (userId)', 'error');
+      alert('ไม่พบข้อมูลผู้คืน (userId)');
       return;
     }
     if (!returnById) {
       notify('ไม่พบข้อมูลผู้ตรวจรับคืน (return_by)', 'error');
+      alert('ไม่พบข้อมูลผู้ตรวจรับคืน (return_by)');
       return;
     }
-    if (!selectedDamageLevelId) {
-      notify('กรุณาเลือกสภาพครุภัณฑ์', 'error');
+    const missing = equipmentItems.filter(eq => !itemConditions[eq.item_id] || !itemConditions[eq.item_id].damageLevelId);
+    if (missing.length > 0) {
+      notify('กรุณาเลือกสภาพครุภัณฑ์ให้ครบทุกชิ้น', 'error');
+      alert('กรุณาเลือกสภาพครุภัณฑ์ให้ครบทุกชิ้น');
       return;
     }
     setIsSubmitting(true);
     // หา damage level object
     const selectedDamageLevel = damageLevels.find(dl => dl.damage_id === Number(selectedDamageLevelId) || dl.id === Number(selectedDamageLevelId));
     const proofImage = null;
+
+    // === เพิ่ม logic คำนวณ fine_amount ของแต่ละชิ้น ===
+    const itemConditionsWithFine = {};
+    equipmentItems.forEach(eq => {
+      const cond = itemConditions[eq.item_id] || {};
+      const level = damageLevels.find(dl => String(dl.damage_id) === String(cond.damageLevelId));
+      let fine = 0;
+      if (level && level.fine_percent) {
+        const price = Number(eq.price || 0);
+        const percent = Number(level.fine_percent) / 100;
+        fine = Math.round(price * percent * (eq.quantity || 1));
+      }
+      itemConditionsWithFine[eq.item_id] = {
+        ...cond,
+        fine_amount: fine
+      };
+    });
+    // === จบ logic ===
+
     const payload = {
       borrow_id: borrowedItem.borrow_id,
       return_date: getThailandNowString(),
       return_by: returnById, // ผู้ตรวจรับ
       user_id: userId,      // ผู้ยืม
-      condition_level_id: selectedDamageLevel ? (selectedDamageLevel.damage_id || selectedDamageLevel.id) : selectedDamageLevelId,
-      condition_text: selectedDamageLevel ? selectedDamageLevel.detail : '',
-      fine_amount: totalFineAmount,
-      damage_fine: fineAmount,
+      // condition_level_id, condition_text ไม่ต้องส่งถ้าใช้ per-item
+      fine_amount: fineAmountValue + lateFineAmount, // ใช้ค่ารวม per-item + ค่าปรับล่าช้า
+      damage_fine: fineAmountValue,                  // ใช้ค่ารวม per-item จริง
       late_fine: lateFineAmount,
       late_days: overdayCount,
       proof_image: proofImage || null,
@@ -192,18 +267,36 @@ const ReturnFormDialog = ({
       notes: returnNotes || '',
       pay_status: (paymentMethod === 'online' || paymentMethod === 'transfer') ? 'pending' : 'paid',
       paymentMethod,
+      item_conditions: itemConditionsWithFine, // ส่งแบบใหม่
     };
     console.log('submit payload', payload);
+    notify('กำลังส่งข้อมูลการคืน... ดู log เพิ่มเติมใน console', 'info');
     try {
       const res = await authFetch(`${API_BASE}/returns`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      console.log('API /returns response:', res);
       if (!res.ok) {
         const errText = await res.text();
+        console.error('API /returns error:', errText);
+        alert('เกิดข้อผิดพลาดในการบันทึกการคืน: ' + errText);
         throw new Error('เกิดข้อผิดพลาดในการบันทึกการคืน: ' + errText);
       }
+      // === อัปเดตสถานะครุภัณฑ์เป็น "ชำรุด" ถ้าสภาพเสียหาย > 70% ===
+      for (const eq of equipmentItems) {
+        const cond = itemConditions[eq.item_id];
+        const level = damageLevels.find(dl => String(dl.damage_id) === String(cond?.damageLevelId));
+        if (level && Number(level.fine_percent) >= 70) {
+          try {
+            await updateEquipmentStatus(eq.item_code, 'ชำรุด');
+          } catch (err) {
+            console.error('Error updating equipment status to ชำรุด:', err);
+          }
+        }
+      }
+      // === จบ logic ===
       notify(
         'บันทึกข้อมูลการคืนสำเร็จ' + ((paymentMethod === 'online' || paymentMethod === 'transfer') ? '\nผู้ใช้ต้องไปชำระเงินในหน้า "ชำระค่าปรับ"' : ''),
         'success'
@@ -213,8 +306,9 @@ const ReturnFormDialog = ({
       }
       onClose();
     } catch (err) {
+      console.error('Return error:', err);
       notify(err.message || 'เกิดข้อผิดพลาดในการบันทึกการคืน', 'error');
-    } finally {
+      alert('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่ทราบสาเหตุ'));
       setIsSubmitting(false);
     }
   };
@@ -407,115 +501,145 @@ const ReturnFormDialog = ({
               </div>
 
               {/* Return Form */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 shadow-sm space-y-4">
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2"><ClipboardDocumentListIcon className="w-5 h-5 text-blue-600" />ข้อมูลการคืน</h3>
-                  {isReadOnly && paymentDetails ? (
-                    <div className="space-y-3 mb-4 bg-blue-50 border border-blue-200 rounded-lg p-6">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 font-medium">สถานะชำระเงิน</span>
-                        <span className={`font-semibold px-2 py-1 rounded-full ${paymentDetails.pay_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800 animate-pulse'}`}>{paymentDetails.pay_status === 'paid' ? 'ชำระแล้ว' : 'รอชำระเงิน'}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 font-medium">วิธีการชำระเงิน</span>
-                        <span className="font-medium text-gray-800">{paymentDetails.payment_method || '-'}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 font-medium">ค่าปรับล่าช้า</span>
-                        <span className="font-medium text-amber-800">{Number(paymentDetails.fine_amount) || 0} บาท</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 font-medium">ค่าเสียหาย</span>
-                        <span className="font-medium text-amber-800">{Number(paymentDetails.damage_cost) || 0} บาท</span>
-                      </div>
-                      <div className="flex justify-between items-center border-t pt-2 mt-2">
-                        <span className="text-base font-bold text-gray-700">รวมทั้งสิ้น</span>
-                        <span className="font-bold text-blue-700 text-lg">{totalAmount} บาท</span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm text-gray-600 font-medium">หมายเหตุ</span>
-                        <span className="text-gray-800 text-sm mt-1 whitespace-pre-line">{paymentDetails.notes || '-'}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <fieldset disabled={isReadOnly} style={isReadOnly ? { opacity: 0.5, pointerEvents: 'none' } : {}}>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* สภาพครุภัณฑ์ */}
-                        <div className="space-y-4">
-                          <label className="block text-sm font-medium text-gray-700">สภาพครุภัณฑ์</label>
-                          <select
-                            className="w-full px-4 py-2.5 bg-white border border-white-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                            value={isReadOnly && paymentDetails ? paymentDetails.condition_level_id : (selectedDamageLevelId || "")}
-                            onChange={e => setSelectedDamageLevelId(e.target.value)}
-                            disabled={isReadOnly}
-                          >
-                            <option value="">เลือกสภาพครุภัณฑ์</option>
-                            {damageLevels.map(dl => (
-                              <option key={dl.damage_id || dl.id} value={dl.damage_id || dl.id}>
-                                {dl.name} {dl.fine_percent !== undefined && `(${dl.fine_percent}%)`}
-                              </option>
-                            ))}
-                          </select>
-                          {damageLevelDetail && selectedDamageLevelId && (() => {
-                            const level = damageLevels.find(dl => dl.damage_id === Number(selectedDamageLevelId) || dl.id === Number(selectedDamageLevelId));
-                            const style = getDamageLevelStyle(level);
-                            return (
-                              <div className={`mt-2 text-sm rounded p-2 flex items-start gap-2 ${style.bg} ${style.border} ${style.text}`}>
-                                {style.icon}
-                                <div>
-                                  <div className="font-semibold mb-1">
-                                    {level.name} {level.fine_percent !== undefined && `(${level.fine_percent}%)`}
-                                  </div>
-                                  <span>{damageLevelDetail}</span>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                          {!selectedDamageLevelId && (
-                            <div className="flex items-center gap-2 bg-red-50 border border-red-300 rounded-lg px-3 py-2 mt-2 mb-2 animate-pulse">
-                              <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                              <span className="text-sm text-red-700 font-semibold">กรุณาเลือกสภาพครุภัณฑ์</span>
-                            </div>
-                          )}
-                          <label className="block text-sm font-medium text-gray-700 mt-4">หมายเหตุ</label>
-                          <textarea
-                            className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                            placeholder="ระบุรายละเอียดเพิ่มเติม..."
-                            rows={4}
-                            value={isReadOnly && paymentDetails ? paymentDetails.notes : returnNotes}
-                            onChange={(e) => setReturnNotes(e.target.value)}
-                            disabled={isReadOnly}
-                          />
+              <div className="bg-white rounded-xl shadow-md p-6 mb-6 border border-blue-100">
+                <h3 className="text-lg font-bold text-blue-700 flex items-center gap-2 mb-4">
+                  <ClipboardDocumentListIcon className="w-5 h-5" />
+                  ข้อมูลการคืน
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* สภาพครุภัณฑ์รายชิ้น */}
+                  {equipmentItems.map(eq => (
+                    <div
+                      key={eq.item_id}
+                      className="mb-6 p-4 border border-blue-100 rounded-2xl bg-gradient-to-br from-blue-50 to-white shadow-md transition-all duration-200 hover:shadow-lg group"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="bg-blue-200 rounded-full p-2 shadow-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                         </div>
-                        {/* ค่าปรับ */}
-                        <div className="space-y-4">
-                          <label className="block text-sm font-medium text-gray-700">ค่าปรับล่าช้า</label>
+                        <div>
+                          <div className="font-bold text-blue-900 text-base leading-tight">{eq.name}</div>
+                          <div className="text-xs text-gray-500 italic mt-0.5 leading-tight">{eq.item_code}</div>
+                        </div>
+                      </div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1 mt-2" htmlFor={`condition-select-${eq.item_id}`}>เลือกสภาพครุภัณฑ์</label>
+                      <div className="relative">
+                        <select
+                          id={`condition-select-${eq.item_id}`}
+                          className="w-full p-2.5 border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-gray-800 bg-white transition-all duration-150 appearance-none pr-10 shadow-sm hover:border-blue-400"
+                          value={itemConditions[eq.item_id]?.damageLevelId || ''}
+                          onChange={e => setItemConditions(prev => ({
+                            ...prev,
+                            [eq.item_id]: {
+                              ...prev[eq.item_id],
+                              damageLevelId: e.target.value
+                            }
+                          }))}
+                        >
+                          <option value="">เลือกสภาพ</option>
+                          {damageLevels.map(dl => {
+                            let badge = '';
+                            if (dl.name?.includes('ดี')) badge = '🟢';
+                            else if (dl.name?.includes('เล็กน้อย')) badge = '🟡';
+                            else if (dl.name?.includes('ปานกลาง')) badge = '🟠';
+                            else if (dl.name?.includes('หนัก')) badge = '🔴';
+                            else if (dl.name?.includes('สูญหาย')) badge = '⚫';
+                            return (
+                              <option key={dl.damage_id} value={dl.damage_id}>
+                                {badge} {dl.name} {dl.fine_percent !== undefined && dl.fine_percent !== null ? `${dl.fine_percent}%` : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                          <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                      </div>
+                      {/* แสดง detail ของ damageLevels ที่เลือกเป็นข้อความเล็กๆ พร้อม badge สี */}
+                      {(() => {
+                        const selectedId = itemConditions[eq.item_id]?.damageLevelId;
+                        const selectedLevel = damageLevels.find(dl => String(dl.damage_id) === String(selectedId));
+                        if (!selectedLevel || !selectedLevel.detail) return null;
+                        let badge = null, bg = '', text = '';
+                        if (selectedLevel.name?.includes('ดี')) {
+                          badge = <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2 align-middle"></span>;
+                          bg = 'bg-green-50'; text = 'text-green-800';
+                        } else if (selectedLevel.name?.includes('เล็กน้อย')) {
+                          badge = <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-2 align-middle"></span>;
+                          bg = 'bg-yellow-50'; text = 'text-yellow-800';
+                        } else if (selectedLevel.name?.includes('ปานกลาง')) {
+                          badge = <span className="inline-block w-2 h-2 rounded-full bg-orange-400 mr-2 align-middle"></span>;
+                          bg = 'bg-orange-50'; text = 'text-orange-800';
+                        } else if (selectedLevel.name?.includes('หนัก')) {
+                          badge = <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-2 align-middle"></span>;
+                          bg = 'bg-red-50'; text = 'text-red-800';
+                        } else if (selectedLevel.name?.includes('สูญหาย')) {
+                          badge = <span className="inline-block w-2 h-2 rounded-full bg-gray-800 mr-2 align-middle"></span>;
+                          bg = 'bg-gray-100'; text = 'text-gray-800';
+                        }
+                        return (
+                          <div className={`flex items-center gap-2 text-xs rounded px-2 py-1 mb-1 mt-2 font-medium shadow-sm ${bg} ${text} animate-fade-in`} style={{ minHeight: 28 }}>
+                            {badge}
+                            <span>{selectedLevel.detail}</span>
+                          </div>
+                        );
+                      })()}
+                      <label className="block text-xs font-medium text-gray-500 mb-1 mt-2" htmlFor={`note-${eq.item_id}`}>หมายเหตุเพิ่มเติม (ถ้ามี)</label>
+                      <textarea
+                        id={`note-${eq.item_id}`}
+                        className="w-full p-2.5 border-2 border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-gray-700 bg-white transition-all duration-150 shadow-sm resize-none min-h-[44px] hover:border-blue-300 placeholder-gray-400"
+                        placeholder="ระบุรายละเอียดเพิ่มเติม เช่น รอยขีดข่วน, อุปกรณ์ขาด ฯลฯ"
+                        value={itemConditions[eq.item_id]?.note || ''}
+                        onChange={e => setItemConditions(prev => ({
+                          ...prev,
+                          [eq.item_id]: {
+                            ...prev[eq.item_id],
+                            note: e.target.value
+                          }
+                        }))}
+                      />
+                    </div>
+                  ))}
+                  {/* ค่าปรับ */}
+                  <div className="md:col-span-2">
+                    <div className="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-md p-5 mb-2">
+                      <h4 className="font-bold text-amber-700 text-base mb-4 flex items-center gap-2">
+                        <ExclamationTriangleIcon className="w-5 h-5 text-amber-500" /> สรุปค่าปรับ
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">ค่าปรับล่าช้า</label>
                           <input
                             type="text"
-                            className="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg shadow-sm focus:outline-none"
+                            className="w-full px-4 py-2 border rounded-lg bg-gray-100"
                             value={lateFineAmount.toLocaleString()}
                             readOnly
                           />
-                          <label className="block text-sm font-medium text-gray-700">ค่าเสียหาย</label>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">ค่าเสียหาย</label>
                           <input
                             type="text"
-                            className="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg shadow-sm focus:outline-none"
+                            className="w-full px-4 py-2 border rounded-lg bg-gray-100"
                             value={fineAmountValue.toLocaleString()}
                             readOnly
                           />
-                          <label className="block text-sm font-medium text-gray-700">รวมทั้งสิ้น</label>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">รวมทั้งสิ้น</label>
                           <input
                             type="text"
-                            className="w-full px-4 py-2.5 bg-blue-100 border border-blue-300 rounded-lg shadow-sm focus:outline-none font-bold text-blue-700 text-lg"
+                            className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-700 text-lg"
                             value={totalAmount.toLocaleString()}
                             readOnly
                           />
-                          <label className="block text-sm font-medium text-gray-700">วิธีการชำระค่าปรับ</label>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">วิธีการชำระค่าปรับ</label>
                           <select
-                            className="w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors border-gray-300"
-                            value={isReadOnly && paymentDetails ? paymentDetails.payment_method : paymentMethod}
+                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            value={paymentMethod}
                             onChange={e => setPaymentMethod(e.target.value)}
-                            disabled={isReadOnly}
                           >
                             {paymentMethods.map((method) => (
                               <option key={method.value} value={method.value}>
@@ -525,8 +649,8 @@ const ReturnFormDialog = ({
                           </select>
                         </div>
                       </div>
-                    </fieldset>
-                  )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
