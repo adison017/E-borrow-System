@@ -3,6 +3,7 @@
 @plugin "daisyui";
 
 
+
 /* Enhanced Table Styles */
 @layer components {
   .e-borrow-table {

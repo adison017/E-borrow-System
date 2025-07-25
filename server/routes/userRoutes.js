@@ -1,3 +1,4 @@
+
 import express from 'express';
 import fs from 'fs';
 import multer from 'multer';
@@ -8,6 +9,8 @@ import db from '../db.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+// ส่ง OTP ไปอีเมล
+router.post('/request-password-otp', userController.requestPasswordOtp);
 
 // CORS middleware
 router.use((req, res, next) => {

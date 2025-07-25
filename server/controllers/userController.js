@@ -1,10 +1,14 @@
+import bcrypt from 'bcrypt';
 import fs from 'fs';
+import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import User from '../models/userModel.js';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import { sendMail } from '../utils/emailUtils.js';
+// สำหรับเก็บ OTP ชั่วคราว (ใน production ควรใช้ redis หรือ db)
+const otpStore = new Map();
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,6 +76,29 @@ const upload = multer({
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
 const userController = {
+  // POST /api/users/request-password-otp
+  requestPasswordOtp: async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: 'กรุณาระบุอีเมล' });
+      // หา user จากอีเมล
+      const user = await User.findByEmail(email);
+      if (!user) return res.status(404).json({ message: 'ไม่พบผู้ใช้งานนี้' });
+      // สร้าง otp 6 หลัก
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      otpStore.set(email, { otp, expires: Date.now() + 5 * 60 * 1000 });
+      // ส่งอีเมล
+      await sendMail({
+        to: email,
+        subject: 'OTP สำหรับยืนยันการเปลี่ยนรหัสผ่าน',
+        text: `รหัส OTP ของคุณคือ: ${otp}`,
+        html: `<h2>OTP สำหรับเปลี่ยนรหัสผ่าน</h2><p>รหัส OTP ของคุณคือ: <b>${otp}</b></p>`
+      });
+      res.json({ message: 'ส่ง OTP ไปยังอีเมลแล้ว' });
+    } catch (err) {
+      res.status(500).json({ message: 'เกิดข้อผิดพลาดในการส่ง OTP', error: err.message });
+    }
+  },
   getAllUsers: async (req, res) => {
     try {
       const users = await User.findAll();
@@ -242,12 +269,19 @@ const userController = {
 
   updateUser: async (req, res) => {
     try {
+      console.log('=== ENTER updateUser ===', new Date().toISOString());
       const userId = parseInt(req.params.id, 10);
       console.log('Updating user with ID:', userId);
       console.log('Request body:', req.body);
 
+      // Remove otp from req.body before updating DB
+      if ('otp' in req.body) {
+        console.log('otp field exists in req.body at start');
+      }
+
       // ตรวจสอบว่ามี ID หรือไม่
       if (!userId) {
+        console.log('Return: Invalid user ID');
         return res.status(400).json({
           message: 'Invalid user ID',
           error: 'User ID is required'
@@ -256,16 +290,57 @@ const userController = {
 
       // ตรวจสอบว่ามีข้อมูลที่จะอัพเดทหรือไม่
       if (Object.keys(req.body).length === 0) {
+        console.log('Return: No data provided for update');
         return res.status(400).json({
           message: 'No data provided for update',
           error: 'Request body is empty'
         });
       }
 
+      // ตรวจสอบ OTP เฉพาะกรณีเปลี่ยนรหัสผ่าน
+      if (req.body.password) {
+        if (!req.body.otp) {
+          console.log('Return: Missing OTP');
+          return res.status(400).json({ message: 'กรุณากรอก OTP เพื่อยืนยันการเปลี่ยนรหัสผ่าน' });
+        }
+        const user = await User.findById(userId);
+        if (!user) {
+          console.log('Return: User not found for OTP check');
+          return res.status(404).json({ message: 'ไม่พบผู้ใช้งาน' });
+        }
+        // Debug log for OTP validation (ละเอียด)
+        console.log('==== OTP DEBUG', new Date().toISOString(), '====');
+        console.log('otpStore:', Array.from(otpStore.entries()));
+        console.log('user.email:', user.email);
+        console.log('req.body.otp:', req.body.otp);
+        const otpData = otpStore.get(user.email);
+        console.log('otpData:', otpData);
+        if (otpData) {
+          console.log('otpData.otp:', otpData.otp, 'otpData.expires:', otpData.expires, 'now:', Date.now(), 'expired:', Date.now() > otpData.expires);
+        }
+        if (!otpData || otpData.otp !== req.body.otp || Date.now() > otpData.expires) {
+          console.log('OTP validation failed');
+          return res.status(400).json({ message: 'OTP ไม่ถูกต้องหรือหมดอายุ' });
+        }
+        console.log('OTP validation success, deleting from otpStore');
+        otpStore.delete(user.email); // ใช้แล้วลบ
+        // Remove otp from req.body after validation
+        delete req.body.otp;
+        // hash password ก่อน update (เหมือน createUser)
+        try {
+          req.body.password = await bcrypt.hash(req.body.password, 10);
+          console.log('Password hashed before update');
+        } catch (err) {
+          console.error('Error hashing password:', err);
+          return res.status(500).json({ message: 'Error hashing password', error: err.message });
+        }
+      }
+
       const result = await User.updateById(userId, req.body);
       console.log('Update result:', result);
 
       if (!result || result.affectedRows === 0) {
+        console.log('Return: User not found or no changes made');
         return res.status(404).json({
           message: 'User not found or no changes made',
           error: 'Update operation did not affect any rows'
@@ -275,12 +350,14 @@ const userController = {
       // ดึงข้อมูลผู้ใช้ที่อัพเดทแล้ว
       const updatedUser = await User.findById(userId);
       if (!updatedUser) {
+        console.log('Return: Failed to fetch updated user data');
         return res.status(404).json({
           message: 'Failed to fetch updated user data',
           error: 'User not found after update'
         });
       }
 
+      console.log('Return: User updated successfully');
       res.json({
         message: 'User updated successfully',
         user: updatedUser
