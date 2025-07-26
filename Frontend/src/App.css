@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import 'flowbite';
+@import 'daisyui';
 
 @plugin "daisyui" {
     themes: light --default, dark --prefersdark, cupcake;

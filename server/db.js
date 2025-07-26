@@ -1,8 +1,6 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
-const connection = await mysql.createConnection('mysql://root:IrzGeAlNqVZZMPPYFQmtKLRKEkWQItUT@turntable.proxy.rlwy.net:34775/e-borrow');
-
 dotenv.config();
 
 const pool = mysql.createPool({

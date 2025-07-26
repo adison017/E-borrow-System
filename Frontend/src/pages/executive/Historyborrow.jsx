@@ -65,16 +65,28 @@ export default function HistoryBorrow() {
 
   useEffect(() => {
     setLoading(true);
-    // ใช้ endpoint ที่มีอยู่จริง (เหมือนหน้า Success)
-    fetch(`${UPLOAD_BASE}/api/returns/success-borrows`)
-      .then(res => res.json())
-      .then(data => {
-        setBorrowRequests(Array.isArray(data) ? data : []);
+    // ดึง token จาก localStorage (หรือ session/cookie ตามที่ระบบใช้)
+    const token = localStorage.getItem('token');
+    fetch(`${UPLOAD_BASE}/api/returns/success-borrows`, {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(async res => {
+        if (!res.ok) throw new Error('Unauthorized');
+        const data = await res.json();
+        // กรองเฉพาะสถานะที่ต้องการ
+        const allowedStatus = ["approved", "rejected", "completed", "waiting_payment"];
+        const filtered = Array.isArray(data)
+          ? data.filter(item => allowedStatus.includes(item.status))
+          : [];
+        setBorrowRequests(filtered);
         setLoading(false);
       })
       .catch(err => {
         setBorrowRequests([]);
-        setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", type: "error" });
+        setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล (401 Unauthorized)", type: "error" });
         setLoading(false);
       });
   }, []);

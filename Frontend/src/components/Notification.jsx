@@ -20,9 +20,11 @@ const Notification = ({
     if (show) {
       setVisible(true);
       setAnimateOut(false);
-      timerRef.current = setTimeout(() => {
-        handleClose();
-      }, duration);
+      if (duration > 0) {
+        timerRef.current = setTimeout(() => {
+          handleClose();
+        }, duration);
+      }
     } else if (visible) {
       setAnimateOut(true);
       // รอให้ animation ออกจบก่อน unmount

@@ -1,5 +1,7 @@
 import axios from 'axios';
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Notification from '../../components/Notification.jsx';
+import OtpDialog from '../../components/OtpDialog.jsx';
 // import { globalUpdateProfileImage } from '../../components/Header';
 
 const PersonalInfoEdit = () => {
@@ -30,19 +32,21 @@ const PersonalInfoEdit = () => {
   const [roles, setRoles] = useState([]);
   const [previewImage, setPreviewImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  // OTP state
+  const [showOtpDialog, setShowOtpDialog] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [pendingPassword, setPendingPassword] = useState("");
+  const [otpError, setOtpError] = useState("");
+  // Notification state
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const showSuccessDialog = () => {
-    const dialog = document.getElementById('success-alert');
-    if (dialog) {
-      dialog.showModal();
-    }
+  const showSuccessDialog = (msg = "ข้อมูลถูกอัปเดตเรียบร้อยแล้ว") => {
+    setSuccessMessage(msg);
   };
 
-  const showErrorDialog = () => {
-    const dialog = document.getElementById('error-alert');
-    if (dialog) {
-      dialog.showModal();
-    }
+  const showErrorDialog = (msg = "ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองอีกครั้ง") => {
+    setErrorMessage(msg);
   };
 
   useEffect(() => {
@@ -315,71 +319,47 @@ const PersonalInfoEdit = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      let newAvatarPath = formData.pic;
-      console.log('=== Starting Image Upload Process ===');
-      console.log('Initial formData.pic:', formData.pic);
-
-      if (formData.pic instanceof File) {
-        console.log('=== Uploading New Image ===');
-        console.log('File details:', {
-          name: formData.pic.name,
-          type: formData.pic.type,
-          size: `${(formData.pic.size / 1024 / 1024).toFixed(2)} MB`
+      // ถ้ามีการเปลี่ยนรหัสผ่าน ให้ขอ OTP ก่อน
+      if (formData.password) {
+        setPendingPassword(formData.password);
+        // ขอ OTP ไป backend (สมมุติ endpoint /api/users/request-password-otp)
+        await axios.post('http://localhost:5000/api/users/request-password-otp', {
+          email: formData.email
         });
+        setShowOtpDialog(true);
+        setIsLoading(false);
+        return;
+      }
+      // ถ้าไม่มีการเปลี่ยนรหัสผ่าน ให้ทำงานปกติ
+      await submitProfileUpdate();
+    } catch (error) {
+      showErrorDialog();
+      setIsLoading(false);
+    }
+  };
 
+  // ฟังก์ชันสำหรับ submit ข้อมูลโปรไฟล์ (ใช้ทั้งกรณีปกติและหลัง OTP)
+  const submitProfileUpdate = async (otpValue) => {
+    setIsLoading(true);
+    try {
+      let newAvatarPath = formData.pic;
+      if (formData.pic instanceof File) {
         const formDataImage = new FormData();
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
-        console.log('FormData prepared with user_code:', formData.user_code);
-
-        try {
-          console.log('Sending upload request to server...');
-          const response = await axios.post('http://localhost:5000/api/users/upload-image', formDataImage, {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            },
-            validateStatus: function (status) {
-              return status < 500; // Resolve only if the status code is less than 500
-            }
-          });
-
-          console.log('Server response:', response.data);
-
-          if (response.status === 200 && response.data && response.data.filename) {
-            newAvatarPath = response.data.filename;
-            console.log('New avatar path received:', newAvatarPath);
-          } else {
-            console.error('Invalid server response:', response.data);
-            throw new Error(response.data.message || 'ไม่ได้รับข้อมูลรูปภาพจาก server');
-          }
-        } catch (uploadError) {
-          console.error('Image upload error:', uploadError);
-          console.error('Error details:', {
-            message: uploadError.message,
-            response: uploadError.response?.data,
-            status: uploadError.response?.status
-          });
-          throw uploadError;
+        const response = await axios.post('http://localhost:5000/api/users/upload-image', formDataImage, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          validateStatus: status => status < 500
+        });
+        if (response.status === 200 && response.data && response.data.filename) {
+          newAvatarPath = response.data.filename;
+        } else {
+          throw new Error(response.data.message || 'ไม่ได้รับข้อมูลรูปภาพจาก server');
         }
-      } else if (typeof formData.pic === 'string') {
-        // ถ้าเป็น string (ชื่อไฟล์) ให้ใช้ค่าเดิม
-        newAvatarPath = formData.pic;
-        console.log('Using existing image path:', newAvatarPath);
       }
-
-      console.log('=== Preparing User Data Update ===');
       const position = positions.find(p => p.position_name === formData.position_name);
       const branch = branches.find(b => b.branch_name === formData.branch_name);
       const role = roles.find(r => r.role_name === formData.role_name);
-
-      console.log('Found references:', {
-        position: position ? { id: position.position_id, name: position.position_name } : null,
-        branch: branch ? { id: branch.branch_id, name: branch.branch_name } : null,
-        role: role ? { id: role.role_id, name: role.role_name } : null
-      });
-
-      // --- ก่อนส่ง PUT ---
-      console.log('Final avatar to update:', newAvatarPath); // เพิ่ม log ตรวจสอบ
       const userDataToUpdate = {
         user_code: formData.user_code,
         username: formData.username,
@@ -398,95 +378,63 @@ const PersonalInfoEdit = () => {
       if (role ? role.role_id : formData.role_id) {
         userDataToUpdate.role_id = role ? role.role_id : formData.role_id;
       }
-
-      if (formData.password) {
+      // ถ้ามี OTP และ pendingPassword ให้แนบไปด้วย
+      if (pendingPassword && otpValue) {
+        userDataToUpdate.password = pendingPassword;
+        userDataToUpdate.otp = otpValue;
+      } else if (formData.password && !otpValue) {
+        // ถ้าไม่ได้กรอก OTP ให้ข้าม (รอ OTP)
+        setIsLoading(false);
+        return;
+      } else if (formData.password) {
         userDataToUpdate.password = formData.password;
       }
-
-      console.log('=== Sending User Data Update ===');
-      console.log('Update URL:', `http://localhost:5000/api/users/id/${formData.user_id}`);
-      console.log('Update data:', userDataToUpdate);
-
       const token = localStorage.getItem('token');
       const updateResponse = await axios.put(
         `http://localhost:5000/api/users/id/${formData.user_id}`,
         userDataToUpdate,
         {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          validateStatus: function (status) {
-            return status < 500; // Resolve only if the status code is less than 500
-          }
+          headers: { 'Authorization': `Bearer ${token}` },
+          validateStatus: status => status < 500
         }
       );
-      console.log('Update response:', updateResponse.data);
-
       if (updateResponse.status === 200 && updateResponse.data) {
-        console.log('=== Fetching Updated User Data ===');
         const updatedUserResponse = await axios.get(`http://localhost:5000/api/users/id/${formData.user_id}`);
         const updatedUser = updatedUserResponse.data;
-        console.log('Updated user data:', updatedUser);
-
-        // Update localStorage user ทันที (เรียลไทม์)
         try {
-          localStorage.setItem('user', JSON.stringify({
-            ...updatedUser,
-            avatar: updatedUser.avatar // อัปเดต avatar ด้วย
-          }));
+          localStorage.setItem('user', JSON.stringify({ ...updatedUser, avatar: updatedUser.avatar }));
         } catch {}
-
-        // Update local preview image
         const imageUrl = getAvatarUrl(updatedUser.avatar);
-        console.log('Setting new image URL:', imageUrl);
         setPreviewImage(imageUrl);
-
-        // Update form data with new image path
-        setFormData(prev => ({
-          ...prev,
-          pic: updatedUser.avatar, // เก็บเฉพาะชื่อไฟล์
-          Fullname: updatedUser.Fullname || prev.Fullname
-        }));
-
-        console.log('=== Dispatching Update Events ===');
-        // Dispatch custom event for user data update
-        const event = new CustomEvent('userDataUpdated', {
-          detail: {
-            userData: {
-              ...updatedUser,
-              Fullname: updatedUser.Fullname || formData.Fullname
-            }
-          }
-        });
+        setFormData(prev => ({ ...prev, pic: updatedUser.avatar, Fullname: updatedUser.Fullname || prev.Fullname }));
+        const event = new CustomEvent('userDataUpdated', { detail: { userData: { ...updatedUser, Fullname: updatedUser.Fullname || formData.Fullname } } });
         window.dispatchEvent(event);
-        console.log('User data update event dispatched');
-
-        // Dispatch custom event for profile image update
-        const imageEvent = new CustomEvent('profileImageUpdated', {
-          detail: {
-            imagePath: imageUrl
-          }
-        });
+        const imageEvent = new CustomEvent('profileImageUpdated', { detail: { imagePath: imageUrl } });
         window.dispatchEvent(imageEvent);
-        console.log('Profile image update event dispatched');
-
-        // หากต้องการอัปเดตรูปโปรไฟล์ ให้ใช้ window.dispatchEvent(new CustomEvent('profileImageUpdated', { detail: { imagePath: 'URL' } }))
-
-        console.log('=== Update Process Completed Successfully ===');
         showSuccessDialog();
+        setShowOtpDialog(false);
+        setOtp("");
+        setPendingPassword("");
+        setOtpError("");
       } else {
-        console.error('No data received from update response');
         throw new Error(updateResponse.data?.message || 'ไม่ได้รับข้อมูลการอัปเดตจาก server');
       }
     } catch (error) {
-      console.error('=== Error in Update Process ===');
-      console.error('Error details:', error);
-      console.error('Error message:', error.message);
       showErrorDialog();
+      setOtpError(error?.response?.data?.message || error.message || "OTP ไม่ถูกต้อง");
     } finally {
       setIsLoading(false);
-      console.log('=== Update Process Ended ===');
     }
+  };
+
+  // ฟังก์ชันเมื่อกดยืนยัน OTP
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    if (!otp) {
+      setOtpError("กรุณากรอก OTP");
+      return;
+    }
+    await submitProfileUpdate(otp);
   };
 
   const isFormValid = formData.username && formData.Fullname && formData.email && formData.phone;
@@ -857,66 +805,62 @@ const PersonalInfoEdit = () => {
               </div>
             </div>
 
-            <div className="flex gap-4 md:flex-row justify-end items-center mt-10">
-              <button
-                type="button"
-                className="btn btn-outline btn-md hover:bg-red-600 hover:text-white hover:border-red-600 rounded-xl shadow-sm px-7 py-3 h-auto transition-all duration-200 border-0"
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="submit"
-                className={`btn btn-primary btn-md text-white hover:bg-primary-dark shadow-lg rounded-xl px-9 py-3 h-auto transition-all duration-300 ${isLoading ? 'loading' : ''} border-0`}
-                disabled={isLoading || !isFormValid}
-              >
-                {isLoading ? (
-                  'กำลังบันทึก...'
-                ) : (
-                  <>
-                    บันทึกการเปลี่ยนแปลง
-                  </>
-                )}
-              </button>
-            </div>
+      <div className="flex gap-4 md:flex-row justify-end items-center mt-10">
+        <button
+          type="button"
+          className="btn btn-outline btn-md hover:bg-red-600 hover:text-white hover:border-red-600 rounded-xl shadow-sm px-7 py-3 h-auto transition-all duration-200 border-0"
+        >
+          ยกเลิก
+        </button>
+        <button
+          type="submit"
+          className={`btn btn-primary btn-md text-white hover:bg-primary-dark shadow-lg rounded-xl px-9 py-3 h-auto transition-all duration-300 ${isLoading ? 'loading' : ''} border-0`}
+          disabled={isLoading || !isFormValid}
+        >
+          {isLoading ? (
+            'กำลังบันทึก...'
+          ) : (
+            <>
+              บันทึกการเปลี่ยนแปลง
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* OTP Dialog แบบใหม่ */}
+      <OtpDialog
+        show={showOtpDialog}
+        onSubmit={async (otpValue) => {
+          setOtp(otpValue);
+          await submitProfileUpdate(otpValue);
+        }}
+        onClose={() => {
+          setShowOtpDialog(false);
+          setOtp("");
+          setOtpError("");
+          setPendingPassword("");
+        }}
+        error={otpError}
+      />
           </form>
         </div>
       </div>
 
-      <dialog id="success-alert" className="modal">
-        <div className="modal-box max-w-sm text-center rounded-2xl shadow-2xl bg-white">
-          <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-5 shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-14 w-14 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <h3 className="font-bold text-2xl text-gray-800 mb-3">สำเร็จ!</h3>
-          <p className="py-4 text-gray-600">ข้อมูลถูกอัปเดตเรียบร้อยแล้ว</p>
-          <form method="dialog" className="modal-action justify-center">
-            <button className="btn btn-primary text-white px-10 py-3 h-auto rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">ตกลง</button>
-          </form>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button>close</button>
-        </form>
-      </dialog>
-
-      <dialog id="error-alert" className="modal">
-        <div className="modal-box max-w-sm text-center rounded-2xl shadow-2xl bg-white">
-          <div className="w-24 h-24 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5 shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-14 w-14 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <h3 className="font-bold text-2xl text-gray-800 mb-3">เกิดข้อผิดพลาด!</h3>
-          <p className="py-4 text-gray-600">ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองอีกครั้ง</p>
-          <form method="dialog" className="modal-action justify-center">
-            <button className="btn btn-primary text-white px-10 py-3 h-auto rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">ตกลง</button>
-          </form>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button>close</button>
-        </form>
-      </dialog>
+      {/* แจ้งเตือนด้วย Notification */}
+      <Notification
+        show={!!successMessage}
+        type="success"
+        title="สำเร็จ"
+        message={successMessage}
+        onClose={() => setSuccessMessage("")}
+      />
+      <Notification
+        show={!!errorMessage}
+        type="error"
+        title="เกิดข้อผิดพลาด"
+        message={errorMessage}
+        onClose={() => setErrorMessage("")}
+      />
     </div>
   );
 };

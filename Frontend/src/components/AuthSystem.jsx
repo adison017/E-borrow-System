@@ -1,5 +1,8 @@
+import axios from 'axios';
 import { useEffect, useState } from 'react';
+
 import { FaBuilding, FaEnvelope, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt, FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
+
 import {
   LoginErrorDialog,
   LoginSuccessDialog,
@@ -7,8 +10,6 @@ import {
   RegisterErrorDialog,
   RegisterSuccessDialog
 } from './dialog/AlertDialog';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import Notification from './Notification';
 
 // ลบ const provinces, districts, subdistricts ที่เป็น mock data ออก
@@ -45,6 +46,7 @@ const AuthSystem = (props) => {
   const [tambons, setTambons] = useState([]);
   const [selected, setSelected] = useState({ province_id: undefined, amphure_id: undefined, tambon_id: undefined });
   const [notification, setNotification] = useState({ show: false, type: 'info', title: '', message: '', onClose: null });
+  const [showRegisterLeaveDialog, setShowRegisterLeaveDialog] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(true);
@@ -57,6 +59,7 @@ const AuthSystem = (props) => {
     username: '',
     password: ''
   });
+
 
   // Register form state
   const [registerData, setRegisterData] = useState({
@@ -75,6 +78,8 @@ const AuthSystem = (props) => {
     tambonId: '',
     postalCode: ''
   });
+  // Multi-step register
+  const [registerStep, setRegisterStep] = useState(0); // 0: basic, 1: account, 2: contact, 3: address
 
   const navigate = useNavigate();
 
@@ -134,7 +139,7 @@ const AuthSystem = (props) => {
   useEffect(() => {
     // ตรวจสอบ token ทุกครั้งที่ mount
     const token = localStorage.getItem('token');
-    console.log('token in localStorage:', token);
+    // console.log('token in localStorage:', token);
     if (!token) {
       navigate('/login');
       return;
@@ -378,7 +383,13 @@ const AuthSystem = (props) => {
             {/* Tab Navigation */}
             <div className="flex bg-white/20 backdrop-blur-sm rounded-full p-1 shadow-inner mb-8">
               <button
-                onClick={() => setActiveTab('login')}
+                onClick={() => {
+                  if (activeTab === 'register' && Object.values(registerData).some(v => v)) {
+                    setShowRegisterLeaveDialog(true);
+                  } else {
+                    setActiveTab('login');
+                  }
+                }}
                 className={`flex-1 py-3 px-4 rounded-full font-bold text-sm md:text-base transition-all duration-300 ${
                   activeTab === 'login'
                     ? 'bg-white text-indigo-700 shadow-md'
@@ -474,156 +485,79 @@ const AuthSystem = (props) => {
             )}
 
             {activeTab === 'register' && (
-                <div className={`w-full rounded-2xl p-6 transition-all duration-300 ${isMounted ? 'animate-fadeIn' : ''}`}>
+              <div className={`w-full rounded-2xl p-6 transition-all duration-300 ${isMounted ? 'animate-fadeIn' : ''}`}>
                 <form onSubmit={handleRegisterSubmit} className="space-y-6">
-                  {/* Basic Info Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center mb-4">
-                      <FaIdCard className="text-blue-600 text-lg mr-3" />
-                      <h3 className="text-lg font-semibold text-white">ข้อมูลพื้นฐาน</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          รหัสนิสิต/บุคลากร
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            name="idNumber"
-                            value={registerData.idNumber}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
-                            placeholder="เช่น 65011211033"
-                            required
-                          />
-                          <FaIdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
+                  {/* Multi-step register */}
+                  {registerStep === 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center mb-4">
+                        <FaIdCard className="text-blue-600 text-lg mr-3" />
+                        <h3 className="text-lg font-semibold text-white">ข้อมูลพื้นฐาน</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">รหัสนิสิต/บุคลากร</label>
+                          <div className="relative">
+                            <input type="text" name="idNumber" value={registerData.idNumber} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="เช่น 65011211033" required />
+                            <FaIdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">ชื่อ-นามสกุล</label>
+                          <div className="relative">
+                            <input type="text" name="fullName" value={registerData.fullName} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="กรอกชื่อ-นามสกุล" required />
+                            <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 text-sm" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">ตำแหน่ง</label>
+                          <div className="relative">
+                            <select name="position" value={registerData.position} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required>
+                              <option value="">เลือกตำแหน่ง</option>
+                              {positions.map(pos => (<option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>))}
+                            </select>
+                            <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 text-sm" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">สาขา</label>
+                          <div className="relative">
+                            <select name="department" value={registerData.department} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required>
+                              <option value="">เลือกสาขา</option>
+                              {branches.map(branch => (<option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>))}
+                            </select>
+                            <FaGraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 text-sm" />
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          ชื่อ-นามสกุล
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            name="fullName"
-                            value={registerData.fullName}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
-                            placeholder="กรอกชื่อ-นามสกุล"
-                            required
-                          />
-                          <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 text-sm" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          ตำแหน่ง
-                        </label>
-                        <div className="relative">
-                          <select
-                            name="position"
-                            value={registerData.position}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none"
-                            required
-                          >
-                            <option value="">เลือกตำแหน่ง</option>
-                            {positions.map(pos => (
-                              <option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>
-                            ))}
-                          </select>
-                          <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 text-sm" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          สาขา
-                        </label>
-                        <div className="relative">
-                          <select
-                            name="department"
-                            value={registerData.department}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none"
-                            required
-                          >
-                            <option value="">เลือกสาขา</option>
-                            {branches.map(branch => (
-                              <option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>
-                            ))}
-                          </select>
-                          <FaGraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 text-sm" />
-                        </div>
+                      <div className="flex justify-end mt-4">
+                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => setRegisterStep(1)}>ดำเนินการต่อ</button>
                       </div>
                     </div>
-                  </div>
+                  )}
+                  {registerStep === 1 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center mb-4">
+                        <FaLock className="text-indigo-400 text-lg mr-3" />
+                        <h3 className="text-lg font-semibold text-white">ข้อมูลบัญชี</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-white/80 mb-1">ชื่อผู้ใช้งาน</label>
+                          <div className="relative">
+                            <input type="text" name="username" value={registerData.username} readOnly tabIndex={-1} className="w-full h-10 pl-10 pr-3 bg-gray-300 border-gray-400 text-gray-600 rounded-lg focus:ring-0 focus:outline-none text-sm cursor-not-allowed select-none" placeholder="ชื่อผู้ใช้งานจะตรงกับรหัสนิสิต/บุคลากร" required />
+                            <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">รหัสผ่าน</label>
+                          <div className="relative">
+                            <input type={showPassword ? 'text' : 'password'} name="password" value={registerData.password} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="กรอกรหัสผ่าน" required />
+                            <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowPassword(v => !v)}>{showPassword ? <FaEyeSlash /> : <FaEye />}</button>
+                            <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
+                          </div>
+                        </div>
 
-                  {/* Account Info Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center mb-4">
-                      <FaLock className="text-indigo-400 text-lg mr-3" />
-                      <h3 className="text-lg font-semibold text-white">ข้อมูลบัญชี</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          ชื่อผู้ใช้งาน
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            name="username"
-                            value={registerData.username}
-                            readOnly
-                            tabIndex={-1}
-                            className="w-full h-10 pl-10 pr-3 bg-gray-300 border-gray-400 text-gray-600 rounded-lg focus:ring-0 focus:outline-none text-sm cursor-not-allowed select-none"
-                            placeholder="ชื่อผู้ใช้งานจะตรงกับรหัสนิสิต/บุคลากร"
-                            required
-                          />
-                          <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          รหัสผ่าน
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            name="password"
-                            value={registerData.password}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
-                            placeholder="กรอกรหัสผ่าน"
-                            required
-                          />
-                          <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowPassword(v => !v)}>
-                            {showPassword ? <FaEyeSlash /> : <FaEye />}
-                          </button>
-                          <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          ยืนยันรหัสผ่าน
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            name="confirmPassword"
-                            value={registerData.confirmPassword}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
-                            placeholder="ยืนยันรหัสผ่าน"
-                            required
-                          />
-                          <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>
-                            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                          </button>
-                          <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
-                        </div>
                       </div>
                       {!passwordMatch && (
                         <div className="flex items-center justify-center mt-1">
@@ -658,154 +592,104 @@ const AuthSystem = (props) => {
                             required
                           />
                           <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          เบอร์โทร
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="tel"
-                            name="phone"
-                            value={registerData.phone}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
-                            placeholder="กรอกเบอร์โทรศัพท์"
-                            required
-                          />
-                          <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 text-sm" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Address Info Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center mb-4">
-                      <FaMapMarkerAlt className="text-red-500 text-lg mr-3" />
-                      <h3 className="text-lg font-semibold text-white">ข้อมูลที่อยู่</h3>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          ที่อยู่ปัจจุบัน
-                        </label>
-                        <div className="relative">
-                          <textarea
-                            name="currentAddress"
-                            value={registerData.currentAddress}
-                            onChange={handleRegisterChange}
-                            rows="3"
-                            className="w-full px-3 py-2 pl-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 resize-none"
-                            placeholder="บ้านเลขที่, ถนน, ซอย"
-                            required
-                          ></textarea>
-                          <FaMapMarkerAlt className="absolute left-3 top-3 text-red-500 text-sm" />
                         </div>
+                        {!passwordMatch && (<div className="text-red-500 text-xs mt-1">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</div>)}
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">
-                            จังหวัด
-                          </label>
-                          <div className="relative">
-                            <select
-                              name="province"
-                              value={registerData.provinceId}
-                              onChange={handleProvinceChange}
-                              className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none"
-                              required
-                            >
-                              <option value="">เลือกจังหวัด</option>
-                              {provinces.map(province => (
-                                <option key={province.id} value={province.id}>{province.name_th}</option>
-                              ))}
-                            </select>
-                            <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">
-                            อำเภอ/เขต
-                          </label>
-                          <div className="relative">
-                            <select
-                              name="district"
-                              value={registerData.amphureId}
-                              onChange={handleDistrictChange}
-                              className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none"
-                              required
-                              disabled={!registerData.provinceId}
-                            >
-                              <option value="">เลือกอำเภอ/เขต</option>
-                              {amphures.map(amphure => (
-                                <option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>
-                              ))}
-                            </select>
-                            <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">
-                            ตำบล/แขวง
-                          </label>
-                          <div className="relative">
-                            <select
-                              name="subdistrict"
-                              value={registerData.tambonId}
-                              onChange={handleSubdistrictChange}
-                              className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none"
-                              required
-                              disabled={!registerData.amphureId}
-                            >
-                              <option value="">เลือกตำบล/แขวง</option>
-                              {tambons.map(tambon => (
-                                <option key={tambon.id} value={tambon.id}>{tambon.name_th}</option>
-                              ))}
-                            </select>
-                            <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          รหัสไปรษณีย์
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            name="postalCode"
-                            value={registerData.postalCode}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
-                            placeholder="รหัสไปรษณีย์"
-                            required
-                            readOnly
-                          />
-                          <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-500 text-sm" />
-                        </div>
+                      <div className="flex justify-between mt-4">
+                        <button type="button" className="bg-gray-400 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-gray-500 transition" onClick={() => setRegisterStep(0)}>ย้อนกลับ</button>
+                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => setRegisterStep(2)} disabled={!registerData.password || !registerData.confirmPassword || !passwordMatch}>ดำเนินการต่อ</button>
                       </div>
                     </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className={`w-full h-12 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium rounded-lg shadow-md transition-all duration-300 ${
-                      isLoading ? 'opacity-70' : 'hover:from-indigo-700 hover:to-blue-700 hover:shadow-lg'
-                    } flex items-center justify-center mt-4`}
-                  >
-                    {isLoading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        กำลังสมัครสมาชิก...
-                      </>
-                    ) : 'สมัครสมาชิก'}
-                  </button>
+                  )}
+                  {registerStep === 2 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center mb-4">
+                        <FaEnvelope className="text-pink-500 text-lg mr-3" />
+                        <h3 className="text-lg font-semibold text-white">ข้อมูลติดต่อ</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">อีเมล</label>
+                          <div className="relative">
+                            <input type="email" name="email" value={registerData.email} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="example@email.com" required />
+                            <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">เบอร์โทร</label>
+                          <div className="relative">
+                            <input type="tel" name="phone" value={registerData.phone} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="กรอกเบอร์โทรศัพท์" required />
+                            <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 text-sm" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between mt-4">
+                        <button type="button" className="bg-gray-400 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-gray-500 transition" onClick={() => setRegisterStep(1)}>ย้อนกลับ</button>
+                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => setRegisterStep(3)} disabled={!registerData.email || !registerData.phone}>ดำเนินการต่อ</button>
+                      </div>
+                    </div>
+                  )}
+                  {registerStep === 3 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center mb-4">
+                        <FaMapMarkerAlt className="text-red-500 text-lg mr-3" />
+                        <h3 className="text-lg font-semibold text-white">ข้อมูลที่อยู่</h3>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">ที่อยู่ปัจจุบัน</label>
+                          <div className="relative">
+                            <textarea name="currentAddress" value={registerData.currentAddress} onChange={handleRegisterChange} rows="3" className="w-full px-3 py-2 pl-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 resize-none" placeholder="บ้านเลขที่, ถนน, ซอย" required></textarea>
+                            <FaMapMarkerAlt className="absolute left-3 top-3 text-red-500 text-sm" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-white/80 mb-1">จังหวัด</label>
+                            <div className="relative">
+                              <select name="province" value={registerData.provinceId} onChange={handleProvinceChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required>
+                                <option value="">เลือกจังหวัด</option>
+                                {provinces.map(province => (<option key={province.id} value={province.id}>{province.name_th}</option>))}
+                              </select>
+                              <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-white/80 mb-1">อำเภอ/เขต</label>
+                            <div className="relative">
+                              <select name="district" value={registerData.amphureId} onChange={handleDistrictChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required disabled={!registerData.provinceId}>
+                                <option value="">เลือกอำเภอ/เขต</option>
+                                {amphures.map(amphure => (<option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>))}
+                              </select>
+                              <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-white/80 mb-1">ตำบล/แขวง</label>
+                            <div className="relative">
+                              <select name="subdistrict" value={registerData.tambonId} onChange={handleSubdistrictChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required disabled={!registerData.amphureId}>
+                                <option value="">เลือกตำบล/แขวง</option>
+                                {tambons.map(tambon => (<option key={tambon.id} value={tambon.id}>{tambon.name_th}</option>))}
+                              </select>
+                              <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">รหัสไปรษณีย์</label>
+                          <div className="relative">
+                            <input type="text" name="postalCode" value={registerData.postalCode} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="รหัสไปรษณีย์" required readOnly />
+                            <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-500 text-sm" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between mt-4">
+                        <button type="button" className="bg-gray-400 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-gray-500 transition" onClick={() => setRegisterStep(2)}>ย้อนกลับ</button>
+                        <button type="submit" disabled={isLoading} className={`bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition flex items-center justify-center ${isLoading ? 'opacity-70' : ''}`}>{isLoading ? (<><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>กำลังสมัครสมาชิก...</>) : 'สมัครสมาชิก'}</button>
+                      </div>
+                    </div>
+                  )}
                 </form>
               </div>
             )}
@@ -825,6 +709,38 @@ const AuthSystem = (props) => {
         message={notification.message}
         type={notification.type}
         onClose={notification.onClose}
+      />
+      {/* Notification แจ้งเตือนเมื่อจะออกจากสมัครสมาชิก */}
+      <Notification
+        show={showRegisterLeaveDialog}
+        title="แจ้งเตือน"
+        message="หากคุณเปลี่ยนไปหน้าเข้าสู่ระบบข้อมูลที่กรอกไว้จะหายทั้งหมดต้องการดำเนินการต่อหรือไม่?"
+        type="warning"
+        duration={0}
+        actions={[
+          { label: 'ยกเลิก', onClick: () => setShowRegisterLeaveDialog(false) },
+          { label: 'ดำเนินการต่อ', onClick: () => {
+            setShowRegisterLeaveDialog(false);
+            setActiveTab('login');
+            setRegisterData({
+              idNumber: '',
+              fullName: '',
+              username: '',
+              password: '',
+              confirmPassword: '',
+              email: '',
+              phone: '',
+              position: '',
+              department: '',
+              currentAddress: '',
+              provinceId: '',
+              amphureId: '',
+              tambonId: '',
+              postalCode: ''
+            });
+            setRegisterStep(0);
+          }}
+        ]}
       />
     </div>
   );
