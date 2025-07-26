@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MdMenu } from 'react-icons/md';
 import { Navigate, Route, BrowserRouter as Router, Routes, useLocation, useNavigate } from 'react-router-dom';
 import AuthSystem from './components/AuthSystem'; // เพิ่มบรรทัดนี้
@@ -8,6 +8,8 @@ import SidebarAdmin from './components/SidebarAdmin';
 import SidebarExecutive from './components/SidebarExecutive';
 import SidebarUser from './components/SidebarUser';
 import './sidebar.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Admin Pages
 import BorrowList from './pages/admin/BorrowList';
@@ -65,6 +67,33 @@ function AppInner() {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  const inactivityTimer = useRef(null);
+  const INACTIVITY_LIMIT = 45 * 60 * 1000; // 45 นาที (ms)
+
+  // ฟังก์ชัน logout
+  const autoLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUserRole(null);
+    navigate('/login', { replace: true });
+  };
+
+  // ฟังก์ชัน reset timer
+  const resetInactivityTimer = () => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    inactivityTimer.current = setTimeout(autoLogout, INACTIVITY_LIMIT);
+  };
+
+  useEffect(() => {
+    // เริ่มจับ event
+    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, resetInactivityTimer));
+    resetInactivityTimer();
+    return () => {
+      events.forEach(event => window.removeEventListener(event, resetInactivityTimer));
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    };
+  }, []);
 
   // // ถ้ายังไม่ได้ login ให้แสดงหน้า AuthSystem
   // if (!userRole) {
@@ -315,6 +344,18 @@ function AppInner() {
         </div>
         <Footer />
       </main>
+      <ToastContainer
+        position="top-right"
+        autoClose={8000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </div>
   );
 }

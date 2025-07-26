@@ -15,6 +15,8 @@ import {
 import { GiOfficeChair } from "react-icons/gi";
 import { MdClose, MdCloudUpload } from "react-icons/md";
 import Swal from 'sweetalert2';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function AddUserDialog({
   open,
@@ -78,12 +80,6 @@ export default function AddUserDialog({
         setRoles(rolesResponse.data);
         setProvinces(provincesResponse);
 
-        console.log('Fetched data:', {
-          positions: positionsResponse.data,
-          branches: branchesResponse.data,
-          roles: rolesResponse.data,
-          provinces: provincesResponse
-        });
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -144,11 +140,9 @@ export default function AddUserDialog({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log('Handling change for:', name, 'with value:', value);
 
     if (name === 'position_name') {
       const selectedPosition = positions.find(p => p.position_name === value);
-      console.log('Selected position:', selectedPosition);
       setFormData(prev => ({
         ...prev,
         position_name: value,
@@ -156,7 +150,6 @@ export default function AddUserDialog({
       }));
     } else if (name === 'branch_name') {
       const selectedBranch = branches.find(b => b.branch_name === value);
-      console.log('Selected branch:', selectedBranch);
       setFormData(prev => ({
         ...prev,
         branch_name: value,
@@ -164,7 +157,6 @@ export default function AddUserDialog({
       }));
     } else if (name === 'role_name') {
       const selectedRole = roles.find(r => r.role_name === value);
-      console.log('Selected role:', selectedRole);
       setFormData(prev => ({
         ...prev,
         role_name: value,
@@ -272,20 +264,46 @@ export default function AddUserDialog({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLoading) return; // ป้องกัน double submit
     setIsLoading(true);
     try {
-      // 1. สร้าง user ก่อน
       const position = positions.find(p => p.position_name === formData.position_name);
       const branch = branches.find(b => b.branch_name === formData.branch_name);
       const role = roles.find(r => r.role_name === formData.role_name);
 
-      console.log('Selected data:', {
-        position,
-        branch,
-        role,
-        formData
-      });
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('ไม่พบ token กรุณา login ใหม่');
+        setIsLoading(false);
+        return;
+      }
 
+      // 1. อัปโหลดรูปภาพก่อน (ถ้ามี) เพื่อให้ได้ชื่อไฟล์จริง
+      let avatarFilename = DEFAULT_PROFILE_URL;
+      if (formData.pic instanceof File) {
+        const formDataImage = new FormData();
+        formDataImage.append('user_code', formData.user_code);
+        formDataImage.append('avatar', formData.pic);
+        try {
+          const uploadResponse = await axios.post('http://localhost:5000/api/users/upload-image', formDataImage, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          avatarFilename = uploadResponse.data.filename;
+        } catch (uploadError) {
+          if (uploadError.response && uploadError.response.status === 401) {
+            toast.error('Session หมดอายุ กรุณา login ใหม่');
+            setIsLoading(false);
+            return;
+          } else {
+            toast.warn('อัพโหลดรูปภาพไม่สำเร็จ แต่ข้อมูลผู้ใช้ถูกบันทึกแล้ว');
+          }
+        }
+      }
+
+      // 2. สร้าง user โดยใช้ชื่อไฟล์จริง
       const userDataToSave = {
         user_code: formData.user_code,
         username: formData.username,
@@ -300,108 +318,22 @@ export default function AddUserDialog({
         district: formData.district || '',
         province: formData.province || '',
         postal_no: formData.postal_no || '',
-        avatar: formData.pic instanceof File ? `${formData.user_code}.jpg` : DEFAULT_PROFILE_URL,
+        avatar: avatarFilename,
         password: formData.password || undefined
       };
 
-      console.log('=== AddUserDialog: Creating User ===');
-      console.log('User Data:', userDataToSave);
-
-      const response = await axios.post('http://localhost:5000/users', userDataToSave, {
+      const response = await axios.post('http://localhost:5000/api/users', userDataToSave, {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       });
 
-      if (!response.data) {
-        throw new Error('ไม่ได้รับข้อมูลการตอบกลับจาก server');
-      }
-
-      // 2. ถ้ามีการเลือกไฟล์รูปภาพใหม่ ให้อัพโหลดรูป
-      if (formData.pic instanceof File) {
-        const formDataImage = new FormData();
-        formDataImage.append('user_code', formData.user_code);
-        formDataImage.append('avatar', formData.pic);
-
-        console.log('Uploading image with user_code:', formData.user_code);
-
-        try {
-          const uploadResponse = await axios.post('http://localhost:5000/users/upload-image', formDataImage, {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            }
-          });
-
-          console.log('Image upload response:', uploadResponse.data);
-        } catch (uploadError) {
-          console.error('Error uploading image:', uploadError);
-          Swal.fire({
-            icon: 'warning',
-            title: 'อัพโหลดรูปภาพไม่สำเร็จ',
-            text: uploadError.response?.data?.message || 'เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ\nแต่ข้อมูลผู้ใช้ถูกบันทึกแล้ว',
-            confirmButtonText: 'ตกลง',
-            confirmButtonColor: '#3085d6'
-          });
-        }
-      }
-
-      // Dispatch event to notify about new user
-      const event = new CustomEvent('userDataUpdated', {
-        detail: response.data
-      });
-      window.dispatchEvent(event);
-
-      Swal.fire({
-        icon: 'success',
-        title: 'เพิ่มผู้ใช้งานสำเร็จ',
-        text: 'ข้อมูลผู้ใช้งานถูกเพิ่มเรียบร้อยแล้ว',
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#3085d6'
-      });
-      onSave(response.data);
+      toast.success('เพิ่มผู้ใช้งานสำเร็จ');
+      onSave(userDataToSave); // ส่ง object user ที่จะบันทึก
       onClose();
     } catch (error) {
-      console.error('Error creating user:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-
-      // Handle specific error cases
-      if (error.response?.data?.field) {
-        // Handle field-specific errors
-        const fieldMessages = {
-          user_code: 'รหัสนิสิตนี้ถูกใช้งานแล้ว',
-          username: 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว',
-          email: 'อีเมลนี้ถูกใช้งานแล้ว'
-        };
-        Swal.fire({
-          icon: 'error',
-          title: 'ไม่สามารถเพิ่มผู้ใช้งานได้',
-          text: fieldMessages[error.response.data.field] || error.response.data.message,
-          confirmButtonText: 'ตกลง',
-          confirmButtonColor: '#3085d6'
-        });
-      } else if (error.response?.data?.fields) {
-        // Handle missing fields
-        const missingFields = error.response.data.fields.join(', ');
-        Swal.fire({
-          icon: 'warning',
-          title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
-          text: `กรุณากรอกข้อมูลในฟิลด์ต่อไปนี้: ${missingFields}`,
-          confirmButtonText: 'ตกลง',
-          confirmButtonColor: '#3085d6'
-        });
-      } else {
-        // Handle other errors
-        Swal.fire({
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาด',
-          text: error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการเพิ่มผู้ใช้งาน',
-          confirmButtonText: 'ตกลง',
-          confirmButtonColor: '#3085d6'
-        });
-      }
+      toast.error(error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการเพิ่มผู้ใช้งาน');
     } finally {
       setIsLoading(false);
     }
@@ -838,9 +770,7 @@ export default function AddUserDialog({
           </div>
         </div>
       </div>
-      <form method="dialog" className="modal-backdrop">
-        <button onClick={onClose}>close</button>
-      </form>
+      <div className="modal-backdrop" onClick={onClose}></div>
     </div>
   );
 }

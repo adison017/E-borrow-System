@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FaBuilding, FaEnvelope, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaBuilding, FaEnvelope, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt, FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
 import {
   LoginErrorDialog,
   LoginSuccessDialog,
@@ -155,6 +155,12 @@ const AuthSystem = (props) => {
       });
   }, [navigate]);
 
+  useEffect(() => {
+    if (activeTab === 'login') {
+      setLoginData({ username: '', password: '' });
+    }
+  }, [activeTab]);
+
   const handleLoginChange = (e) => {
     const { name, value } = e.target;
     setLoginData(prev => ({ ...prev, [name]: value }));
@@ -220,17 +226,28 @@ const AuthSystem = (props) => {
           show: true,
           type: 'error',
           title: 'เข้าสู่ระบบไม่สำเร็จ',
-          message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
+          message: response.data?.message || 'เกิดข้อผิดพลาด',
           onClose: () => setNotification(n => ({ ...n, show: false }))
         });
       }
     } catch (error) {
       setIsLoading(false);
+      let errorMsg = error.response?.data?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+      // กรณีข้อความจาก backend
+      if (errorMsg.includes('กรุณากรอก username และ password')) {
+        errorMsg = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
+      } else if (errorMsg.includes('ไม่พบผู้ใช้งานนี้')) {
+        errorMsg = 'ไม่พบบัญชีผู้ใช้งานนี้ในระบบ';
+      } else if (errorMsg.includes('รหัสผ่านไม่ถูกต้อง')) {
+        errorMsg = 'รหัสผ่านไม่ถูกต้อง';
+      } else if (errorMsg.includes('ชื่อผู้ใช้ไม่ถูกต้อง')) {
+        errorMsg = 'ชื่อผู้ใช้ไม่ถูกต้อง';
+      }
       setNotification({
         show: true,
         type: 'error',
         title: 'เข้าสู่ระบบไม่สำเร็จ',
-        message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
+        message: errorMsg,
         onClose: () => setNotification(n => ({ ...n, show: false }))
       });
     }
@@ -239,7 +256,13 @@ const AuthSystem = (props) => {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (registerData.password !== registerData.confirmPassword) {
-      setNotification({ show: true, type: 'warning', title: 'รหัสผ่านไม่ตรงกัน', message: 'กรุณายืนยันรหัสผ่านให้ถูกต้อง', onClose: () => setNotification(n => ({ ...n, show: false })) });
+      setNotification({
+        show: true,
+        type: 'error',
+        title: '❗ รหัสผ่านไม่ตรงกัน',
+        message: 'กรุณากรอกรหัสผ่านและยืนยันรหัสผ่านให้ตรงกัน',
+        onClose: () => setNotification(n => ({ ...n, show: false }))
+      });
       return;
     }
     setIsLoading(true);
@@ -603,7 +626,12 @@ const AuthSystem = (props) => {
                         </div>
                       </div>
                       {!passwordMatch && (
-                        <div className="text-red-500 text-xs mt-1">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</div>
+                        <div className="flex items-center justify-center mt-1">
+                          <div className="bg-red-100/80 border border-red-200 rounded-lg shadow-sm px-3 py-1 flex items-center gap-2">
+                            <FaExclamationCircle className="text-red-500 text-lg" />
+                            <span className="text-red-700 text-sm font-semibold">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</span>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
