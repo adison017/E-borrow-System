@@ -8,6 +8,7 @@ export default function AddCategoryDialog({
   onSave
 }) {
   const [formData, setFormData] = useState(initialFormData || {});
+  const [nameError, setNameError] = useState("");
 
   useEffect(() => {
     setFormData(initialFormData || {});
@@ -22,6 +23,14 @@ export default function AddCategoryDialog({
   };
 
   const handleSubmit = () => {
+    // ตรวจสอบชื่อหมวดหมู่ห้ามมีอักขระพิเศษ (อนุญาต a-zA-Z0-9 ก-ฮ ะ-์ เว้นวรรค)
+    const namePattern = /^[a-zA-Z0-9ก-๙ะ-์\s]+$/;
+    if (!namePattern.test(formData.name || "")) {
+      setNameError("ชื่อหมวดหมู่ไม่ถูกต้อง");
+      return;
+    } else {
+      setNameError("");
+    }
     onSave(formData);
     onClose();
   };
@@ -75,6 +84,10 @@ export default function AddCategoryDialog({
               required
             />
           </div>
+          {/* แสดง error ถ้าชื่อหมวดหมู่ผิดรูปแบบ */}
+          {nameError && (
+            <div className="text-red-600 text-sm font-semibold mt-2 text-center">{nameError}</div>
+          )}
         </div>
         {/* Footer */}
         <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end space-x-3">
@@ -87,8 +100,8 @@ export default function AddCategoryDialog({
           </button>
           <button
             className={`px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors duration-200 ${
-              isFormValid 
-                ? "bg-emerald-600 hover:bg-emerald-700" 
+              isFormValid
+                ? "bg-emerald-600 hover:bg-emerald-700"
                 : "bg-emerald-300 cursor-not-allowed"
             }`}
             onClick={handleSubmit}

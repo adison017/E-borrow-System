@@ -56,6 +56,11 @@ const TABLE_HEAD = [
   "จัดการ"
 ];
 
+// เพิ่ม utility สำหรับแนบ token
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 function ManageUser() {
   const [userList, setUserList] = useState([]);
@@ -109,6 +114,8 @@ function ManageUser() {
   const [branches, setBranches] = useState([]);
   const [positions, setPositions] = useState([]);
 
+  const [showAddUserSuccess, setShowAddUserSuccess] = useState(false);
+
   // ฟังก์ชันรวมคำอธิบายแจ้งเตือน (เหมือน borrowlist/news)
   const getUserNotifyMessage = (action, extra) => {
     switch (action) {
@@ -145,21 +152,12 @@ function ManageUser() {
 
   // Function to fetch users
   const fetchUsers = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await axios.get('http://localhost:5000/api/users', {
+        headers: getAuthHeaders()
       });
-      if (response.status === 401) {
-        window.location.href = '/login';
-        return;
-      }
-      if (!response.ok) throw new Error('Failed to fetch users');
-      const data = await response.json();
-      setUserList(data);
+      setUserList(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
       notifyUserAction('fetch_error');
@@ -197,13 +195,13 @@ function ManageUser() {
     const fetchFilters = async () => {
       try {
         const [rolesRes, branchesRes, positionsRes] = await Promise.all([
-          fetch('http://localhost:5000/api/users/roles'),
-          fetch('http://localhost:5000/api/users/branches'),
-          fetch('http://localhost:5000/api/users/positions'),
+          axios.get('http://localhost:5000/api/users/roles', { headers: getAuthHeaders() }),
+          axios.get('http://localhost:5000/api/users/branches', { headers: getAuthHeaders() }),
+          axios.get('http://localhost:5000/api/users/positions', { headers: getAuthHeaders() }),
         ]);
-        setRoles(await rolesRes.json());
-        setBranches(await branchesRes.json());
-        setPositions(await positionsRes.json());
+        setRoles(rolesRes.data);
+        setBranches(branchesRes.data);
+        setPositions(positionsRes.data);
       } catch (err) {
         // fallback: do nothing
       }
@@ -226,11 +224,11 @@ function ManageUser() {
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/users/id/${selectedUser.user_id}`, {
-        method: 'DELETE'
+      const response = await axios.delete(`http://localhost:5000/api/users/id/${selectedUser.user_id}`, {
+        headers: getAuthHeaders()
       });
 
-      if (!response.ok) throw new Error('Failed to delete user');
+      if (!response.data) throw new Error('Failed to delete user');
 
       // Update the list immediately
       setUserList(prevList => prevList.filter(item => item.user_id !== selectedUser.user_id));
@@ -314,24 +312,9 @@ function ManageUser() {
     }));
   };
 
-  const handleAddUser = async (newUser) => {
-    try {
-      console.log('=== ManageUser: Adding New User ===');
-      console.log('New User Data:', newUser);
-
-      // Refresh user list after adding new user
-      const response = await axios.get('http://localhost:5000/api/users');
-      if (response.data) {
-        setUserList(response.data);
-        notifyUserAction('add');
-      } else {
-        notifyUserAction('add_error');
-        throw new Error('ไม่ได้รับข้อมูลผู้ใช้งานจาก server');
-      }
-    } catch (error) {
-      console.error('Error in handleAddUser:', error);
-      notifyUserAction('add_error');
-    }
+  const handleAddUser = async () => {
+    await fetchUsers();
+    setShowAddUserSuccess(true); // ตั้ง flag ว่าจะโชว์ toast หลัง dialog ปิด
   };
 
   // Filtering logic
@@ -357,12 +340,10 @@ function ManageUser() {
   // เพิ่มฟังก์ชัน handleToggleLineNotify
   const handleToggleLineNotify = (userId, checked) => {
     // ตัวอย่าง: เรียก API เพื่ออัปเดต line_notify_enabled
-    fetch(`http://localhost:5000/api/users/${userId}/line-notify`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ line_notify_enabled: checked ? 1 : 0 })
+    axios.patch(`http://localhost:5000/api/users/${userId}/line-notify`, { line_notify_enabled: checked ? 1 : 0 }, {
+      headers: getAuthHeaders()
     })
-      .then(res => res.json())
+      .then(res => res.data)
       .then(data => {
         // อัปเดต state หรือ refresh ข้อมูล user ตามต้องการ
         setUserList(prevList => prevList.map(u =>
@@ -398,18 +379,6 @@ function ManageUser() {
 
   return (
     <ThemeProvider value={theme}>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
         <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-2">
           <div className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -649,10 +618,8 @@ function ManageUser() {
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   const newValue = !line_notify_enabled ? 1 : 0;
-                                  await fetch(`http://localhost:5000/api/users/${user_id}/line-notify`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ line_notify_enabled: newValue })
+                                  await axios.patch(`http://localhost:5000/api/users/${user_id}/line-notify`, { line_notify_enabled: newValue }, {
+                                    headers: getAuthHeaders()
                                   });
                                   setUserList(prevList => prevList.map(u =>
                                     u.user_id === user_id ? { ...u, line_notify_enabled: newValue } : u
@@ -762,6 +729,10 @@ function ManageUser() {
           onClose={() => {
             setAddDialogOpen(false);
             setSelectedUser(null);
+            if (showAddUserSuccess) {
+              toast.success('เพิ่มผู้ใช้สำเร็จ');
+              setShowAddUserSuccess(false);
+            }
           }}
           initialFormData={selectedUser || {
             student_id: "",

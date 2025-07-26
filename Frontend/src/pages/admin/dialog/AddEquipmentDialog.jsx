@@ -33,6 +33,7 @@ export default function AddEquipmentDialog({
   const [previewImage, setPreviewImage] = useState(null);
   const [categories, setCategories] = useState([]);
   const [missingFields, setMissingFields] = useState([]);
+  const [imageError, setImageError] = useState("");
 
   const statusConfig = {
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
@@ -89,6 +90,14 @@ export default function AddEquipmentDialog({
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        setImageError('อนุญาตเฉพาะไฟล์รูปภาพเท่านั้น');
+        setFormData(prev => ({ ...prev, pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png" }));
+        setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
+        return;
+      } else {
+        setImageError("");
+      }
       setFormData(prev => ({
         ...prev,
         pic: file
@@ -123,6 +132,12 @@ export default function AddEquipmentDialog({
     const missing = requiredFields.filter(f => !formData[f.key] || String(formData[f.key]).trim() === '').map(f => f.label);
     setMissingFields(missing);
     if (missing.length > 0) {
+      return;
+    }
+    // ตรวจสอบชื่อครุภัณฑ์ห้ามมีอักขระพิเศษ (อนุญาต a-zA-Z0-9 ก-ฮ ะ-์ เว้นวรรค)
+    const namePattern = /^[a-zA-Z0-9ก-๙ะ-์\s]+$/;
+    if (!namePattern.test(formData.name)) {
+      setMissingFields(['ชื่อครุภัณฑ์ไม่ถูกต้อง']);
       return;
     }
     let dataToSave = { ...formData };
@@ -211,6 +226,10 @@ export default function AddEquipmentDialog({
               <p className="text-sm mt-2 text-emerald-600 truncate max-w-[300px]">{formData.pic.name}</p>
             )}
           </div>
+          {/* แสดง error ถ้าอัปโหลดไฟล์ผิดประเภท */}
+          {imageError && (
+            <div className="text-red-600 text-sm font-semibold mt-2 text-center">{imageError}</div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="group">
@@ -219,9 +238,10 @@ export default function AddEquipmentDialog({
                 type="text"
                 name="item_code"
                 value={formData.item_code}
-                disabled
-                readOnly
-                className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-700 shadow-sm"
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
+                placeholder="ระบุรหัสครุภัณฑ์"
+                required
               />
             </div>
             <div className="group">
