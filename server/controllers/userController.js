@@ -28,23 +28,9 @@ filename: function (req, file, cb) {
   if (!userCode) {
     return cb(new Error('User code is required'));
   }
-  // Use user_code as filename with original extension
-  const extension = path.extname(file.originalname);
+  // ใช้นามสกุลไฟล์จริง
+  const extension = path.extname(file.originalname).toLowerCase();
   const filename = `${userCode}${extension}`;
-  console.log('Generated filename:', filename); // Debug log
-  cb(null, filename);
-}
-,
-// เป็น:
-filename: function (req, file, cb) {
-  // Get user_code from request body
-  const userCode = req.body.user_code;
-  console.log('Received user_code:', userCode); // Debug log
-  if (!userCode) {
-    return cb(new Error('User code is required'));
-  }
-  // Always save as .jpg regardless of original extension
-  const filename = `${userCode}.jpg`;
   console.log('Generated filename:', filename); // Debug log
   cb(null, filename);
 }
@@ -134,6 +120,11 @@ const userController = {
       if (!username || !password) {
         return res.status(400).json({ message: 'กรุณากรอก username และ password' });
       }
+      // เพิ่ม validation username: ต้องเป็น a-zA-Z0-9 เท่านั้น
+      const usernamePattern = /^[a-zA-Z0-9]+$/;
+      if (!usernamePattern.test(username)) {
+        return res.status(400).json({ message: 'ชื่อผู้ใช้ไม่ถูกต้อง' });
+      }
       const user = await User.findByUsername(username);
       if (!user) {
         return res.status(401).json({ message: 'ไม่พบผู้ใช้งานนี้' });
@@ -198,11 +189,92 @@ const userController = {
   createUser: async (req, res) => {
     try {
       const userData = req.body;
+      if (!userData || typeof userData !== 'object') {
+        return res.status(400).json({
+          message: 'ไม่พบข้อมูลผู้ใช้ที่ส่งมา',
+          error: 'Request body is missing or invalid'
+        });
+      }
       console.log('Creating user with data:', userData);
 
+      // ตรวจสอบฟิลด์ที่จำเป็น
+      const requiredFields = [
+        { key: 'user_code', label: 'รหัสนิสิต/บุคลากร' },
+        { key: 'username', label: 'ชื่อผู้ใช้' },
+        { key: 'password', label: 'รหัสผ่าน' },
+        { key: 'email', label: 'อีเมล' },
+        { key: 'phone', label: 'เบอร์โทรศัพท์' },
+        { key: 'Fullname', label: 'ชื่อ-นามสกุล' },
+        { key: 'position_id', label: 'ตำแหน่ง' },
+        { key: 'branch_id', label: 'สาขา' },
+        { key: 'street', label: 'ที่อยู่' },
+        { key: 'province', label: 'จังหวัด' },
+        { key: 'district', label: 'อำเภอ' },
+        { key: 'parish', label: 'ตำบล' },
+        { key: 'postal_no', label: 'รหัสไปรษณีย์' }
+      ];
+      const missing = requiredFields.filter(f => !userData[f.key] || userData[f.key].toString().trim() === '');
+      if (missing.length > 0) {
+        return res.status(400).json({
+          message: 'กรุณากรอก: ' + missing.map(f => f.label).join(', '),
+          missing: missing.map(f => f.key)
+        });
+      }
+
+      // ตรวจสอบความยาวรหัสผ่าน
+      if (userData.password && userData.password.length < 6) {
+        return res.status(400).json({
+          message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+          field: 'password'
+        });
+      }
       // hash password ก่อนบันทึก
       if (userData.password) {
         userData.password = await bcrypt.hash(userData.password, 10);
+      }
+
+      // ตรวจสอบรูปแบบ username: ต้องเป็น a-zA-Z0-9 เท่านั้น
+      const usernamePattern = /^[a-zA-Z0-9]+$/;
+      if (!usernamePattern.test(userData.username)) {
+        return res.status(400).json({
+          message: 'ชื่อผู้ใช้ไม่ถูกต้อง',
+          field: 'username'
+        });
+      }
+
+      // ตรวจสอบ username ซ้ำ
+      const existUser = await User.findByUsername(userData.username);
+      if (existUser) {
+        return res.status(400).json({
+          message: 'ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว กรุณาเลือกชื่อใหม่',
+          field: 'username'
+        });
+      }
+
+      // ตรวจสอบ user_code ซ้ำ
+      const existUserCode = await User.findByUserCode(userData.user_code);
+      if (existUserCode) {
+        return res.status(400).json({
+          message: 'รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว กรุณาใช้รหัสอื่น',
+          field: 'user_code'
+        });
+      }
+
+      // ตรวจสอบเบอร์โทรศัพท์ต้องเป็นตัวเลขเท่านั้น
+      if (userData.phone && !/^[0-9]+$/.test(userData.phone)) {
+        return res.status(400).json({
+          message: 'เบอร์โทรศัพท์ต้องเป็นตัวเลขเท่านั้น',
+          field: 'phone'
+        });
+      }
+
+      // ตรวจสอบอีเมลซ้ำ
+      const existEmail = await User.findByEmail(userData.email);
+      if (existEmail) {
+        return res.status(400).json({
+          message: 'อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น',
+          field: 'email'
+        });
       }
 
       // Create the user

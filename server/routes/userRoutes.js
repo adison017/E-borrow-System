@@ -94,7 +94,7 @@ const upload = multer({
 }).single('avatar');
 
 // Image upload route
-router.post('/upload-image', (req, res, next) => {
+router.post('/upload-image', authMiddleware, (req, res, next) => {
   upload(req, res, function (err) {
     if (err) {
       return res.status(400).json({ message: err.message });
