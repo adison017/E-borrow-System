@@ -317,6 +317,11 @@ const PersonalInfoEdit = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Prevent duplicate OTP requests if dialog is already open
+    if (showOtpDialog) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       // ถ้ามีการเปลี่ยนรหัสผ่าน ให้ขอ OTP ก่อน
@@ -416,6 +421,10 @@ const PersonalInfoEdit = () => {
         setOtp("");
         setPendingPassword("");
         setOtpError("");
+        // รีเฟรชเฉพาะข้อมูลในหน้า edit_profile
+        if (typeof fetchUser === 'function') {
+          await fetchUser();
+        }
       } else {
         throw new Error(updateResponse.data?.message || 'ไม่ได้รับข้อมูลการอัปเดตจาก server');
       }
