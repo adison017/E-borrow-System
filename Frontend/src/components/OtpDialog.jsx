@@ -16,7 +16,6 @@ const OtpDialog = ({
   const inputRefs = Array.from({ length: 6 }, () => useRef(null));
   const [animateOut, setAnimateOut] = useState(false);
   const inputRef = useRef(null);
-
   useEffect(() => {
     if (show) {
       setAnimateOut(false);
@@ -69,10 +68,16 @@ const OtpDialog = ({
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit && onSubmit(otpArr.join(""));
+    if (onSubmit) {
+      // ส่ง OTP ไปให้ parent ตรวจสอบ
+      await onSubmit(otpArr.join(""));
+      // ไม่ต้อง reset state หรือปิด dialog ที่นี่ ให้ parent จัดการ
+    }
   };
+
+
 
   if (!show) return null;
 
@@ -171,6 +176,7 @@ const OtpDialog = ({
               ยืนยัน
             </button>
           </div>
+
         </form>
         </div>
       </div>
