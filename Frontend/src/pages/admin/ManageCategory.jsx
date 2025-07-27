@@ -168,6 +168,13 @@ function ManageCategory() {
   };
 
   const handleAddCategory = (data) => {
+    // ตรวจสอบชื่อหมวดหมู่ซ้ำ (case-insensitive)
+    const isDuplicate = categoryList.some(cat => cat.name.trim().toLowerCase() === data.name.trim().toLowerCase());
+    if (isDuplicate) {
+      showNotification('add_error', 'หมวดหมู่นี้มีอยู่แล้ว');
+      toast.error('หมวดหมู่นี้มีอยู่แล้ว');
+      return;
+    }
     addCategory(data)
       .then(() => getCategories().then(setCategoryList))
       .then(() => showNotification("add", data.name))
@@ -363,7 +370,7 @@ function ManageCategory() {
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
           categoryData={selectedCategory}
-          onSave={saveEdit}
+          onSave={handleEditCategory}
         />
         {/* Add Category Dialog Modal */}
         <AddCategoryDialog
