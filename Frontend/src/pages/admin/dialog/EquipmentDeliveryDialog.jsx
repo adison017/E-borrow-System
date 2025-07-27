@@ -17,20 +17,31 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deliveryNote, setDeliveryNote] = useState("");
     const [isWebcamDialogOpen, setIsWebcamDialogOpen] = useState(false);
+    const [isDeliveryPhotoDialogOpen, setIsDeliveryPhotoDialogOpen] = useState(false);
     const [signature, setSignature] = useState(null);
+    const [deliveryPhoto, setDeliveryPhoto] = useState(null);
     const [cameraReady, setCameraReady] = useState(false);
+    const [deliveryPhotoCameraReady, setDeliveryPhotoCameraReady] = useState(false);
     const webcamRef = useRef(null);
+    const deliveryPhotoWebcamRef = useRef(null);
 
     useEffect(() => {
         if (isOpen && borrow) {
             setDeliveryNote(borrow.delivery_note || "");
-            if (borrow.status === "delivered" && borrow.signature) {
-                setSignature(borrow.signature);
+            if (borrow.status === "approved" && borrow.signature_image) {
+                setSignature(borrow.signature_image);
             } else {
                 setSignature(null);
             }
+            if (borrow.status === "approved" && borrow.handover_photo) {
+                setDeliveryPhoto(borrow.handover_photo);
+            } else {
+                setDeliveryPhoto(null);
+            }
             setIsWebcamDialogOpen(false);
+            setIsDeliveryPhotoDialogOpen(false);
             setCameraReady(false);
+            setDeliveryPhotoCameraReady(false);
         }
     }, [isOpen, borrow]);
 
@@ -42,7 +53,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
         const baseClasses = "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-all";
         const iconSize = "w-5 h-5";
         switch (status) {
-            case "delivered":
+            case "approved":
                 return (
                     <div className={`${baseClasses} bg-green-100 text-green-700 border border-green-200 relative`}>
                         <CheckCircleSolidIcon className={`${iconSize} text-green-600`} />
@@ -81,6 +92,58 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
         setCameraReady(false);
     };
 
+    const handleDeliveryPhotoCaptured = (imageSrc) => {
+        // สร้าง canvas เพื่อปรับขนาดรูปภาพให้เท่ากับบัตรนักศึกษา
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // สร้าง Image object เพื่อโหลดรูปภาพ
+        const img = new Image();
+        img.onload = () => {
+            // กำหนดขนาดของบัตรนักศึกษา (อัตราส่วน 3:2)
+            const targetWidth = 300; // ความกว้างของบัตรนักศึกษา
+            const targetHeight = 200; // ความสูงของบัตรนักศึกษา (3:2 ratio)
+
+            // ตั้งค่าขนาด canvas
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            // คำนวณการครอปและปรับขนาด
+            const aspectRatio = targetWidth / targetHeight; // 1.5 (3:2)
+            const imgAspectRatio = img.width / img.height;
+
+            let sourceX = 0;
+            let sourceY = 0;
+            let sourceWidth = img.width;
+            let sourceHeight = img.height;
+
+            if (imgAspectRatio > aspectRatio) {
+                // รูปภาพกว้างกว่า ต้องครอปด้านข้าง
+                sourceWidth = img.height * aspectRatio;
+                sourceX = (img.width - sourceWidth) / 2;
+            } else {
+                // รูปภาพสูงกว่า ต้องครอปด้านบนล่าง
+                sourceHeight = img.width / aspectRatio;
+                sourceY = (img.height - sourceHeight) / 2;
+            }
+
+            // วาดรูปภาพลงบน canvas ด้วยขนาดที่กำหนด
+            ctx.drawImage(
+                img,
+                sourceX, sourceY, sourceWidth, sourceHeight, // source
+                0, 0, targetWidth, targetHeight // destination
+            );
+
+            // แปลงเป็น base64
+            const resizedImageSrc = canvas.toDataURL('image/jpeg', 0.9);
+            setDeliveryPhoto(resizedImageSrc);
+        };
+
+        img.src = imageSrc;
+        setIsDeliveryPhotoDialogOpen(false);
+        setDeliveryPhotoCameraReady(false);
+    };
+
     const handleDelivery = async () => {
         setIsSubmitting(true);
         try {
@@ -95,7 +158,8 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
             await onConfirm({
                 borrow_id: id,
                 signature_image: signature, // ต้องเป็น base64 เท่านั้น
-                status: "approved"
+                handover_photo: deliveryPhoto // รูปถ่ายส่งมอบครุภัณฑ์
+                // ไม่ต้องส่ง status เพราะ backend จะเปลี่ยนเป็น 'approved' อัตโนมัติ
             });
             onClose();
         } finally {
@@ -103,7 +167,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
         }
     };
 
-    const isDeliveryButtonDisabled = borrow.status === "delivered" || isSubmitting || !signature;
+    const isDeliveryButtonDisabled = borrow.status === "approved" || isSubmitting || !signature || !deliveryPhoto;
 
     return (
         <div className="modal modal-open">
@@ -193,11 +257,11 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                 <div className="bg-gray-50 rounded-lg p-4 shadow-sm">
                                     <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-gray-500">รหัสการยืม:</span> 
+                                            <span className="text-gray-500">รหัสการยืม:</span>
                                             <span className="font-mono text-gray-800 font-medium">{borrow.borrow_code}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-gray-500">จำนวนครุภัณฑ์:</span> 
+                                            <span className="text-gray-500">จำนวนครุภัณฑ์:</span>
                                             <span className="font-mono text-gray-800 font-medium">
                                                 {borrow.equipment?.reduce((total, eq) => total + (eq.quantity || 1), 0) || 0} ชิ้น
                                             </span>
@@ -218,7 +282,19 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                         <td className="px-2 py-3 align-middle text-center">
                                                             <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center mx-auto border border-gray-200 bg-white">
                                                                 {item.image || item.pic ? (
-                                                                    <img src={item.image || item.pic} alt={item.name} className="max-w-full max-h-full object-contain p-1" onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }} />
+                                                                    <img
+                                                                        src={
+                                                                            (item.image || item.pic)?.startsWith('http')
+                                                                                ? (item.image || item.pic)
+                                                                                : `http://localhost:5000/uploads/equipment/${item.item_code || item.code}.jpg`
+                                                                        }
+                                                                        alt={item.name}
+                                                                        className="max-w-full max-h-full object-contain p-1"
+                                                                        onError={e => {
+                                                                            e.target.onerror = null;
+                                                                            e.target.src = '/lo.png';
+                                                                        }}
+                                                                    />
                                                                 ) : (
                                                                     <div className="bg-gray-100 w-full h-full flex items-center justify-center text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>
                                                                 )}
@@ -238,21 +314,21 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 shadow-sm space-y-4">
                                 <div>
-                                    <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2"><PencilSquareIcon className="w-5 h-5 text-blue-600" />ลายเซ็นผู้รับมอบ</h3>
-                                    {borrow.status === "delivered" ? (
+                                    <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2"><PencilSquareIcon className="w-5 h-5 text-blue-600" />บัตรนักศึกษา</h3>
+                                    {borrow.status === "approved" ? (
                                         <div className="flex flex-col items-center">
-                                            <div className="mb-2 text-green-600 font-medium flex items-center"><CheckCircleSolidIcon className="w-5 h-5 mr-1" /><span>ได้รับการลงนามยืนยันแล้ว</span></div>
-                                            {(borrow.signature || signature) && <img src={borrow.signature || signature} alt="ลายเซ็นรับของ" className="h-32 border border-gray-300 rounded-lg bg-white shadow-sm" />}
+                                            <div className="mb-2 text-green-600 font-medium flex items-center"><CheckCircleSolidIcon className="w-5 h-5 mr-1" /><span>ได้รับการยืนยันแล้ว</span></div>
+                                            {(borrow.signature || signature) && <img src={borrow.signature || signature} alt="บัตรนักศึกษา" className="h-32 border border-gray-300 rounded-lg bg-white shadow-sm" />}
                                         </div>
                                     ) : (
                                         <>
                                             {signature ? (
                                                 <div className="flex flex-col items-center">
-                                                    <img src={signature} alt="ลายเซ็นรับของ" className="h-32 border border-gray-300 rounded-lg bg-white shadow-sm mb-2" />
-                                                    <button onClick={() => setSignature(null)} className="text-red-600 text-xs font-medium hover:text-red-800 flex items-center gap-1"><XCircleIcon className="w-4 h-4" />ลบลายเซ็น</button>
+                                                    <img src={signature} alt="บัตรนักศึกษา" className="h-32 border border-gray-300 rounded-lg bg-white shadow-sm mb-2" />
+                                                    <button onClick={() => setSignature(null)} className="text-red-600 text-xs font-medium hover:text-red-800 flex items-center gap-1"><XCircleIcon className="w-4 h-4" />ลบบัตรนักศึกษา</button>
                                                 </div>
                                             ) : (
                                                 <div className="flex justify-center">
@@ -265,7 +341,52 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                         className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors shadow-sm"
                                                     >
                                                         <CameraIcon className="h-5 w-5" />
-                                                        ถ่ายภาพลายเซ็น
+                                                        ถ่ายภาพบัตรนักศึกษา
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 shadow-sm space-y-4">
+                                <div>
+                                    <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2"><CameraIcon className="w-5 h-5 text-green-600" />รูปถ่ายส่งมอบครุภัณฑ์</h3>
+                                    {borrow.status === "approved" ? (
+                                        <div className="flex flex-col items-center">
+                                            <div className="mb-2 text-green-600 font-medium flex items-center"><CheckCircleSolidIcon className="w-5 h-5 mr-1" /><span>มีการถ่ายภาพส่งมอบแล้ว</span></div>
+                                            {(borrow.handover_photo || deliveryPhoto) && (
+                                                <img
+                                                    src={borrow.handover_photo ?
+                                                        (borrow.handover_photo.startsWith('data:') ?
+                                                            borrow.handover_photo :
+                                                            `http://localhost:5000/uploads/${borrow.handover_photo}`) :
+                                                        deliveryPhoto}
+                                                    alt="รูปถ่ายส่งมอบครุภัณฑ์"
+                                                    className="h-32 w-48 object-cover border border-gray-300 rounded-lg bg-white shadow-sm"
+                                                />
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {deliveryPhoto ? (
+                                                <div className="flex flex-col items-center">
+                                                    <img src={deliveryPhoto} alt="รูปถ่ายส่งมอบครุภัณฑ์" className="h-32 w-48 object-cover border border-gray-300 rounded-lg bg-white shadow-sm mb-2" />
+                                                    <button onClick={() => setDeliveryPhoto(null)} className="text-red-600 text-xs font-medium hover:text-red-800 flex items-center gap-1"><XCircleIcon className="w-4 h-4" />ลบรูปถ่าย</button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex justify-center">
+                                                    <button
+                                                        onClick={() => {
+                                                            setDeliveryPhotoCameraReady(false);
+                                                            setIsDeliveryPhotoDialogOpen(true);
+                                                        }}
+                                                        type="button"
+                                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors shadow-sm"
+                                                    >
+                                                        <CameraIcon className="h-5 w-5" />
+                                                        ถ่ายภาพส่งมอบครุภัณฑ์
                                                     </button>
                                                 </div>
                                             )}
@@ -277,7 +398,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                     </div>
 
                     <div className="mt-8 flex justify-end space-x-3">
-                        {borrow.status === "delivered" ? (
+                        {borrow.status === "approved" ? (
                             <button type="button" onClick={onClose} className="px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">ปิด</button>
                         ) : (
                             <>
@@ -297,7 +418,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
             <form method="dialog" className="modal-backdrop">
                 <button onClick={onClose}>close</button>
             </form>
-            <WebcamSignatureDialog 
+                        <WebcamSignatureDialog
                 isOpen={isWebcamDialogOpen}
                 onClose={() => {
                     setIsWebcamDialogOpen(false);
@@ -307,6 +428,17 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                 webcamRef={webcamRef}
                 cameraReady={cameraReady}
                 setCameraReady={setCameraReady}
+            />
+            <WebcamSignatureDialog
+                isOpen={isDeliveryPhotoDialogOpen}
+                onClose={() => {
+                    setIsDeliveryPhotoDialogOpen(false);
+                    setDeliveryPhotoCameraReady(false);
+                }}
+                onCapture={handleDeliveryPhotoCaptured}
+                webcamRef={deliveryPhotoWebcamRef}
+                cameraReady={deliveryPhotoCameraReady}
+                setCameraReady={setDeliveryPhotoCameraReady}
             />
         </div>
     );

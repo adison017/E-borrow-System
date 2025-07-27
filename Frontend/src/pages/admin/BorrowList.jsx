@@ -10,7 +10,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { getAllBorrows } from "../../utils/api";
-import io from 'socket.io-client';
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 // Components
 import { ToastContainer, toast } from "react-toastify";
@@ -111,7 +111,7 @@ const BorrowList = () => {
   const [selectedBorrowId, setSelectedBorrowId] = useState(null);
   // ลบ state notification เดิม (ใช้ react-toastify แทน)
 
-  const socket = io('http://localhost:5000');
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
   useEffect(() => {
     getAllBorrows()
@@ -133,12 +133,10 @@ const BorrowList = () => {
           if (Array.isArray(data)) setBorrows(data);
         });
     };
-    socket.on('badgeCountsUpdated', handleBadgeUpdate);
-    return () => {
-      socket.off('badgeCountsUpdated', handleBadgeUpdate);
-    };
+    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
+    return unsubscribe;
     // === จบ logic ===
-  }, []);
+  }, [subscribeToBadgeCounts]);
 
   // ฟังก์ชันกลางสำหรับแจ้งเตือน
   const notifyBorrowAction = (action, extra) => {

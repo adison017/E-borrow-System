@@ -1,9 +1,9 @@
 import db from '../db.js';
 
-export const createBorrowTransaction = async (user_id, reason, borrow_date, return_date, borrow_code, purpose) => {
+export const createBorrowTransaction = async (user_id, borrow_date, return_date, borrow_code, purpose) => {
   const [result] = await db.query(
-    'INSERT INTO borrow_transactions (user_id, reason, borrow_date, return_date, borrow_code, purpose) VALUES (?, ?, ?, ?, ?, ?)',
-    [user_id, reason, borrow_date, return_date, borrow_code, purpose]
+    'INSERT INTO borrow_transactions (user_id, borrow_date, return_date, borrow_code, purpose, signature_image, handover_photo) VALUES (?, ?, ?, ?, ?, NULL, NULL)',
+    [user_id, borrow_date, return_date, borrow_code, purpose]
   );
   return result.insertId;
 };
@@ -35,7 +35,9 @@ export const getAllBorrows = async () => {
   bt.return_date,
   bt.status,
   bt.purpose,
-  bt.rejection_reason
+  bt.rejection_reason,
+  bt.signature_image,
+  bt.handover_photo
 FROM borrow_transactions bt
 JOIN users u ON bt.user_id = u.user_id
 JOIN borrow_items bi ON bt.borrow_id = bi.borrow_id
@@ -65,7 +67,9 @@ LEFT JOIN roles r ON u.role_id = r.role_id;`
         due_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
         status: row.status,
         purpose: row.purpose,
-        rejection_reason: row.rejection_reason, 
+        rejection_reason: row.rejection_reason,
+        signature_image: row.signature_image,
+        handover_photo: row.handover_photo,
       };
     }
     grouped[row.borrow_id].equipment.push({
@@ -101,7 +105,9 @@ export const getBorrowById = async (borrow_id) => {
       bt.return_date,
       bt.status,
       bt.purpose,
-      bt.rejection_reason
+      bt.rejection_reason,
+      bt.signature_image,
+      bt.handover_photo
     FROM borrow_transactions bt
     JOIN users u ON bt.user_id = u.user_id
     JOIN borrow_items bi ON bt.borrow_id = bi.borrow_id
@@ -115,9 +121,9 @@ export const getBorrowById = async (borrow_id) => {
   if (!rows || rows.length === 0) return null;
   // Group
   const row = rows[0];
-  return {
+  const borrow = {
     borrow_id: row.borrow_id,
-    user_id: row.user_id, // เพิ่ม user_id ใน object
+    user_id: row.user_id,
     borrow_code: row.borrow_code,
     borrower: {
       name: row.fullname,
@@ -138,24 +144,76 @@ export const getBorrowById = async (borrow_id) => {
     due_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
     status: row.status,
     purpose: row.purpose,
-    rejection_reason: row.rejection_reason
+    rejection_reason: row.rejection_reason,
+    signature_image: row.signature_image,
+    handover_photo: row.handover_photo,
   };
+  return borrow;
 };
 
-export const updateBorrowStatus = async (borrow_id, status, rejection_reason = null, signature_image = null) => {
-  let query, params;
-  if (signature_image && typeof signature_image === 'string' && signature_image.trim() !== '') {
-    query = 'UPDATE borrow_transactions SET status = ?, signature_image = ?, rejection_reason = ? WHERE borrow_id = ?';
-    params = [status, signature_image, rejection_reason, borrow_id];
-  } else if (rejection_reason !== null && rejection_reason !== undefined) {
-    query = 'UPDATE borrow_transactions SET status = ?, rejection_reason = ? WHERE borrow_id = ?';
-    params = [status, rejection_reason, borrow_id];
-  } else {
-    query = 'UPDATE borrow_transactions SET status = ? WHERE borrow_id = ?';
-    params = [status, borrow_id];
+export const updateBorrowStatus = async (borrow_id, status, rejection_reason = null, signature_image = null, handover_photo = null) => {
+  console.log('=== updateBorrowStatus Model Debug ===');
+  console.log('borrow_id:', borrow_id);
+  console.log('status:', status);
+  console.log('signature_image:', signature_image);
+  console.log('handover_photo:', handover_photo);
+  console.log('rejection_reason:', rejection_reason);
+
+  try {
+    // ตรวจสอบข้อมูลก่อนอัปเดต
+    const [beforeUpdate] = await db.query('SELECT borrow_id, status, signature_image, handover_photo FROM borrow_transactions WHERE borrow_id = ?', [borrow_id]);
+    console.log('Data before update:', beforeUpdate[0]);
+
+    let query, params;
+    if (signature_image && typeof signature_image === 'string' && signature_image.trim() !== '') {
+      if (handover_photo && typeof handover_photo === 'string' && handover_photo.trim() !== '') {
+        query = 'UPDATE borrow_transactions SET status = ?, signature_image = ?, handover_photo = ?, rejection_reason = ? WHERE borrow_id = ?';
+        params = [status, signature_image, handover_photo, rejection_reason, borrow_id];
+        console.log('Query: Both signature and handover_photo');
+      } else {
+        query = 'UPDATE borrow_transactions SET status = ?, signature_image = ?, rejection_reason = ? WHERE borrow_id = ?';
+        params = [status, signature_image, rejection_reason, borrow_id];
+        console.log('Query: Only signature');
+      }
+    } else if (handover_photo && typeof handover_photo === 'string' && handover_photo.trim() !== '') {
+      query = 'UPDATE borrow_transactions SET status = ?, handover_photo = ?, rejection_reason = ? WHERE borrow_id = ?';
+      params = [status, handover_photo, rejection_reason, borrow_id];
+      console.log('Query: Only handover_photo');
+    } else if (rejection_reason !== null && rejection_reason !== undefined) {
+      query = 'UPDATE borrow_transactions SET status = ?, rejection_reason = ? WHERE borrow_id = ?';
+      params = [status, rejection_reason, borrow_id];
+      console.log('Query: Only rejection_reason');
+    } else {
+      query = 'UPDATE borrow_transactions SET status = ? WHERE borrow_id = ?';
+      params = [status, borrow_id];
+      console.log('Query: Only status');
+    }
+
+    console.log('Final query:', query);
+    console.log('Final params:', params);
+    console.log('signature_image length:', signature_image ? signature_image.length : 0);
+    console.log('handover_photo length:', handover_photo ? handover_photo.length : 0);
+
+    const [result] = await db.query(query, params);
+    console.log('Query result:', result);
+    console.log('Affected rows:', result.affectedRows);
+
+    if (result.affectedRows === 0) {
+      console.log('WARNING: No rows were updated!');
+      // ตรวจสอบว่า borrow_id มีอยู่จริงหรือไม่
+      const [checkResult] = await db.query('SELECT borrow_id FROM borrow_transactions WHERE borrow_id = ?', [borrow_id]);
+      console.log('Check if borrow_id exists:', checkResult);
+    } else {
+      // ตรวจสอบข้อมูลหลังอัปเดต
+      const [afterUpdate] = await db.query('SELECT borrow_id, status, signature_image, handover_photo FROM borrow_transactions WHERE borrow_id = ?', [borrow_id]);
+      console.log('Data after update:', afterUpdate[0]);
+    }
+
+    return result.affectedRows;
+  } catch (error) {
+    console.error('Error in updateBorrowStatus:', error);
+    throw error;
   }
-  const [result] = await db.query(query, params);
-  return result.affectedRows;
 };
 
 export const deleteBorrow = async (borrow_id) => {
@@ -180,10 +238,14 @@ export const getBorrowsByStatus = async (statusArray) => {
       e.pic,
       bi.quantity,
       bt.borrow_date,
-      ret.return_date AS actual_return_date,
+      bt.return_date AS due_date,
+      ret.return_date AS return_date,
       bt.status,
       bt.purpose,
-      bt.rejection_reason
+      bt.rejection_reason,
+      bt.signature_image,
+      bt.handover_photo,
+      ret.proof_image
     FROM borrow_transactions bt
     JOIN users u ON bt.user_id = u.user_id
     JOIN borrow_items bi ON bt.borrow_id = bi.borrow_id
@@ -220,10 +282,14 @@ export const getBorrowsByStatus = async (statusArray) => {
         },
         equipment: [],
         borrow_date: row.borrow_date ? row.borrow_date.toISOString ? row.borrow_date.toISOString().split('T')[0] : String(row.borrow_date).split('T')[0] : null,
-        return_date: row.actual_return_date, // วันคืนจริงจากตาราง returns
+        due_date: row.due_date ? row.due_date.toISOString ? row.due_date.toISOString().split('T')[0] : String(row.due_date).split('T')[0] : null,
+        return_date: row.return_date, // วันคืนจริงจากตาราง returns
         status: row.status,
         purpose: row.purpose,
-        rejection_reason: row.rejection_reason
+        rejection_reason: row.rejection_reason,
+        signature_image: row.signature_image,
+        handover_photo: row.handover_photo,
+        proof_image: row.proof_image
       };
     }
     grouped[row.borrow_id].equipment.push({

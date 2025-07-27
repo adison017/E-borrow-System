@@ -22,6 +22,8 @@ export const getAllReturns = async () => {
   bt.status,
   bt.purpose,
   bt.user_id,
+  bt.signature_image,
+  bt.handover_photo,
   ret.pay_status
 FROM borrow_transactions bt
 JOIN users u ON bt.user_id = u.user_id
@@ -58,6 +60,8 @@ LEFT JOIN (
         user_id: row.user_id,
         borrower_name: row.borrower_name,
         pay_status: row.pay_status || 'pending',
+        signature_image: row.signature_image,
+        handover_photo: row.handover_photo,
       };
     }
     grouped[row.borrow_id].equipment.push({
