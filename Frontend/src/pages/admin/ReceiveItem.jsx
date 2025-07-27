@@ -31,7 +31,7 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import ScannerDialog from "../../components/ScannerDialog";
 import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
 import EquipmentDeliveryDialog from "./dialog/EquipmentDeliveryDialog";
-import io from 'socket.io-client';
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
@@ -58,15 +58,13 @@ const statusConfig = {
   carry: {
     label: "รอส่งมอบ",
     color: "yellow",
-    icon: ClockIcon,
-    backgroundColor: "bg-yellow-50",
+    backgroundColor: "bg-yellow-100",
     borderColor: "border-yellow-100"
   },
-  delivered: {
+  approved: {
     label: "ส่งมอบแล้ว",
     color: "green",
-    icon: CheckCircleSolidIcon,
-    backgroundColor: "bg-green-50",
+    backgroundColor: "bg-green-100",
     borderColor: "border-green-100"
   }
 };
@@ -89,7 +87,7 @@ const ReceiveItem = () => {
   const [selectedBorrow, setSelectedBorrow] = useState(null);
   const [selectedBorrowId, setSelectedBorrowId] = useState(null);
 
-  const socket = io('http://localhost:5000');
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
 
   useEffect(() => {
@@ -103,12 +101,10 @@ const ReceiveItem = () => {
         setBorrows(Array.isArray(data) ? data : []);
       });
     };
-    socket.on('badgeCountsUpdated', handleBadgeUpdate);
-    return () => {
-      socket.off('badgeCountsUpdated', handleBadgeUpdate);
-    };
+    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
+    return unsubscribe;
     // === จบ logic ===
-  }, []);
+  }, [subscribeToBadgeCounts]);
 
   useEffect(() => {
     // Filter by status
@@ -149,7 +145,9 @@ const ReceiveItem = () => {
         return { message: "ไม่พบข้อมูลการยืมที่ป้อน", type: "error" };
       case "no_signature":
         return { message: "กรุณาเซ็นชื่อก่อนยืนยันการส่งมอบ", type: "error" };
-      case "delivered":
+      case "no_handover_photo":
+        return { message: "กรุณาถ่ายภาพส่งมอบครุภัณฑ์ก่อนยืนยัน", type: "error" };
+      case "approved":
         return { message: "ส่งมอบครุภัณฑ์เรียบร้อยแล้ว", type: "success" };
       case "cancelled":
         return { message: "ยกเลิกการยืมเรียบร้อยแล้ว", type: "success" };
@@ -205,21 +203,39 @@ const ReceiveItem = () => {
   };
 
   const handleDeliveryConfirm = async (deliveryData) => {
+    console.log('=== handleDeliveryConfirm Debug ===');
+    console.log('deliveryData:', deliveryData);
+    console.log('signature_image exists:', !!deliveryData.signature_image);
+    console.log('signature_image starts with data:image/:', deliveryData.signature_image?.startsWith('data:image/'));
+    console.log('handover_photo exists:', !!deliveryData.handover_photo);
+    console.log('handover_photo starts with data:image/:', deliveryData.handover_photo?.startsWith('data:image/'));
+
     // ต้องเป็น base64 เท่านั้น (กรณีเซ็นใหม่) ถ้าไม่ใช่ให้แจ้งเตือน
     if (!deliveryData.signature_image || !deliveryData.signature_image.startsWith('data:image/')) {
+      console.log('❌ Invalid signature_image');
       notifyReceiveAction("no_signature");
       return;
     }
+
+    // ตรวจสอบ handover_photo
+    if (!deliveryData.handover_photo || !deliveryData.handover_photo.startsWith('data:image/')) {
+      console.log('❌ Invalid handover_photo');
+      notifyReceiveAction("no_handover_photo");
+      return;
+    }
+
+    console.log('✅ Both images are valid, calling updateBorrowStatus...');
     await updateBorrowStatus(
       deliveryData.borrow_id,
-      "approved",
-      undefined, // ไม่มี rejection_reason
-      deliveryData.signature_image
+      'approved', // ส่ง status ที่ถูกต้อง
+      null, // ไม่มี rejection_reason
+      deliveryData.signature_image,
+      deliveryData.handover_photo
     );
     // Refresh borrows
     getAllBorrows().then(data => setBorrows(Array.isArray(data) ? data : []));
     setIsDeliveryDialogOpen(false);
-    notifyReceiveAction("delivered");
+    notifyReceiveAction("approved");
   };
 
   const handleCancelBorrow = async (borrowId) => {
@@ -239,7 +255,7 @@ const ReceiveItem = () => {
   const handleStatusFilter = (status) => setStatusFilter(status);
   const countByStatus = {
     carry: borrows.filter(b => b.status === "carry").length,
-    delivered: borrows.filter(b => b.status === "delivered").length
+    approved: borrows.filter(b => b.status === "approved").length
   };
 
   // Pagination logic

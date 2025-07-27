@@ -352,8 +352,12 @@ const PersonalInfoEdit = () => {
         const formDataImage = new FormData();
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
+        const token = localStorage.getItem('token');
         const response = await axios.post('http://localhost:5000/api/users/upload-image', formDataImage, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
+          },
           validateStatus: status => status < 500
         });
         if (response.status === 200 && response.data && response.data.filename) {

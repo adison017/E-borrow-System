@@ -9,7 +9,7 @@ import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
-import io from 'socket.io-client';
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 const API_BASE = "http://localhost:5000";
 
@@ -63,7 +63,7 @@ export default function BorrowApprovalList() {
     returned: "คืนแล้ว"
   };
 
-  const socket = io('http://localhost:5000');
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
   useEffect(() => {
     setLoading(true);
@@ -82,12 +82,10 @@ export default function BorrowApprovalList() {
         setBorrowRequests(data);
       });
     };
-    socket.on('badgeCountsUpdated', handleBadgeUpdate);
-    return () => {
-      socket.off('badgeCountsUpdated', handleBadgeUpdate);
-    };
+    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
+    return unsubscribe;
     // === จบ logic ===
-  }, []);
+  }, [subscribeToBadgeCounts]);
 
   const handleOpenDialog = (request) => {
     setSelectedRequest(request);

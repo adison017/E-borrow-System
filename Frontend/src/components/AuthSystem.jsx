@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-
-import { FaBuilding, FaEnvelope, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt, FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
-
+import { FaBuilding, FaEnvelope, FaEye, FaEyeSlash, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import {
   LoginErrorDialog,
   LoginSuccessDialog,
@@ -160,12 +159,6 @@ const AuthSystem = (props) => {
       });
   }, [navigate]);
 
-  useEffect(() => {
-    if (activeTab === 'login') {
-      setLoginData({ username: '', password: '' });
-    }
-  }, [activeTab]);
-
   const handleLoginChange = (e) => {
     const { name, value } = e.target;
     setLoginData(prev => ({ ...prev, [name]: value }));
@@ -231,28 +224,17 @@ const AuthSystem = (props) => {
           show: true,
           type: 'error',
           title: 'เข้าสู่ระบบไม่สำเร็จ',
-          message: response.data?.message || 'เกิดข้อผิดพลาด',
+          message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
           onClose: () => setNotification(n => ({ ...n, show: false }))
         });
       }
     } catch (error) {
       setIsLoading(false);
-      let errorMsg = error.response?.data?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
-      // กรณีข้อความจาก backend
-      if (errorMsg.includes('กรุณากรอก username และ password')) {
-        errorMsg = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
-      } else if (errorMsg.includes('ไม่พบผู้ใช้งานนี้')) {
-        errorMsg = 'ไม่พบบัญชีผู้ใช้งานนี้ในระบบ';
-      } else if (errorMsg.includes('รหัสผ่านไม่ถูกต้อง')) {
-        errorMsg = 'รหัสผ่านไม่ถูกต้อง';
-      } else if (errorMsg.includes('ชื่อผู้ใช้ไม่ถูกต้อง')) {
-        errorMsg = 'ชื่อผู้ใช้ไม่ถูกต้อง';
-      }
       setNotification({
         show: true,
         type: 'error',
         title: 'เข้าสู่ระบบไม่สำเร็จ',
-        message: errorMsg,
+        message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
         onClose: () => setNotification(n => ({ ...n, show: false }))
       });
     }
@@ -261,13 +243,7 @@ const AuthSystem = (props) => {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (registerData.password !== registerData.confirmPassword) {
-      setNotification({
-        show: true,
-        type: 'error',
-        title: '❗ รหัสผ่านไม่ตรงกัน',
-        message: 'กรุณากรอกรหัสผ่านและยืนยันรหัสผ่านให้ตรงกัน',
-        onClose: () => setNotification(n => ({ ...n, show: false }))
-      });
+      setNotification({ show: true, type: 'warning', title: 'รหัสผ่านไม่ตรงกัน', message: 'กรุณายืนยันรหัสผ่านให้ถูกต้อง', onClose: () => setNotification(n => ({ ...n, show: false })) });
       return;
     }
     setIsLoading(true);
@@ -557,42 +533,13 @@ const AuthSystem = (props) => {
                             <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
                           </div>
                         </div>
-
-                      </div>
-                      {!passwordMatch && (
-                        <div className="flex items-center justify-center mt-1">
-                          <div className="bg-red-100/80 border border-red-200 rounded-lg shadow-sm px-3 py-1 flex items-center gap-2">
-                            <FaExclamationCircle className="text-red-500 text-lg" />
-                            <span className="text-red-700 text-sm font-semibold">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</span>
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">ยืนยันรหัสผ่าน</label>
+                          <div className="relative">
+                            <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={registerData.confirmPassword} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="ยืนยันรหัสผ่าน" required />
+                            <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>{showConfirmPassword ? <FaEyeSlash /> : <FaEye />}</button>
+                            <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Contact Info Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center mb-4">
-                      <FaEnvelope className="text-pink-500 text-lg mr-3" />
-                      <h3 className="text-lg font-semibold text-white">ข้อมูลติดต่อ</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          อีเมล
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="email"
-                            name="email"
-                            value={registerData.email}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
-                            placeholder="example@email.com"
-                            required
-                          />
-                          <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
-
                         </div>
                         {!passwordMatch && (<div className="text-red-500 text-xs mt-1">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</div>)}
                       </div>

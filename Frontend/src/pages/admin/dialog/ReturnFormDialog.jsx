@@ -1,4 +1,4 @@
-import { ExclamationTriangleIcon, InformationCircleIcon, ExclamationCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import { ExclamationTriangleIcon, InformationCircleIcon, ExclamationCircleIcon, XCircleIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { ArrowPathIcon, CheckCircleIcon as CheckCircleSolidIcon, ClipboardDocumentListIcon, DocumentCheckIcon } from "@heroicons/react/24/solid";
 import { useState, useEffect } from "react";
 import { MdClose } from "react-icons/md";
@@ -35,6 +35,13 @@ const ReturnFormDialog = ({
   const [isVerifyingSlip, setIsVerifyingSlip] = useState(false);
   const [slipVerifyResult, setSlipVerifyResult] = useState(null);
   const [itemConditions, setItemConditions] = useState({}); // เก็บสภาพรายชิ้น
+
+  // Image modal states
+  const [imageModal, setImageModal] = useState({
+    isOpen: false,
+    imageUrl: '',
+    title: ''
+  });
 
   const userId = borrowedItem?.user_id; // ผู้ยืม
   // Get returnById (ผู้ตรวจรับ) จาก localStorage
@@ -265,7 +272,7 @@ const ReturnFormDialog = ({
       proof_image: proofImage || null,
       status: 'pending',
       notes: returnNotes || '',
-      pay_status: (paymentMethod === 'online' || paymentMethod === 'transfer') ? 'pending' : 'paid',
+      pay_status: (paymentMethod === 'online') ? 'pending' : 'paid',
       paymentMethod,
       item_conditions: itemConditionsWithFine, // ส่งแบบใหม่
     };
@@ -364,10 +371,37 @@ const ReturnFormDialog = ({
     }
   };
 
+  const handleViewImage = (imagePath, title) => {
+    if (!imagePath) return;
+
+    // สร้าง URL สำหรับรูปภาพ
+    let imageUrl;
+    if (imagePath.startsWith('http')) {
+      imageUrl = imagePath;
+    } else {
+      imageUrl = `/uploads/${imagePath}`;
+    }
+
+    setImageModal({
+      isOpen: true,
+      imageUrl: imageUrl,
+      title: title
+    });
+  };
+
+  const closeImageModal = () => {
+    setImageModal({
+      isOpen: false,
+      imageUrl: '',
+      title: ''
+    });
+  };
+
   const isReadOnly = borrowedItem?.status === 'waiting_payment';
 
   return (
-    <div className="modal modal-open">
+    <>
+      <div className="modal modal-open">
       <div className="modal-box bg-white rounded-xl shadow-xl w-full max-w-8xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Header */}
@@ -401,24 +435,38 @@ const ReturnFormDialog = ({
                   </svg>
                   <h3 className="font-semibold text-gray-800">ข้อมูลผู้ยืม</h3>
                 </div>
-                <div className="flex flex-col items-center gap-4">
-                  <img
-                    src={
-                      borrowedItem?.borrower?.avatar
-                        ? borrowedItem.borrower.avatar.startsWith('http')
-                          ? borrowedItem.borrower.avatar
-                          : `http://localhost:5000/uploads/user/${borrowedItem.borrower.avatar}`
-                        : '/default-avatar.png'
-                    }
-                    alt={borrowedItem?.borrower?.name}
-                    className="w-24 h-24 rounded-full object-cover bg-white border-4 border-gray-200 shadow-lg flex-shrink-0"
-                  />
-                  <div className="text-center">
-                    <p className="font-bold text-lg text-gray-800">{borrowedItem.borrower.name}</p>
-                    <p className="text-gray-500 ">{borrowedItem.borrower.position}</p>
-                    <p className="text-gray-500 mt-1">{borrowedItem.borrower.department}</p>
-                  </div>
-                </div>
+                                       <div className="flex flex-col items-center gap-4">
+                         <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg cursor-pointer hover:scale-105 transition-all duration-200">
+                           <img
+                             src={
+                               borrowedItem?.borrower?.avatar
+                                 ? borrowedItem.borrower.avatar.startsWith('http')
+                                   ? borrowedItem.borrower.avatar
+                                   : `http://localhost:5000/uploads/user/${borrowedItem.borrower.avatar}`
+                                 : '/profile.png'
+                             }
+                             alt={borrowedItem?.borrower?.name}
+                             className="w-full h-full object-cover"
+                             onClick={() => handleViewImage(
+                               borrowedItem?.borrower?.avatar
+                                 ? borrowedItem.borrower.avatar.startsWith('http')
+                                   ? borrowedItem.borrower.avatar
+                                   : `http://localhost:5000/uploads/user/${borrowedItem.borrower.avatar}`
+                                 : null,
+                               `รูปภาพนิสิต - ${borrowedItem.borrower.name}`
+                             )}
+                             onError={(e) => {
+                               e.target.onerror = null;
+                               e.target.src = '/profile.png';
+                             }}
+                           />
+                         </div>
+                         <div className="text-center">
+                           <p className="font-bold text-lg text-gray-800">{borrowedItem.borrower.name}</p>
+                           <p className="text-gray-500 ">{borrowedItem.borrower.position}</p>
+                           <p className="text-gray-500 mt-1">{borrowedItem.borrower.department}</p>
+                         </div>
+                       </div>
                 <div className="mt-6 space-y-3">
                   <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-gray-200">
                     <span className="text-sm font-medium text-gray-600">รหัสการยืม</span>
@@ -442,6 +490,85 @@ const ReturnFormDialog = ({
                   </div>
                 </div>
               )}
+
+              {/* รูปภาพการยืม */}
+              <div className="bg-white rounded-lg p-3 border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-800 text-sm">รูปภาพการยืม</h3>
+                    <p className="text-xs text-gray-500">หลักฐานการยืมครุภัณฑ์</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {/* ลายเซ็นการยืม */}
+                  {borrowedItem?.signature_image && (
+                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border border-emerald-200">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg shadow-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </div>
+                        <h4 className="font-semibold text-gray-800 text-sm">ลายเซ็นการยืม</h4>
+                      </div>
+                      <button
+                        onClick={() => handleViewImage(borrowedItem.signature_image, 'ลายเซ็นการยืม')}
+                        className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
+                        title="ดูภาพ"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                        ดูภาพ
+                      </button>
+                    </div>
+                  )}
+
+                  {/* รูปถ่ายส่งมอบครุภัณฑ์ */}
+                  {borrowedItem?.handover_photo && (
+                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border border-emerald-200">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg shadow-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <h4 className="font-semibold text-gray-800 text-sm">รูปถ่ายส่งมอบครุภัณฑ์</h4>
+                      </div>
+                      <button
+                        onClick={() => handleViewImage(borrowedItem.handover_photo, 'รูปถ่ายส่งมอบครุภัณฑ์')}
+                        className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
+                        title="ดูภาพ"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                        ดูภาพ
+                      </button>
+                    </div>
+                  )}
+
+                  {/* แสดงข้อความเมื่อไม่มีรูปภาพ */}
+                  {!borrowedItem?.signature_image && !borrowedItem?.handover_photo && (
+                    <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-emerald-200">
+                      <div className="bg-gradient-to-r from-emerald-100 to-teal-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">ไม่มีรูปภาพการยืม</p>
+                      <p className="text-xs text-gray-400 mt-1">ยังไม่มีการอัปโหลดรูปภาพหลักฐาน</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Equipment List and Form */}
@@ -683,6 +810,60 @@ const ReturnFormDialog = ({
         <button onClick={onClose}>close</button>
       </form>
     </div>
+
+      {/* Image Modal */}
+      {imageModal.isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md">
+          <div className="relative max-w-6xl max-h-[95vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200/50">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200/50 bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg">
+                  <PhotoIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">{imageModal.title}</h3>
+                  <p className="text-sm text-gray-500">คลิกปุ่มปิดหรือกด ESC เพื่อออกจากมุมมอง</p>
+                </div>
+              </div>
+              <button
+                onClick={closeImageModal}
+                className="text-gray-400 hover:text-gray-600 transition-all duration-200 p-3 rounded-full hover:bg-gray-100 hover:scale-110 shadow-sm"
+              >
+                <MdClose className="w-7 h-7" />
+              </button>
+            </div>
+
+            {/* Image Container */}
+            <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100">
+              <div className="flex justify-center">
+                <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200/50 max-w-5xl">
+                  <img
+                    src={imageModal.imageUrl}
+                    alt={imageModal.title}
+                    className="max-w-full max-h-[75vh] object-contain rounded-2xl"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/lo.png';
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center p-6 border-t border-gray-200/50 bg-gradient-to-r from-white to-gray-50">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>รูปภาพนี้เป็นส่วนหนึ่งของหลักฐานการยืม-คืนครุภัณฑ์</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
