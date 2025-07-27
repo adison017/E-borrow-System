@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-
-import { FaBuilding, FaEnvelope, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt, FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
-
+import { FaBuilding, FaEnvelope, FaEye, FaEyeSlash, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import {
   LoginErrorDialog,
   LoginSuccessDialog,
@@ -11,6 +10,7 @@ import {
   RegisterSuccessDialog
 } from './dialog/AlertDialog';
 import Notification from './Notification';
+import OtpDialog from './OtpDialog';
 
 // ลบ const provinces, districts, subdistricts ที่เป็น mock data ออก
 
@@ -53,6 +53,14 @@ const AuthSystem = (props) => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [positions, setPositions] = useState([]);
   const [branches, setBranches] = useState([]);
+  // Real-time validation state
+  const [validation, setValidation] = useState({
+    idNumber: null,
+    username: null,
+    email: null
+  });
+  const [otpDialog, setOtpDialog] = useState({ show: false, email: '', phone: '', error: '' });
+  const [otpVerified, setOtpVerified] = useState(false);
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -80,6 +88,52 @@ const AuthSystem = (props) => {
   });
   // Multi-step register
   const [registerStep, setRegisterStep] = useState(0); // 0: basic, 1: account, 2: contact, 3: address
+
+  // ฟังก์ชันตรวจสอบข้อมูลแต่ละขั้น
+  const validateRegisterStep = (step) => {
+    if (step === 0) {
+      // ข้อมูลพื้นฐาน
+      if (!registerData.idNumber || !registerData.fullName || !registerData.position || !registerData.department) {
+        setNotification({ show: true, type: 'warning', title: 'ข้อมูลไม่ครบ', message: 'กรุณากรอกข้อมูลพื้นฐานให้ครบถ้วน', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return false;
+      }
+      if (validation.idNumber === 'duplicate') {
+        setNotification({ show: true, type: 'warning', title: 'รหัสนิสิต/บุคลากรซ้ำ', message: 'รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return false;
+      }
+    } else if (step === 1) {
+      // ข้อมูลบัญชี
+      if (!registerData.username || !registerData.password || !registerData.confirmPassword) {
+        setNotification({ show: true, type: 'warning', title: 'ข้อมูลไม่ครบ', message: 'กรุณากรอกข้อมูลบัญชีให้ครบถ้วน', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return false;
+      }
+      if (!passwordMatch) {
+        setNotification({ show: true, type: 'warning', title: 'รหัสผ่านไม่ตรงกัน', message: 'กรุณายืนยันรหัสผ่านให้ถูกต้อง', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return false;
+      }
+      if (validation.username === 'duplicate') {
+        setNotification({ show: true, type: 'warning', title: 'ชื่อผู้ใช้งานซ้ำ', message: 'ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return false;
+      }
+    } else if (step === 2) {
+      // ข้อมูลติดต่อ
+      if (!registerData.email || !registerData.phone) {
+        setNotification({ show: true, type: 'warning', title: 'ข้อมูลไม่ครบ', message: 'กรุณากรอกข้อมูลติดต่อให้ครบถ้วน', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return false;
+      }
+      if (validation.email === 'duplicate') {
+        setNotification({ show: true, type: 'warning', title: 'อีเมลซ้ำ', message: 'อีเมลนี้ถูกใช้ไปแล้ว', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return false;
+      }
+    } else if (step === 3) {
+      // ข้อมูลที่อยู่
+      if (!registerData.currentAddress || !registerData.provinceId || !registerData.amphureId || !registerData.tambonId || !registerData.postalCode) {
+        setNotification({ show: true, type: 'warning', title: 'ข้อมูลไม่ครบ', message: 'กรุณากรอกข้อมูลที่อยู่ให้ครบถ้วน', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return false;
+      }
+    }
+    return true;
+  };
 
   const navigate = useNavigate();
 
@@ -160,21 +214,60 @@ const AuthSystem = (props) => {
       });
   }, [navigate]);
 
-  useEffect(() => {
-    if (activeTab === 'login') {
-      setLoginData({ username: '', password: '' });
-    }
-  }, [activeTab]);
-
   const handleLoginChange = (e) => {
     const { name, value } = e.target;
     setLoginData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleRegisterChange = (e) => {
+  const handleRegisterChange = async (e) => {
     const { name, value } = e.target;
     if (name === 'idNumber') {
-      setRegisterData(prev => ({ ...prev, idNumber: value, username: value }));
+      // ถ้า email ยังว่างหรือเป็น [รหัสนิสิตเดิม]@msu.ac.th ให้ auto fill ใหม่
+      setRegisterData(prev => {
+        let newEmail = prev.email;
+        // เฉพาะถ้า email ยังว่าง หรือเป็น [รหัสนิสิตเดิม]@msu.ac.th
+        if (!prev.email || prev.email === `${prev.idNumber}@msu.ac.th`) {
+          newEmail = value ? `${value}@msu.ac.th` : '';
+        }
+        return { ...prev, idNumber: value, username: value, email: newEmail };
+      });
+      // ตรวจสอบรหัสนิสิตซ้ำ
+      if (value) {
+        try {
+          const res = await axios.get(`http://localhost:5000/api/users/username/${value}`);
+          setValidation(v => ({ ...v, idNumber: res.data ? 'duplicate' : 'ok' }));
+        } catch {
+          setValidation(v => ({ ...v, idNumber: 'ok' }));
+        }
+      } else {
+        setValidation(v => ({ ...v, idNumber: null }));
+      }
+      // username จะ sync กับ idNumber
+      setValidation(v => ({ ...v, username: null }));
+    } else if (name === 'username') {
+      setRegisterData(prev => ({ ...prev, username: value }));
+      if (value) {
+        try {
+          const res = await axios.get(`http://localhost:5000/api/users/username/${value}`);
+          setValidation(v => ({ ...v, username: res.data ? 'duplicate' : 'ok' }));
+        } catch {
+          setValidation(v => ({ ...v, username: 'ok' }));
+        }
+      } else {
+        setValidation(v => ({ ...v, username: null }));
+      }
+    } else if (name === 'email') {
+      setRegisterData(prev => ({ ...prev, email: value }));
+      if (value && value.includes('@')) {
+        try {
+          const res = await axios.get(`http://localhost:5000/api/users/username/${value}`);
+          setValidation(v => ({ ...v, email: res.data ? 'duplicate' : 'ok' }));
+        } catch {
+          setValidation(v => ({ ...v, email: 'ok' }));
+        }
+      } else {
+        setValidation(v => ({ ...v, email: null }));
+      }
     } else {
       setRegisterData(prev => ({ ...prev, [name]: value }));
     }
@@ -231,28 +324,17 @@ const AuthSystem = (props) => {
           show: true,
           type: 'error',
           title: 'เข้าสู่ระบบไม่สำเร็จ',
-          message: response.data?.message || 'เกิดข้อผิดพลาด',
+          message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
           onClose: () => setNotification(n => ({ ...n, show: false }))
         });
       }
     } catch (error) {
       setIsLoading(false);
-      let errorMsg = error.response?.data?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
-      // กรณีข้อความจาก backend
-      if (errorMsg.includes('กรุณากรอก username และ password')) {
-        errorMsg = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
-      } else if (errorMsg.includes('ไม่พบผู้ใช้งานนี้')) {
-        errorMsg = 'ไม่พบบัญชีผู้ใช้งานนี้ในระบบ';
-      } else if (errorMsg.includes('รหัสผ่านไม่ถูกต้อง')) {
-        errorMsg = 'รหัสผ่านไม่ถูกต้อง';
-      } else if (errorMsg.includes('ชื่อผู้ใช้ไม่ถูกต้อง')) {
-        errorMsg = 'ชื่อผู้ใช้ไม่ถูกต้อง';
-      }
       setNotification({
         show: true,
         type: 'error',
         title: 'เข้าสู่ระบบไม่สำเร็จ',
-        message: errorMsg,
+        message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
         onClose: () => setNotification(n => ({ ...n, show: false }))
       });
     }
@@ -261,74 +343,93 @@ const AuthSystem = (props) => {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (registerData.password !== registerData.confirmPassword) {
-      setNotification({
-        show: true,
-        type: 'error',
-        title: '❗ รหัสผ่านไม่ตรงกัน',
-        message: 'กรุณากรอกรหัสผ่านและยืนยันรหัสผ่านให้ตรงกัน',
-        onClose: () => setNotification(n => ({ ...n, show: false }))
-      });
+      setNotification({ show: true, type: 'warning', title: 'รหัสผ่านไม่ตรงกัน', message: 'กรุณายืนยันรหัสผ่านให้ถูกต้อง', onClose: () => setNotification(n => ({ ...n, show: false })) });
       return;
     }
+    // ตรวจสอบว่าต้องใช้อีเมล @msu.ac.th เท่านั้นสำหรับ OTP
+    const isMsuEmail = registerData.email && /@msu\.ac\.th$/.test(registerData.email);
+    if (!isMsuEmail) {
+      setNotification({ show: true, type: 'warning', title: 'ข้อมูลไม่ครบ', message: 'กรุณากรอกอีเมล @msu.ac.th เพื่อรับรหัส OTP', onClose: () => setNotification(n => ({ ...n, show: false })) });
+      return;
+    }
+    // เปิด OTP Dialog เฉพาะ email
+    setOtpDialog({ show: true, email: registerData.email, error: '' });
+  };
+
+  // OTP Verification Handler
+  const handleOtpVerify = async (otp) => {
     setIsLoading(true);
     try {
-      // map id เป็นชื่อจริง
-      const provinceObj = provinces.find(p => p.id === Number(registerData.provinceId));
-      const amphureObj = amphures.find(a => a.id === Number(registerData.amphureId));
-      const tambonObj = tambons.find(t => t.id === Number(registerData.tambonId));
-      const payload = {
-        user_code: registerData.idNumber,
-        username: registerData.username,
-        password: registerData.password,
-        email: registerData.email,
-        phone: registerData.phone,
-        Fullname: registerData.fullName,
-        position_id: registerData.position, // ส่ง id
-        branch_id: registerData.department, // ส่ง id
-        role_id: 3,
-        street: registerData.currentAddress,
-        province: provinceObj ? provinceObj.name_th : '',
-        district: amphureObj ? amphureObj.name_th : '',
-        parish: tambonObj ? tambonObj.name_th : '',
-        postal_no: registerData.postalCode
-      };
-      await axios.post('http://localhost:5000/api/users', payload);
-      setIsLoading(false);
-      setRegisterData({
-        idNumber: '',
-        fullName: '',
-        username: '',
-        password: '',
-        confirmPassword: '',
-        email: '',
-        phone: '',
-        position: '',
-        department: '',
-        currentAddress: '',
-        provinceId: '',
-        amphureId: '',
-        tambonId: '',
-        postalCode: ''
-      });
-      setNotification({
-        show: true,
-        type: 'success',
-        title: 'สมัครสมาชิกสำเร็จ',
-        message: 'คุณสามารถเข้าสู่ระบบได้ทันที',
-        onClose: () => {
-          setNotification(n => ({ ...n, show: false }));
-          navigate('/login');
+      // สมมติใช้ email เป็นหลัก (ถ้ามี)
+      const contact = otpDialog.email;
+      const res = await axios.post('http://localhost:5000/api/users/verify-otp', { contact, otp });
+      if (res.data && res.data.success) {
+        setOtpVerified(true);
+        setOtpDialog({ show: false, email: '', error: '' });
+        // ดำเนินการสมัครสมาชิกจริง
+        const provinceObj = provinces.find(p => p.id === Number(registerData.provinceId));
+        const amphureObj = amphures.find(a => a.id === Number(registerData.amphureId));
+        const tambonObj = tambons.find(t => t.id === Number(registerData.tambonId));
+        const payload = {
+          user_code: registerData.idNumber,
+          username: registerData.username,
+          password: registerData.password,
+          email: registerData.email,
+          phone: registerData.phone,
+          Fullname: registerData.fullName,
+          position_id: registerData.position,
+          branch_id: registerData.department,
+          role_id: 3,
+          street: registerData.currentAddress,
+          province: provinceObj ? provinceObj.name_th : '',
+          district: amphureObj ? amphureObj.name_th : '',
+          parish: tambonObj ? tambonObj.name_th : '',
+          postal_no: registerData.postalCode
+        };
+        try {
+          await axios.post('http://localhost:5000/api/users', payload);
+          setIsLoading(false);
+          setRegisterData({
+            idNumber: '',
+            fullName: '',
+            username: '',
+            password: '',
+            confirmPassword: '',
+            email: '',
+            phone: '',
+            position: '',
+            department: '',
+            currentAddress: '',
+            provinceId: '',
+            amphureId: '',
+            tambonId: '',
+            postalCode: ''
+          });
+          setRegisterStep(0);
+          setActiveTab('login');
+          setNotification({
+            show: true,
+            type: 'success',
+            title: 'สมัครสมาชิกสำเร็จ',
+            message: 'สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบด้วยบัญชีที่สมัคร',
+            onClose: () => setNotification(n => ({ ...n, show: false }))
+          });
+        } catch (error) {
+          setIsLoading(false);
+          setNotification({
+            show: true,
+            type: 'error',
+            title: 'สมัครสมาชิกไม่สำเร็จ',
+            message: error.response?.data?.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก',
+            onClose: () => setNotification(n => ({ ...n, show: false }))
+          });
         }
-      });
+      } else {
+        setOtpDialog(d => ({ ...d, error: 'OTP ไม่ถูกต้อง' }));
+      }
     } catch (error) {
+      setOtpDialog(d => ({ ...d, error: 'OTP ไม่ถูกต้องหรือหมดอายุ' }));
       setIsLoading(false);
-      setNotification({
-        show: true,
-        type: 'error',
-        title: 'สมัครสมาชิกไม่สำเร็จ',
-        message: getRegisterErrorMessage(error),
-        onClose: () => setNotification(n => ({ ...n, show: false }))
-      });
     }
   };
 
@@ -486,6 +587,15 @@ const AuthSystem = (props) => {
 
             {activeTab === 'register' && (
               <div className={`w-full rounded-2xl p-6 transition-all duration-300 ${isMounted ? 'animate-fadeIn' : ''}`}>
+                {/* Steps Progress Bar */}
+            <div className="w-full mb-6 flex justify-center">
+              <ul className="steps steps-horizontal w-full max-w-xl">
+                <li className={`step ${registerStep >= 0 ? 'step-primary font-bold' : ''}`}>ข้อมูลพื้นฐาน</li>
+                <li className={`step ${registerStep >= 1 ? 'step-primary font-bold' : ''}`}>บัญชี</li>
+                <li className={`step ${registerStep >= 2 ? 'step-primary font-bold' : ''}`}>ติดต่อ</li>
+                <li className={`step ${registerStep === 3 ? 'step-primary font-bold' : ''}`}>ที่อยู่</li>
+              </ul>
+            </div>
                 <form onSubmit={handleRegisterSubmit} className="space-y-6">
                   {/* Multi-step register */}
                   {registerStep === 0 && (
@@ -498,7 +608,8 @@ const AuthSystem = (props) => {
                         <div>
                           <label className="block text-xs font-medium text-white/80 mb-1">รหัสนิสิต/บุคลากร</label>
                           <div className="relative">
-                            <input type="text" name="idNumber" value={registerData.idNumber} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="เช่น 65011211033" required />
+                          <input type="text" name="idNumber" value={registerData.idNumber} onChange={handleRegisterChange} className={`w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 ${validation.idNumber === 'duplicate' ? 'border-red-500' : ''}`} placeholder="เช่น 65011211033" required />
+                          {validation.idNumber === 'duplicate' && <div className="text-red-500 text-xs mt-1">รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว</div>}
                             <FaIdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
                           </div>
                         </div>
@@ -531,7 +642,9 @@ const AuthSystem = (props) => {
                         </div>
                       </div>
                       <div className="flex justify-end mt-4">
-                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => setRegisterStep(1)}>ดำเนินการต่อ</button>
+                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => {
+                          if (validateRegisterStep(0)) setRegisterStep(1);
+                        }}>ดำเนินการต่อ</button>
                       </div>
                     </div>
                   )}
@@ -545,7 +658,8 @@ const AuthSystem = (props) => {
                         <div className="md:col-span-2">
                           <label className="block text-xs font-medium text-white/80 mb-1">ชื่อผู้ใช้งาน</label>
                           <div className="relative">
-                            <input type="text" name="username" value={registerData.username} readOnly tabIndex={-1} className="w-full h-10 pl-10 pr-3 bg-gray-300 border-gray-400 text-gray-600 rounded-lg focus:ring-0 focus:outline-none text-sm cursor-not-allowed select-none" placeholder="ชื่อผู้ใช้งานจะตรงกับรหัสนิสิต/บุคลากร" required />
+                            <input type="text" name="username" value={registerData.username} readOnly tabIndex={-1} className={`w-full h-10 pl-10 pr-3 bg-gray-300 border-gray-400 text-gray-600 rounded-lg focus:ring-0 focus:outline-none text-sm cursor-not-allowed select-none ${validation.username === 'duplicate' ? 'border-red-500' : ''}`} placeholder="ชื่อผู้ใช้งานจะตรงกับรหัสนิสิต/บุคลากร" required />
+                            {validation.username === 'duplicate' && <div className="text-red-500 text-xs mt-1">ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว</div>}
                             <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
                           </div>
                         </div>
@@ -557,48 +671,21 @@ const AuthSystem = (props) => {
                             <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
                           </div>
                         </div>
-
-                      </div>
-                      {!passwordMatch && (
-                        <div className="flex items-center justify-center mt-1">
-                          <div className="bg-red-100/80 border border-red-200 rounded-lg shadow-sm px-3 py-1 flex items-center gap-2">
-                            <FaExclamationCircle className="text-red-500 text-lg" />
-                            <span className="text-red-700 text-sm font-semibold">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</span>
+                        <div>
+                          <label className="block text-xs font-medium text-white/80 mb-1">ยืนยันรหัสผ่าน</label>
+                          <div className="relative">
+                            <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={registerData.confirmPassword} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="ยืนยันรหัสผ่าน" required />
+                            <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>{showConfirmPassword ? <FaEyeSlash /> : <FaEye />}</button>
+                            <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Contact Info Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center mb-4">
-                      <FaEnvelope className="text-pink-500 text-lg mr-3" />
-                      <h3 className="text-lg font-semibold text-white">ข้อมูลติดต่อ</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-white/80 mb-1">
-                          อีเมล
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="email"
-                            name="email"
-                            value={registerData.email}
-                            onChange={handleRegisterChange}
-                            className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800"
-                            placeholder="example@email.com"
-                            required
-                          />
-                          <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
-
                         </div>
                         {!passwordMatch && (<div className="text-red-500 text-xs mt-1">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</div>)}
                       </div>
                       <div className="flex justify-between mt-4">
                         <button type="button" className="bg-gray-400 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-gray-500 transition" onClick={() => setRegisterStep(0)}>ย้อนกลับ</button>
-                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => setRegisterStep(2)} disabled={!registerData.password || !registerData.confirmPassword || !passwordMatch}>ดำเนินการต่อ</button>
+                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => {
+                          if (validateRegisterStep(1)) setRegisterStep(2);
+                        }}>ดำเนินการต่อ</button>
                       </div>
                     </div>
                   )}
@@ -612,7 +699,8 @@ const AuthSystem = (props) => {
                         <div>
                           <label className="block text-xs font-medium text-white/80 mb-1">อีเมล</label>
                           <div className="relative">
-                            <input type="email" name="email" value={registerData.email} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="example@email.com" required />
+                            <input type="email" name="email" value={registerData.email} onChange={handleRegisterChange} className={`w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 ${validation.email === 'duplicate' ? 'border-red-500' : ''}`} placeholder="example@email.com" required />
+                            {validation.email === 'duplicate' && <div className="text-red-500 text-xs mt-1">อีเมลนี้ถูกใช้ไปแล้ว</div>}
                             <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
                           </div>
                         </div>
@@ -626,7 +714,9 @@ const AuthSystem = (props) => {
                       </div>
                       <div className="flex justify-between mt-4">
                         <button type="button" className="bg-gray-400 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-gray-500 transition" onClick={() => setRegisterStep(1)}>ย้อนกลับ</button>
-                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => setRegisterStep(3)} disabled={!registerData.email || !registerData.phone}>ดำเนินการต่อ</button>
+                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => {
+                          if (validateRegisterStep(2)) setRegisterStep(3);
+                        }}>ดำเนินการต่อ</button>
                       </div>
                     </div>
                   )}
@@ -686,7 +776,24 @@ const AuthSystem = (props) => {
                       </div>
                       <div className="flex justify-between mt-4">
                         <button type="button" className="bg-gray-400 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-gray-500 transition" onClick={() => setRegisterStep(2)}>ย้อนกลับ</button>
-                        <button type="submit" disabled={isLoading} className={`bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition flex items-center justify-center ${isLoading ? 'opacity-70' : ''}`}>{isLoading ? (<><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>กำลังสมัครสมาชิก...</>) : 'สมัครสมาชิก'}</button>
+                        <button type="button" disabled={isLoading} className={`bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition flex items-center justify-center ${isLoading ? 'opacity-70' : ''}`} onClick={async () => {
+                          if (validateRegisterStep(3)) {
+                            // ตรวจสอบว่าต้องใช้อีเมล @msu.ac.th เท่านั้นสำหรับ OTP
+                            const isMsuEmail = registerData.email && /@msu\.ac\.th$/.test(registerData.email);
+                            if (!isMsuEmail) {
+                              setNotification({ show: true, type: 'warning', title: 'ข้อมูลไม่ครบ', message: 'กรุณากรอกอีเมล @msu.ac.th เพื่อรับรหัส OTP', onClose: () => setNotification(n => ({ ...n, show: false })) });
+                              return;
+                            }
+                            setIsLoading(true);
+                            try {
+                              await axios.post('http://localhost:5000/api/users/request-otp', { contact: registerData.email });
+                              setOtpDialog({ show: true, email: registerData.email, error: '' });
+                            } catch (err) {
+                              setNotification({ show: true, type: 'error', title: 'ส่ง OTP ไม่สำเร็จ', message: err.response?.data?.message || 'เกิดข้อผิดพลาดในการส่ง OTP', onClose: () => setNotification(n => ({ ...n, show: false })) });
+                            }
+                            setIsLoading(false);
+                          }
+                        }}>{isLoading ? (<><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>กำลังสมัครสมาชิก...</>) : 'สมัครสมาชิก'}</button>
                       </div>
                     </div>
                   )}
@@ -698,6 +805,14 @@ const AuthSystem = (props) => {
       </div>
 
       {/* Dialogs */}
+      <OtpDialog
+        show={otpDialog.show}
+        title={'ยืนยันอีเมล'}
+        message={`กรุณากรอกรหัส OTP ที่ส่งไปยัง ${otpDialog.email}`}
+        onSubmit={handleOtpVerify}
+        onClose={() => setOtpDialog({ show: false, email: '', error: '' })}
+        error={otpDialog.error}
+      />
       <LoginSuccessDialog />
       <LoginErrorDialog />
       <RegisterSuccessDialog />

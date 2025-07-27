@@ -1,3 +1,4 @@
+
 import bcrypt from 'bcrypt';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
@@ -8,10 +9,63 @@ import User from '../models/userModel.js';
 import { sendMail } from '../utils/emailUtils.js';
 // สำหรับเก็บ OTP ชั่วคราว (ใน production ควรใช้ redis หรือ db)
 const otpStore = new Map();
-
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// สำหรับเก็บ OTP สมัครสมาชิก (แยกจาก OTP เปลี่ยนรหัสผ่าน)
+const registerOtpStore = new Map();
+
+// POST /api/users/request-otp
+// ส่ง OTP ไปอีเมลสำหรับสมัครสมาชิก
+async function requestRegisterOtp(req, res) {
+  try {
+    const { contact } = req.body;
+    if (!contact || !/@msu\.ac\.th$/.test(contact)) {
+      return res.status(400).json({ message: 'ต้องใช้อีเมล @msu.ac.th เท่านั้น' });
+    }
+    // สร้าง otp 6 หลัก
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    registerOtpStore.set(contact, { otp, expires: Date.now() + 5 * 60 * 1000 });
+    // ส่งอีเมล
+    await sendMail({
+      to: contact,
+      subject: 'OTP สำหรับยืนยันอีเมลสมัครสมาชิก',
+      text: `รหัส OTP สำหรับสมัครสมาชิกคือ: ${otp}`,
+      html: `<h2>OTP สำหรับสมัครสมาชิก</h2><p>รหัส OTP ของคุณคือ: <b>${otp}</b></p>`
+    });
+    res.json({ message: 'ส่ง OTP ไปยังอีเมลแล้ว' });
+  } catch (err) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการส่ง OTP', error: err.message });
+  }
+}
+
+// POST /api/users/verify-otp
+// ตรวจสอบ OTP สำหรับสมัครสมาชิก
+async function verifyRegisterOtp(req, res) {
+  try {
+    const { contact, otp } = req.body;
+    if (!contact || !otp) {
+      return res.status(400).json({ message: 'ข้อมูลไม่ครบ' });
+    }
+    const record = registerOtpStore.get(contact);
+    if (!record) {
+      return res.status(400).json({ message: 'ไม่พบ OTP หรือหมดอายุ' });
+    }
+    if (record.otp !== otp) {
+      return res.status(400).json({ message: 'OTP ไม่ถูกต้อง' });
+    }
+    if (Date.now() > record.expires) {
+      registerOtpStore.delete(contact);
+      return res.status(400).json({ message: 'OTP หมดอายุ' });
+    }
+    // OTP ถูกต้อง
+    registerOtpStore.delete(contact);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการตรวจสอบ OTP', error: err.message });
+  }
+}
+
+
 
 // Configure multer for image upload
 const storage = multer.diskStorage({
@@ -62,6 +116,10 @@ const upload = multer({
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
 const userController = {
+  // POST /api/users/request-otp (สมัครสมาชิก)
+  requestRegisterOtp,
+  // POST /api/users/verify-otp (สมัครสมาชิก)
+  verifyRegisterOtp,
   // POST /api/users/request-password-otp
   requestPasswordOtp: async (req, res) => {
     try {
