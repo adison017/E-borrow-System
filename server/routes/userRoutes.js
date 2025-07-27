@@ -9,6 +9,10 @@ import db from '../db.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+// ส่ง OTP ไปอีเมล (สมัครสมาชิก)
+router.post('/request-otp', userController.requestRegisterOtp);
+// ตรวจสอบ OTP (สมัครสมาชิก)
+router.post('/verify-otp', userController.verifyRegisterOtp);
 // ส่ง OTP ไปอีเมล
 router.post('/request-password-otp', userController.requestPasswordOtp);
 
