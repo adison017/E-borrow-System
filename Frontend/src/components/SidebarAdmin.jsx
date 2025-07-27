@@ -14,9 +14,7 @@ import { TbCategory } from "react-icons/tb";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Notification from './Notification';
 import { getAllBorrows } from '../utils/api';
-import io from 'socket.io-client';
-
-const socket = io('http://localhost:5000'); // เปลี่ยน URL ถ้า backend อยู่ที่อื่น
+import { useBadgeCounts } from '../hooks/useSocket';
 
 const menuItems = [
   { to: '/DashboardAd', icon: <BsGraphUp size={22} />, label: 'รายงาน', key: 'dashboardAd' },
@@ -39,6 +37,7 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
   // เพิ่ม state สำหรับ badge
   const [pendingCount, setPendingCount] = useState(0);
   const [carryCount, setCarryCount] = useState(0);
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -49,15 +48,14 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
 
   useEffect(() => {
     // รับ badge real-time จาก backend
-    socket.on('badgeCountsUpdated', (badges) => {
+    const unsubscribe = subscribeToBadgeCounts((badges) => {
       if (typeof badges.pendingCount === 'number') setPendingCount(badges.pendingCount);
       if (typeof badges.carryCount === 'number') setCarryCount(badges.carryCount);
     });
+
     // cleanup
-    return () => {
-      socket.off('badgeCountsUpdated');
-    };
-  }, []);
+    return unsubscribe;
+  }, [subscribeToBadgeCounts]);
 
   useEffect(() => {
     // ดึงข้อมูลจาก API โดยตรง (สำหรับ initial load)

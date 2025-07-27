@@ -88,10 +88,28 @@ export const getRepairRequestsByItemId = (item_id) => {
     .then(res => res.json());
 };
 
-export const updateBorrowStatus = (borrow_id, status, rejection_reason, signature_image) => {
+export const updateBorrowStatus = (borrow_id, status, rejection_reason, signature_image, handover_photo) => {
+  console.log('=== updateBorrowStatus API Debug ===');
+  console.log('borrow_id:', borrow_id);
+  console.log('status:', status);
+  console.log('rejection_reason:', rejection_reason);
+  console.log('signature_image exists:', !!signature_image);
+  console.log('signature_image length:', signature_image ? signature_image.length : 0);
+  console.log('handover_photo exists:', !!handover_photo);
+  console.log('handover_photo length:', handover_photo ? handover_photo.length : 0);
+
   const body = { status };
   if (rejection_reason !== undefined) body.rejection_reason = rejection_reason;
   if (signature_image !== undefined) body.signature_image = signature_image;
+  if (handover_photo !== undefined) body.handover_photo = handover_photo;
+
+  console.log('Request body:', {
+    status: body.status,
+    rejection_reason: body.rejection_reason,
+    signature_image_length: body.signature_image ? body.signature_image.length : 0,
+    handover_photo_length: body.handover_photo ? body.handover_photo.length : 0
+  });
+
   return authFetch(`${API_BASE}/borrows/${borrow_id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

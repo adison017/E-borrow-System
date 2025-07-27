@@ -10,7 +10,7 @@ import * as RepairRequest from '../models/repairRequestModel.js';
 export const createBorrow = async (req, res) => {
   console.log('==== [API] POST /api/borrows ====');
   console.log('payload:', req.body);
-  const { user_id, reason, borrow_date, return_date, items, purpose } = req.body;
+  const { user_id, borrow_date, return_date, items, purpose } = req.body;
   // items = [{ item_id, quantity, note }]
   if (!user_id || !borrow_date || !return_date || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: 'ข้อมูลไม่ครบถ้วน' });
@@ -28,7 +28,7 @@ export const createBorrow = async (req, res) => {
   const borrow_code = generateBorrowCode();
   // ลบ logic ตรวจสอบรหัสซ้ำ (findByBorrowCode)
   try {
-    const borrow_id = await BorrowModel.createBorrowTransaction(user_id, reason, borrow_date, return_date, borrow_code, purpose);
+    const borrow_id = await BorrowModel.createBorrowTransaction(user_id, borrow_date, return_date, borrow_code, purpose);
     for (const item of items) {
       await BorrowModel.addBorrowItem(borrow_id, item.item_id, item.quantity || 1, item.note || null);
     }
@@ -176,22 +176,29 @@ export const createBorrow = async (req, res) => {
     } catch (notifyErr) {
       console.error('Error sending LINE notify to admin:', notifyErr);
     }
-    // === เพิ่ม broadcast badgeCountsUpdated หลังสร้าง borrow สำเร็จ ===
-    const [pending, carry, pendingApproval] = await Promise.all([
-      BorrowModel.getBorrowsByStatus(['pending']),
-      BorrowModel.getBorrowsByStatus(['carry']),
-      BorrowModel.getBorrowsByStatus(['pending_approval'])
-    ]);
-    const allRepairs = await RepairRequest.getAllRepairRequests();
-    const repairApprovalCount = allRepairs.length;
-    broadcastBadgeCounts({
-      pendingCount: pending.length + pendingApproval.length,
-      carryCount: carry.length,
-      borrowApprovalCount: pendingApproval.length,
-      repairApprovalCount
-    });
-    // === จบ logic ===
+    // ส่ง response กลับทันที
     res.status(201).json({ borrow_id, borrow_code });
+
+    // อัปเดต badge counts แบบ async (ไม่ต้องรอ)
+    setImmediate(async () => {
+      try {
+        const [pending, carry, pendingApproval] = await Promise.all([
+          BorrowModel.getBorrowsByStatus(['pending']),
+          BorrowModel.getBorrowsByStatus(['carry']),
+          BorrowModel.getBorrowsByStatus(['pending_approval'])
+        ]);
+        const allRepairs = await RepairRequest.getAllRepairRequests();
+        const repairApprovalCount = allRepairs.length;
+        broadcastBadgeCounts({
+          pendingCount: pending.length + pendingApproval.length,
+          carryCount: carry.length,
+          borrowApprovalCount: pendingApproval.length,
+          repairApprovalCount
+        });
+      } catch (err) {
+        console.error('Error updating badge counts:', err);
+      }
+    });
   } catch (err) {
     console.error('เกิดข้อผิดพลาดใน createBorrow:', err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
@@ -223,17 +230,106 @@ export const getBorrowById = async (req, res) => {
 // อัปเดตสถานะ
 export const updateBorrowStatus = async (req, res) => {
   const { id } = req.params;
-  const { status, rejection_reason, signature_image } = req.body;
+  const { status, rejection_reason, signature_image, handover_photo } = req.body;
+
+  console.log('=== updateBorrowStatus Debug ===');
+  console.log('borrow_id:', id);
+  console.log('status:', status);
+  console.log('rejection_reason:', rejection_reason);
+  console.log('signature_image exists:', !!signature_image);
+  console.log('handover_photo exists:', !!handover_photo);
+
   try {
+    // ดึงข้อมูล borrow เพื่อได้ borrow_code
+    const borrow = await BorrowModel.getBorrowById(id);
+    if (!borrow) {
+      return res.status(404).json({
+        message: 'ไม่พบรายการการยืมที่ระบุ',
+        error: 'Borrow not found'
+      });
+    }
+
+    const borrowCode = borrow.borrow_code;
+    console.log('Borrow code:', borrowCode);
+
     let signaturePath = null;
-    if (signature_image) {
-      if (typeof signature_image === 'string' && signature_image.startsWith('data:image/')) {
-        signaturePath = await saveBase64Image(signature_image);
+    let handoverPhotoPath = null;
+
+    // ถ้าเป็นการส่งมอบครุภัณฑ์ (approved) ต้องมีรูปภาพครบถ้วน
+    if (status === 'approved') {
+      console.log('=== Processing approved status with images ===');
+      console.log('signature_image type:', typeof signature_image);
+      console.log('signature_image starts with data:image/:', signature_image?.startsWith('data:image/'));
+      console.log('handover_photo type:', typeof handover_photo);
+      console.log('handover_photo starts with data:image/:', handover_photo?.startsWith('data:image/'));
+
+      if (signature_image) {
+        if (typeof signature_image === 'string' && signature_image.startsWith('data:image/')) {
+          console.log('Saving signature image...');
+          signaturePath = await saveBase64Image(signature_image, 'uploads/signature', null, borrowCode);
+          console.log('signature saved to:', signaturePath);
+        } else {
+          console.log('Signature image is already a path:', signature_image);
+          signaturePath = signature_image; // already a path
+        }
       } else {
-        signaturePath = signature_image; // already a path
+        console.log('❌ No signature_image provided');
+      }
+
+      if (handover_photo) {
+        if (typeof handover_photo === 'string' && handover_photo.startsWith('data:image/')) {
+          console.log('Saving handover photo...');
+          handoverPhotoPath = await saveBase64Image(handover_photo, 'uploads/handover_photo', null, borrowCode);
+          console.log('handover_photo saved to:', handoverPhotoPath);
+        } else {
+          console.log('Handover photo is already a path:', handover_photo);
+          handoverPhotoPath = handover_photo; // already a path
+        }
+      } else {
+        console.log('❌ No handover_photo provided');
+      }
+
+      // ตรวจสอบว่ามีรูปภาพครบถ้วนหรือไม่
+      console.log('Final paths - signaturePath:', signaturePath, 'handoverPhotoPath:', handoverPhotoPath);
+      if (!signaturePath || !handoverPhotoPath) {
+        console.log('ERROR: Missing required images for delivery!');
+        return res.status(400).json({
+          message: 'กรุณาแนบรูปภาพบัตรนักศึกษาและรูปถ่ายส่งมอบครุภัณฑ์',
+          error: 'Missing required images'
+        });
       }
     }
-    const affectedRows = await BorrowModel.updateBorrowStatus(id, status, rejection_reason, signaturePath);
+
+    console.log('Updating database with status:', status);
+
+    // อัปเดตฐานข้อมูล
+    const affectedRows = await BorrowModel.updateBorrowStatus(id, status, rejection_reason, signaturePath, handoverPhotoPath);
+    console.log('Database update affected rows:', affectedRows);
+
+    if (affectedRows === 0) {
+      console.log('ERROR: No rows were updated in database!');
+      return res.status(400).json({
+        message: 'ไม่สามารถอัปเดตข้อมูลได้ - ไม่พบรายการที่ตรงกับ ID ที่ระบุ',
+        error: 'No rows affected'
+      });
+    }
+
+    console.log('Status update completed successfully! Status:', status);
+
+    // ตรวจสอบข้อมูลที่บันทึกในฐานข้อมูล
+    try {
+      const updatedBorrow = await BorrowModel.getBorrowById(id);
+      console.log('=== Verification after update ===');
+      console.log('Updated borrow data:', {
+        borrow_id: updatedBorrow?.borrow_id,
+        status: updatedBorrow?.status,
+        signature_image: updatedBorrow?.signature_image ? 'EXISTS' : 'NULL',
+        handover_photo: updatedBorrow?.handover_photo ? 'EXISTS' : 'NULL',
+        rejection_reason: updatedBorrow?.rejection_reason || 'NULL'
+      });
+    } catch (verifyError) {
+      console.log('Error during verification:', verifyError);
+    }
 
     // ถ้าปฏิเสธ ให้อัปเดตสถานะครุภัณฑ์เป็น 'พร้อมใช้งาน'
     if (status === 'rejected') {
@@ -783,7 +879,7 @@ export const updateBorrowStatus = async (req, res) => {
       repairApprovalCount
     });
 
-    res.json({ affectedRows, signaturePath });
+    res.json({ affectedRows, signaturePath, handoverPhotoPath });
   } catch (err) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }

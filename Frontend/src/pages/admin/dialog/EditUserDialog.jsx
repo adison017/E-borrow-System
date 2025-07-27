@@ -355,8 +355,12 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
         try {
-          const uploadResponse = await axios.post('http://localhost:5000/users/upload-image', formDataImage, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+          const token = localStorage.getItem('token');
+          const uploadResponse = await axios.post('http://localhost:5000/api/users/upload-image', formDataImage, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${token}`
+            }
           });
           if (uploadResponse.data && uploadResponse.data.filename) {
             avatarFilename = uploadResponse.data.filename;
@@ -394,9 +398,14 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         return;
       }
       const response = await axios.patch(
-        `http://localhost:5000/users/id/${formData.user_id}`,
+        `http://localhost:5000/api/users/id/${formData.user_id}`,
         updateData,
-        { headers: { 'Content-Type': 'application/json' } }
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
       if (response.data?.user) {
         onSave(response.data.user);

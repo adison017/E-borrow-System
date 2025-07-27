@@ -250,8 +250,7 @@ const Home = () => {
 
     const payload = {
       user_id: globalUserData.user_id,
-      reason: borrowData.reason,
-      purpose: borrowData.reason,
+      purpose: borrowData.reason, // ใช้ reason เป็น purpose
       borrow_date: borrowData.borrowDate,
       return_date: borrowData.returnDate,
       items
@@ -259,32 +258,64 @@ const Home = () => {
 
     console.log('payload', payload);
 
+    // แสดง loading state พร้อม progress bar
+    setNotification({
+      show: true,
+      title: 'กำลังส่งคำขอ...',
+      message: 'ระบบกำลังประมวลผลคำขอยืมของคุณ กรุณารอสักครู่',
+      type: 'info',
+      duration: 0 // ไม่ auto-close
+    });
+
     try {
       const response = await authFetch('http://localhost:5000/api/borrows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await response.json();
+            const data = await response.json();
       if (response.ok) {
-        setNotification({ show: true, title: 'สำเร็จ', message: 'ส่งคำขอยืมสำเร็จ รหัส ' + (data.borrow_code || 'ไม่พบรหัส'), type: 'success' });
+        setNotification({
+          show: true,
+          title: 'สำเร็จ',
+          message: 'ส่งคำขอยืมสำเร็จ รหัส ' + (data.borrow_code || 'ไม่พบรหัส'),
+          type: 'success',
+          duration: 5000 // แสดง 5 วินาที
+        });
         setShowBorrowDialog(false);
         setQuantities({});
         setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
-        for (const item of items) {
-          try {
-            const equipment = equipmentData.find(eq => eq.item_id === item.item_id);
-            if (!equipment) continue;
-            const itemCode = equipment.code;
-            await updateEquipmentStatus(itemCode, 'ถูกยืม');
-            setEquipmentData(prev => prev.map(eq => eq.item_id === item.item_id ? { ...eq, status: 'ถูกยืม' } : eq));
-          } catch { /* ignore error */ }
-        }
+
+        // อัปเดตสถานะอุปกรณ์แบบ async (ไม่ต้องรอ)
+        setTimeout(() => {
+          for (const item of items) {
+            try {
+              const equipment = equipmentData.find(eq => eq.item_id === item.item_id);
+              if (!equipment) continue;
+              const itemCode = equipment.code;
+              updateEquipmentStatus(itemCode, 'ถูกยืม').then(() => {
+                setEquipmentData(prev => prev.map(eq => eq.item_id === item.item_id ? { ...eq, status: 'ถูกยืม' } : eq));
+              }).catch(() => { /* ignore error */ });
+            } catch { /* ignore error */ }
+          }
+        }, 100);
       } else {
-        setNotification({ show: true, title: 'เกิดข้อผิดพลาด', message: data.message || '', type: 'error' });
+        setNotification({
+          show: true,
+          title: 'เกิดข้อผิดพลาด',
+          message: data.message || '',
+          type: 'error',
+          duration: 5000 // แสดง 5 วินาที
+        });
       }
     } catch {
-      setNotification({ show: true, title: 'เกิดข้อผิดพลาด', message: 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', type: 'error' });
+      setNotification({
+        show: true,
+        title: 'เกิดข้อผิดพลาด',
+        message: 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์',
+        type: 'error',
+        duration: 5000 // แสดง 5 วินาที
+      });
     }
   };
 

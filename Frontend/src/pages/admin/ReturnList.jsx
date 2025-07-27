@@ -163,16 +163,31 @@ const ReturnList = () => {
 
   // ฟังก์ชัน fetch returns ใหม่ (ใช้ทั้งใน useEffect และหลังคืนของ)
   const fetchReturns = async () => {
+    console.log('=== ReturnList fetchReturns Debug ===');
     const res = await authFetch(`${API_BASE}/returns`);
     if (res.status === 401) {
       window.location.href = '/login';
       return;
     }
     const data = await res.json();
+    console.log('Raw API response:', data);
+
     if (!Array.isArray(data)) {
       setReturns([]);
       return;
     }
+
+    // Debug: Check first item for signature_image and handover_photo
+    if (data.length > 0) {
+      console.log('First item data:', {
+        borrow_id: data[0].borrow_id,
+        borrow_code: data[0].borrow_code,
+        signature_image: data[0].signature_image ? 'EXISTS' : 'NULL/EMPTY',
+        handover_photo: data[0].handover_photo ? 'EXISTS' : 'NULL/EMPTY',
+        keys: Object.keys(data[0])
+      });
+    }
+
     // Mapping: ให้แน่ใจว่ามี field borrower และ equipment เป็น array
     const mapped = data.map(item => {
       return {
@@ -193,6 +208,14 @@ const ReturnList = () => {
             : [],
       };
     });
+
+    console.log('Mapped data first item:', {
+      borrow_id: mapped[0]?.borrow_id,
+      borrow_code: mapped[0]?.borrow_code,
+      signature_image: mapped[0]?.signature_image ? 'EXISTS' : 'NULL/EMPTY',
+      handover_photo: mapped[0]?.handover_photo ? 'EXISTS' : 'NULL/EMPTY'
+    });
+
     setReturns(mapped);
   };
 
@@ -493,7 +516,7 @@ const ReturnList = () => {
                                 ? item.borrower.avatar.startsWith('http')
                                   ? item.borrower.avatar
                                   : `${UPLOAD_BASE}/uploads/user/${item.borrower.avatar}`
-                                : '/default-avatar.png'
+                                : '/profile.png'
                             }
                             alt={item.borrower.name}
                             className="w-10 h-10 rounded-full object-cover bg-white border border-gray-200 shadow-sm flex-shrink-0"

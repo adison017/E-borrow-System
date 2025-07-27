@@ -15,9 +15,24 @@ function isLineNotifyEnabled(val) {
 
 export const getAllReturns = async (req, res) => {
   try {
+    console.log('=== getAllReturns API Debug ===');
     const rows = await ReturnModel.getAllReturns();
+
+    // Debug: Check if signature_image and handover_photo exist
+    console.log('Total returns returned:', rows.length);
+    if (rows.length > 0) {
+      console.log('First return data:', {
+        borrow_id: rows[0].borrow_id,
+        borrow_code: rows[0].borrow_code,
+        signature_image: rows[0].signature_image ? 'EXISTS' : 'NULL',
+        handover_photo: rows[0].handover_photo ? 'EXISTS' : 'NULL',
+        keys: Object.keys(rows[0])
+      });
+    }
+
     res.json(rows);
   } catch (err) {
+    console.error('Error in getAllReturns:', err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 };
@@ -299,9 +314,14 @@ export const createReturn = async (req, res) => {
 
 export const getSuccessBorrows = async (req, res) => {
   try {
+    console.log('=== getSuccessBorrows API Debug ===');
     const borrows = await BorrowModel.getBorrowsByStatus(['completed', 'rejected']);
+
+
+
     res.json(borrows);
   } catch (err) {
+    console.error('Error in getSuccessBorrows:', err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 };

@@ -8,9 +8,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Notification from './Notification';
 import { getAllBorrows } from '../utils/api';
 import axios from 'axios';
-import io from 'socket.io-client';
-
-const socket = io('http://localhost:5000'); // เปลี่ยน URL ถ้า backend อยู่ที่อื่น
+import { useBadgeCounts } from '../hooks/useSocket';
 
 const menuItems = [
   { to: '/DashboardEx', icon: <BsGraphUp size={22} />, label: 'รายงาน', key: 'dashboardEx' },
@@ -29,6 +27,7 @@ function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOp
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [borrowApprovalCount, setBorrowApprovalCount] = useState(0);
   const [repairApprovalCount, setRepairApprovalCount] = useState(0);
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -39,15 +38,14 @@ function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOp
 
   useEffect(() => {
     // รับ badge real-time จาก backend
-    socket.on('badgeCountsUpdated', (badges) => {
+    const unsubscribe = subscribeToBadgeCounts((badges) => {
       if (typeof badges.borrowApprovalCount === 'number') setBorrowApprovalCount(badges.borrowApprovalCount);
       if (typeof badges.repairApprovalCount === 'number') setRepairApprovalCount(badges.repairApprovalCount);
     });
+
     // cleanup
-    return () => {
-      socket.off('badgeCountsUpdated');
-    };
-  }, []);
+    return unsubscribe;
+  }, [subscribeToBadgeCounts]);
 
   useEffect(() => {
     // ดึงจำนวนรออนุมัติยืม (สำหรับ initial load)

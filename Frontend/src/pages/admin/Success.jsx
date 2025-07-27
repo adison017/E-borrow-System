@@ -116,7 +116,10 @@ function Success() {
       return_date: borrow.return_date,
       status: borrow.status,
       condition: "good",
-      fine_amount: 0
+      fine_amount: 0,
+      signature_image: borrow.signature_image,
+      handover_photo: borrow.handover_photo,
+      proof_image: borrow.proof_image
     };
     setSelectedBorrow(returnItem);
     setIsDetailsOpen(true);
@@ -244,7 +247,7 @@ function Success() {
                               ? borrow.borrower.avatar.startsWith('http')
                                 ? borrow.borrower.avatar
                                 : `${UPLOAD_BASE}/uploads/user/${borrow.borrower.avatar}`
-                              : '/default-avatar.png'}
+                              : '/profile.png'}
                             alt={borrow.borrower.name}
                             size="sm"
                             className="bg-white shadow-sm rounded-full flex-shrink-0"

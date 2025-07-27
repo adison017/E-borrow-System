@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
-import io from 'socket.io-client';
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 export default function RepairApprovalList() {
   const [repairRequests, setRepairRequests] = useState([]);
@@ -55,7 +55,7 @@ export default function RepairApprovalList() {
     completed: "เสร็จสิ้น"
   };
 
-  const socket = io('http://localhost:5000');
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
   useEffect(() => {
     fetchRepairRequests();
@@ -63,12 +63,10 @@ export default function RepairApprovalList() {
     const handleBadgeUpdate = () => {
       fetchRepairRequests();
     };
-    socket.on('badgeCountsUpdated', handleBadgeUpdate);
-    return () => {
-      socket.off('badgeCountsUpdated', handleBadgeUpdate);
-    };
+    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
+    return unsubscribe;
     // === จบ logic ===
-  }, []);
+  }, [subscribeToBadgeCounts]);
 
   const fetchRepairRequests = async () => {
     try {
