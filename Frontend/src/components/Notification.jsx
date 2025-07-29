@@ -104,7 +104,7 @@ const Notification = ({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn">
         <div
           ref={notificationRef}
-          className={`relative bg-white rounded-3xl p-8 pb-16 w-full max-w-[380px] sm:max-w-[420px] shadow-2xl border ${getNotificationStyle()} transition-all duration-300 ${animateOut ? 'animate-fadeOutScale' : 'animate-fadeInScale'} mb-12`}
+          className={`relative bg-white rounded-3xl p-8 pb-10 w-full max-w-[380px] sm:max-w-[420px] shadow-2xl border ${getNotificationStyle()} transition-all duration-300 ${animateOut ? 'animate-fadeOutScale' : 'animate-fadeInScale'} mb-12`}
           style={{
             maxWidth: '30vw',
             maxHeight: '80vh',
@@ -139,7 +139,7 @@ const Notification = ({
           {title}
         </h3>
         <div
-          className="text-gray-700 text-base sm:text-lg md:text-xl  text-center whitespace-pre-line break-words mb-8 px-2 leading-relaxed font-medium"
+          className="text-gray-700 text-base sm:text-lg md:text-lg  text-center whitespace-pre-line break-words mb-4 px-2 leading-relaxed font-medium"
           style={{ letterSpacing: '0.01em' }}
         >
           {message}
@@ -178,15 +178,15 @@ const Notification = ({
               <button
                 key={index}
                 type="button"
-                className={`min-w-[120px] px-6 py-2 text-base font-semibold rounded-full shadow-xl border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200
+                className={`min-w-[120px] px-6 py-2 text-base rounded-full shadow-xl border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200
                   ${
                     type === 'warning'
-                      ? 'bg-yellow-400 text-yellow-900 border-yellow-500 hover:bg-yellow-500 hover:text-yellow-50 focus:ring-yellow-500' :
+                      ? 'bg-yellow-500 text-black border-yellow-400 hover:bg-yellow-400 hover:text-white focus:ring-yellow-500' :
                     type === 'error'
-                      ? 'bg-red-500 text-white border-red-600 hover:bg-red-600 focus:ring-red-500' :
+                      ? 'bg-red-600 text-white border-red-500 hover:bg-red-500 focus:ring-red-500' :
                     type === 'success'
-                      ? 'bg-green-500 text-white border-green-600 hover:bg-green-600 focus:ring-green-500' :
-                      'bg-blue-500 text-white border-blue-600 hover:bg-blue-600 focus:ring-blue-500'
+                      ? 'bg-green-600 text-white border-green-500 hover:bg-green-500 focus:ring-green-500' :
+                      'bg-blue-600 text-white border-blue-500 hover:bg-blue-500 focus:ring-blue-500'
                   }
                 `}
                 onClick={action.onClick}

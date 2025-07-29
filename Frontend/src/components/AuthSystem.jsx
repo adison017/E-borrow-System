@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { FaBuilding, FaEnvelope, FaEye, FaEyeSlash, FaGraduationCap, FaIdCard, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt } from 'react-icons/fa';
+import { FaBuilding, FaChartBar, FaCog, FaEnvelope, FaEye, FaEyeSlash, FaGraduationCap, FaIdCard, FaLaptop, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt } from 'react-icons/fa';
+import { GiHandTruck } from "react-icons/gi";
 import { useNavigate } from 'react-router-dom';
 import {
   LoginErrorDialog,
@@ -11,8 +12,6 @@ import {
 } from './dialog/AlertDialog';
 import Notification from './Notification';
 import OtpDialog from './OtpDialog';
-
-// ลบ const provinces, districts, subdistricts ที่เป็น mock data ออก
 
 const defaultRoutes = {
   admin: '/DashboardAd',
@@ -67,7 +66,6 @@ const AuthSystem = (props) => {
     username: '',
     password: ''
   });
-
 
   // Register form state
   const [registerData, setRegisterData] = useState({
@@ -193,7 +191,6 @@ const AuthSystem = (props) => {
   useEffect(() => {
     // ตรวจสอบ token ทุกครั้งที่ mount
     const token = localStorage.getItem('token');
-    // console.log('token in localStorage:', token);
     if (!token) {
       navigate('/login');
       return;
@@ -434,372 +431,755 @@ const AuthSystem = (props) => {
   };
 
   return (
-    <div data-theme="light" className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
-      {/* Blurred background image */}
-      <div
-        className="fixed inset-0 z-0 w-full h-full"
-        style={{
-          backgroundImage: 'url(/itmsu.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: 'blur(2px) brightness(0.85)',
-          WebkitFilter: 'blur(2px) brightness(0.85)',
-          pointerEvents: 'none',
-        }}
-      />
-      {/* Overlay for extra dimming if needed */}
-      <div className="fixed inset-0 z-10 bg-black/20" style={{pointerEvents: 'none'}} />
-      <div className="relative z-20 w-full max-w-8xl bg-white/20 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row transition-all duration-500 hover:shadow-glow">
+    <div data-theme="light" className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-600/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        <div className="absolute top-20 right-60 w-80 h-80 bg-blue-600/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        <div className="absolute -bottom-60 -right-40 w-80 h-80 bg-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+      </div>
 
-        {/* Left: Logo and Welcome */}
-        <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 md:p-8 text-center relative overflow-hidden bg-blue-200">
-          <div className="absolute inset-0 bg-blue-200 z-0"></div>
-          <div className="relative z-10 w-full max-w-md">
-            <div className="p-4 rounded-full mb-8 inline-flex justify-center">
-              <img
-                src="/logo_it.png"
-                alt="Logo"
-                className="w-48 h-36 object-contain drop-shadow-lg transition-transform duration-500 hover:scale-105"
-              />
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold leading-tight tracking-wide  mb-4">
-              ยินดีต้อนรับเข้าสู่ระบบ
-            </h2>
-            <p className="text-lg font-light text-black/80 mb-8">
-              เข้าสู่ระบบเพื่อใช้บริการหรือสมัครสมาชิกใหม่
-            </p>
-            <div className="hidden lg:block">
-              <div className="h-1 w-24 bg-indigo-400 mx-auto mb-6 rounded-full"></div>
-              <p className="text-sm text-black/80">
-                ระบบยืม-คืนครุภัณฑ์คณะวิทยาการสารสนเทส
-              </p>
-            </div>
-          </div>
+      {/* Floating Equipment Icons */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-20 text-blue-300 opacity-30 animate-float-slow">
+          <FaLaptop className="text-5xl" />
         </div>
+        <div className="absolute top-40 right-32 text-indigo-300 opacity-30 animate-float-slow animation-delay-1000">
+          <FaCog className="text-5xl" />
+        </div>
+        <div className="absolute bottom-40 left-32 text-sky-300 opacity-30 animate-float-slow animation-delay-2000">
+          <FaChartBar className="text-5xl" />
+        </div>
+        <div className="absolute bottom-40 right-32 text-sky-300 opacity-30 animate-float-slow animation-delay-2000">
+          <GiHandTruck className="text-6xl" />
+        </div>
+      </div>
 
-        {/* Right: Form Section */}
-        <div className="w-full lg:w-1/2 p-6 md:p-10">
-          <div className="max-w-3xl w-full mx-auto">
+      {/* Main Container */}
+      <div className="relative z-10 w-full max-w-8xl mx-auto">
+        <div className="bg-black/20 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden border border-blue-100 transform transition-all duration-700 hover:shadow-blue-200/50 hover:shadow-3xl">
+          <div className="flex flex-col lg:flex-row min-h-[600px]">
+            
+            {/* Left Panel - Branding */}
+            <div className="w-full lg:w-2/5 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-8 lg:p-12 flex flex-col justify-center items-center relative overflow-hidden">
+              {/* Background Pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-0 left-0 w-full h-full bg-blue-800 transform rotate-12 scale-150"></div>
+                <div className="absolute top-0 left-0 w-full h-full bg-indigo-800 transform -rotate-12 scale-150"></div>
+              </div>
+              
+              {/* Content */}
+              <div className="relative z-10 text-center animate-fade-in-up">
+                {/* Logo */}
+                <div className="mb-8 transform hover:scale-105 transition-transform duration-500">
+                  <div className="w-70 h-50 mx-auto bg-white/50 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-lg">
+                    <img
+                      src="/logo_it.png"
+                      alt="IT Equipment Logo"
+                      className="w-50 h-50 object-contain filter drop-shadow-lg"
+                    />
+                  </div>
+                </div>
 
-            {/* Tab Navigation */}
-            <div className="flex bg-white/20 backdrop-blur-sm rounded-full p-1 shadow-inner mb-8">
-              <button
-                onClick={() => {
-                  if (activeTab === 'register' && Object.values(registerData).some(v => v)) {
-                    setShowRegisterLeaveDialog(true);
-                  } else {
-                    setActiveTab('login');
-                  }
-                }}
-                className={`flex-1 py-3 px-4 rounded-full font-bold text-sm md:text-base transition-all duration-300 ${
-                  activeTab === 'login'
-                    ? 'bg-white text-indigo-700 shadow-md'
-                    : 'text-white hover:bg-white/20'
-                }`}
-              >
-                เข้าสู่ระบบ
-              </button>
-              <button
-                onClick={() => setActiveTab('register')}
-                className={`flex-1 py-3 px-4 rounded-full font-bold text-sm md:text-base transition-all duration-300 ${
-                  activeTab === 'register'
-                    ? 'bg-white text-indigo-700 shadow-md'
-                    : 'text-white hover:bg-white/20'
-                }`}
-              >
-                สมัครสมาชิก
-              </button>
+                {/* Title */}
+                <h1 className="text-3xl lg:text-4xl font-extrabold mb-4 leading-tight">
+                  ระบบยืม-คืนครุภัณฑ์
+                </h1>
+                <p className=" text-lg mb-6 font-light">
+                  คณะวิทยาการสารสนเทศ
+                </p>
+
+                {/* Decorative Elements */}
+                <div className="mt-8 flex justify-center space-x-4">
+                  <div className="w-12 h-1 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div className="w-8 h-1 bg-blue-600 rounded-full animate-pulse animation-delay-300"></div>
+                  <div className="w-12 h-1 bg-blue-500 rounded-full animate-pulse animation-delay-600"></div>
+                </div>
+              </div>
             </div>
 
-            {/* Forms */}
-            {activeTab === 'login' && (
-              <div className={`rounded-2xl p-6 transition-all duration-300 ${isMounted ? 'animate-fadeIn' : ''}`}>
-                <form onSubmit={handleLoginSubmit} className="space-y-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm text-white/90 font-medium mb-2 flex items-center">
-                        <FaUser className="mr-2 text-blue-600" />
-                        ชื่อผู้ใช้งาน
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          name="username"
-                          value={loginData.username}
-                          onChange={handleLoginChange}
-                          className="w-full h-12 pl-12 pr-5 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none transition-all duration-200 placeholder-gray-500 text-gray-800"
-                          placeholder="กรอกชื่อผู้ใช้งาน"
-                          required
-                        />
-                        <FaUserAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+            {/* Right Panel - Forms */}
+            <div className="w-full lg:w-3/5 p-8 lg:p-12">
+              {/* Tab Navigation */}
+              <div className="flex bg-blue-50 rounded-full px-4 py-2 mb-8 shadow-inner gap-x-4">
+                <button
+                  onClick={() => {
+                    if (activeTab === 'register' && Object.values(registerData).some(v => v)) {
+                      setShowRegisterLeaveDialog(true);
+                    } else {
+                      setActiveTab('login');
+                    }
+                  }}
+                  className={`flex-1 py-4 px-6 rounded-full font-semibold text-sm transition-all duration-300 transform ${
+                    activeTab === 'login'
+                      ? 'bg-white text-blue-700 shadow-lg scale-105 border-2 border-blue-200'
+                      : 'text-blue-600 hover:bg-blue-100 hover:scale-102'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <FaUser className={`text-lg ${activeTab === 'login' ? 'animate-bounce' : ''}`} />
+                    <span>เข้าสู่ระบบ</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab('register')}
+                  className={`flex-1 py-4 px-6 rounded-full font-semibold text-sm transition-all duration-300 transform ${
+                    activeTab === 'register'
+                      ? 'bg-white text-blue-700 shadow-lg scale-105 border-2 border-blue-200'
+                      : 'text-blue-600 hover:bg-blue-100 hover:scale-102'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <FaUserAlt className={`text-lg ${activeTab === 'register' ? 'animate-bounce' : ''}`} />
+                    <span>สมัครสมาชิก</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Login Form */}
+              {activeTab === 'login' && (
+                <div className="animate-fade-in-right">
+                  <div className="text-center mb-8">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">ยินดีต้อนรับกลับมา</h2>
+                    <p className="text-gray-600">เข้าสู่ระบบเพื่อจัดการครุภัณฑ์ของคุณ</p>
+                  </div>
+
+                  <form onSubmit={handleLoginSubmit} className="space-y-6">
+                    <div className="space-y-5">
+                      {/* Username Field */}
+                      <div className="group">
+                        <label className=" text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <FaUser className="mr-2 text-blue-600" />
+                          ชื่อผู้ใช้งาน
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="username"
+                            value={loginData.username}
+                            onChange={handleLoginChange}
+                            className="w-full h-14 pl-14 pr-4 bg-gray-50 border-2 border-gray-200 focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 shadow-inner group-hover:border-blue-300 rounded-full"
+                            placeholder="กรอกชื่อผู้ใช้งาน"
+                            required
+                          />
+                          <FaUserAlt className="absolute left-5 top-1/2 transform -translate-y-1/2 text-blue-500 text-lg group-hover:text-blue-600 transition-colors duration-300" />
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-300 pointer-events-none"></div>
+                        </div>
+                      </div>
+
+                      {/* Password Field */}
+                      <div className="group">
+                        <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <FaLock className="mr-2 text-blue-600" />
+                          รหัสผ่าน
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showLoginPassword ? 'text' : 'password'}
+                            name="password"
+                            value={loginData.password}
+                            onChange={handleLoginChange}
+                            className="w-full h-14 pl-14 pr-12 bg-gray-50 border-2 border-gray-200 focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 placeholder-gray-400 shadow-inner group-hover:border-blue-300 rounded-full"
+                            placeholder="กรอกรหัสผ่าน"
+                            required
+                          />
+                          <FaLock className="absolute left-5 top-1/2 transform -translate-y-1/2 text-blue-500 text-lg group-hover:text-blue-600 transition-colors duration-300" />
+                          <button 
+                            type="button" 
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300 p-1" 
+                            onClick={() => setShowLoginPassword(v => !v)}
+                          >
+                            {showLoginPassword ? <FaEyeSlash className="text-lg" /> : <FaEye className="text-lg" />}
+                          </button>
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-300 pointer-events-none"></div>
+                        </div>
+                      </div>
+
+                      {/* Forgot Password Link */}
+                      <div className="flex justify-end">
+                        <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-300 hover:underline">
+                          ลืมรหัสผ่าน?
+                        </a>
                       </div>
                     </div>
 
-                    <div>
-                      <label className="text-sm text-white/90 font-medium mb-2 flex items-center">
-                        <FaLock className="mr-2 text-pink-500" />
-                        รหัสผ่าน
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showLoginPassword ? 'text' : 'password'}
-                          name="password"
-                          value={loginData.password}
-                          onChange={handleLoginChange}
-                          className="w-full h-12 pl-12 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none transition-all duration-200 placeholder-gray-500 text-gray-800"
-                          placeholder="กรอกรหัสผ่าน"
-                          required
-                        />
-                        <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowLoginPassword(v => !v)}>
-                          {showLoginPassword ? <FaEyeSlash /> : <FaEye />}
-                        </button>
-                        <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-pink-500" />
-                      </div>
-                    </div>
+                    {/* Login Button */}
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className={`w-full h-14 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg transition-all duration-300 transform ${
+                        isLoading 
+                          ? 'opacity-70 cursor-not-allowed' 
+                          : 'hover:bg-blue-800 hover:shadow-xl hover:scale-105 active:scale-95'
+                      } flex items-center justify-center relative overflow-hidden`}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform skew-x-[-45deg] -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent mr-3"></div>
+                          กำลังเข้าสู่ระบบ...
+                        </>
+                      ) : (
+                        <>
+                          <FaUser className="mr-2 text-lg" />
+                          เข้าสู่ระบบ
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              )}
 
-                    <div className="flex justify-end pt-2">
-                      <a href="#" className="text-xs font-medium text-indigo-300 hover:text-indigo-200 transition-colors duration-200">
-                        ลืมรหัสผ่าน?
-                      </a>
+              {/* Register Form */}
+              {activeTab === 'register' && (
+                <div className="animate-fade-in-left">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">สร้างบัญชีใหม่</h2>
+                    <p className="text-gray-600">เข้าร่วมระบบจัดการครุภัณฑ์</p>
+                  </div>
+
+                  {/* Progress Steps */}
+                  <div className="mb-8">
+                    <div className="flex items-center justify-between mb-6 px-2 md:px-8" style={{minHeight: '70px'}}>
+                      {/* Steps only, no connector/progress bar */}
+                      {[
+                        { step: 0, label: 'ข้อมูลพื้นฐาน', icon: FaIdCard },
+                        { step: 1, label: 'บัญชี', icon: FaLock },
+                        { step: 2, label: 'ติดต่อ', icon: FaEnvelope },
+                        { step: 3, label: 'ที่อยู่', icon: FaMapMarkerAlt }
+                      ].map(({ step, label, icon: Icon }) => (
+                        <div key={step} className="flex flex-col items-center flex-1">
+                          <div className={`w-14 h-14 rounded-full flex items-center justify-center border-4 transition-all duration-300 shadow-lg ${
+                            registerStep === step
+                              ? 'bg-blue-800 border-white text-white scale-110 animate-pulse'
+                              : registerStep > step
+                                ? 'bg-white border-white text-black scale-100'
+                                : 'bg-gray-100 border-gray-300 text-gray-400 scale-100'
+                          }`}>
+                            <Icon className="text-2xl" />
+                          </div>
+                          <span className={`text-xs mt-2 font-semibold transition-colors duration-300 ${
+                            registerStep >= step ? 'text-black' : 'text-gray-500'
+                          }`}>
+                            {label}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className={`w-full h-12 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium rounded-lg shadow-md transition-all duration-300 ${
-                      isLoading ? 'opacity-70' : 'hover:from-indigo-700 hover:to-blue-700 hover:shadow-lg'
-                    } flex items-center justify-center`}
-                  >
-                    {isLoading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        กำลังเข้าสู่ระบบ...
-                      </>
-                    ) : 'เข้าสู่ระบบ'}
-                  </button>
-                </form>
-              </div>
-            )}
+                  <form onSubmit={handleRegisterSubmit} className="space-y-7">
+                    {/* Step 0: Basic Info */}
+                    {registerStep === 0 && (
+                      <div className="space-y-5 animate-slide-in-right">
+                        <div className="flex items-center mb-6 py-4 px-6 bg-black/50 rounded-full border border-white/20 shadow-lg">
+                          <FaIdCard className="text-white text-2xl mr-6" />
+                          <div>
+                            <h3 className="text-lg font-semibold text-white">ข้อมูลพื้นฐาน</h3>
+                            <p className="text-sm text-white">กรอกข้อมูลส่วนตัวของคุณ</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          {/* Student/Staff ID */}
+                          <div className="group">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสนิสิต/บุคลากร</label>
+                            <div className="relative">
+                              <input 
+                                type="text" 
+                                name="idNumber" 
+                                value={registerData.idNumber} 
+                                onChange={handleRegisterChange} 
+                                className={`w-full h-12 pl-12 pr-4 bg-gray-50 border-2 rounded-full focus:outline-none transition-all duration-300 text-gray-800 ${
+                                  validation.idNumber === 'duplicate' 
+                                    ? 'border-red-400 focus:border-red-500 bg-red-50' 
+                                    : 'border-gray-200 focus:border-blue-500 focus:bg-white group-hover:border-blue-300'
+                                }`}
+                                placeholder="เช่น 65011211033" 
+                                required 
+                              />
+                              <FaIdCard className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                              {validation.idNumber === 'duplicate' && (
+                                <div className="text-red-500 text-xs mt-1 animate-shake">รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว</div>
+                              )}
+                            </div>
+                          </div>
 
-            {activeTab === 'register' && (
-              <div className={`w-full rounded-2xl p-6 transition-all duration-300 ${isMounted ? 'animate-fadeIn' : ''}`}>
-                {/* Steps Progress Bar */}
-            <div className="w-full mb-6 flex justify-center">
-              <ul className="steps steps-horizontal w-full max-w-xl">
-                <li className={`step ${registerStep >= 0 ? 'step-primary font-bold' : ''}`}>ข้อมูลพื้นฐาน</li>
-                <li className={`step ${registerStep >= 1 ? 'step-primary font-bold' : ''}`}>บัญชี</li>
-                <li className={`step ${registerStep >= 2 ? 'step-primary font-bold' : ''}`}>ติดต่อ</li>
-                <li className={`step ${registerStep === 3 ? 'step-primary font-bold' : ''}`}>ที่อยู่</li>
-              </ul>
+                          {/* Full Name */}
+                          <div className="group">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">ชื่อ-นามสกุล</label>
+                            <div className="relative">
+                              <input 
+                                type="text" 
+                                name="fullName" 
+                                value={registerData.fullName} 
+                                onChange={handleRegisterChange} 
+                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300" 
+                                placeholder="กรอกชื่อ-นามสกุล" 
+                                required 
+                              />
+                              <FaUserAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                            </div>
+                          </div>
+
+                          {/* Position */}
+                          <div className="group">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">ตำแหน่ง</label>
+                            <div className="relative">
+                              <select 
+                                name="position" 
+                                value={registerData.position} 
+                                onChange={handleRegisterChange} 
+                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300" 
+                                required
+                              >
+                                <option value="">เลือกตำแหน่ง</option>
+                                {positions.map(pos => (
+                                  <option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>
+                                ))}
+                              </select>
+                              <FaUserAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Department */}
+                          <div className="group">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">สาขา</label>
+                            <div className="relative">
+                              <select 
+                                name="department" 
+                                value={registerData.department} 
+                                onChange={handleRegisterChange} 
+                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300" 
+                                required
+                              >
+                                <option value="">เลือกสาขา</option>
+                                {branches.map(branch => (
+                                  <option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>
+                                ))}
+                              </select>
+                              <FaGraduationCap className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end pt-4">
+                          <button 
+                            type="button" 
+                            className="px-8 py-3 bg-gradient-to-r from-blue-800 to-blue-700 text-white font-semibold rounded-full shadow-lg hover:bg-blue-800 hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center" 
+                            onClick={() => {
+                              if (validateRegisterStep(0)) setRegisterStep(1);
+                            }}
+                          >
+                            ถัดไป
+                            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 1: Account Info */}
+                    {registerStep === 1 && (
+                      <div className="space-y-5 animate-slide-in-right">
+                        <div className="flex items-center mb-6 py-4 px-6 bg-black/50 rounded-full border border-white/20 shadow-lg">
+                          <FaLock className="text-white text-2xl mr-6" />
+                          <div>
+                            <h3 className="text-lg font-semibold text-white">ข้อมูลบัญชี</h3>
+                            <p className="text-sm text-white">ตั้งค่าชื่อผู้ใช้และรหัสผ่าน</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-5">
+                          {/* Username */}
+                          <div className="group">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">ชื่อผู้ใช้งาน</label>
+                            <div className="relative">
+                              <input 
+                                type="text" 
+                                name="username" 
+                                value={registerData.username} 
+                                readOnly 
+                                tabIndex={-1}
+                                className={`w-full h-12 pl-12 pr-4 bg-gray-100 border-2 border-gray-300 text-gray-600 rounded-full focus:outline-none cursor-not-allowed select-none ${
+                                  validation.username === 'duplicate' ? 'border-red-400' : ''
+                                }`}
+                                placeholder="ชื่อผู้ใช้งานจะตรงกับรหัสนิสิต/บุคลากร" 
+                                required 
+                              />
+                              <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                              {validation.username === 'duplicate' && (
+                                <div className="text-red-500 text-xs mt-1 animate-shake">ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว</div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            {/* Password */}
+                            <div className="group">
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสผ่าน</label>
+                              <div className="relative">
+                                <input 
+                                  type={showPassword ? 'text' : 'password'} 
+                                  name="password" 
+                                  value={registerData.password} 
+                                  onChange={handleRegisterChange} 
+                                  className="w-full h-12 pl-12 pr-12 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300" 
+                                  placeholder="กรอกรหัสผ่าน" 
+                                  required 
+                                />
+                                <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                                <button 
+                                  type="button" 
+                                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300" 
+                                  onClick={() => setShowPassword(v => !v)}
+                                >
+                                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div className="group">
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">ยืนยันรหัสผ่าน</label>
+                              <div className="relative">
+                                <input 
+                                  type={showConfirmPassword ? 'text' : 'password'} 
+                                  name="confirmPassword" 
+                                  value={registerData.confirmPassword} 
+                                  onChange={handleRegisterChange} 
+                                  className={`w-full h-12 pl-12 pr-12 bg-gray-50 border-2 rounded-full focus:outline-none transition-all duration-300 text-gray-800 ${
+                                    !passwordMatch && registerData.confirmPassword
+                                      ? 'border-red-400 focus:border-red-500 bg-red-50'
+                                      : 'border-gray-200 focus:border-blue-500 focus:bg-white group-hover:border-blue-300'
+                                  }`}
+                                  placeholder="ยืนยันรหัสผ่าน" 
+                                  required 
+                                />
+                                <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                                <button 
+                                  type="button" 
+                                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300" 
+                                  onClick={() => setShowConfirmPassword(v => !v)}
+                                >
+                                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                                </button>
+                              </div>
+                              {!passwordMatch && registerData.confirmPassword && (
+                                <div className="text-red-500 text-xs mt-1 animate-shake">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between pt-4">
+                          <button 
+                            type="button" 
+                            className="px-6 py-3 bg-gray-400 text-white font-semibold rounded-full shadow-lg hover:bg-gray-500 transform hover:scale-105 transition-all duration-300 flex items-center" 
+                            onClick={() => setRegisterStep(0)}
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            ย้อนกลับ
+                          </button>
+                          <button 
+                            type="button" 
+                            className="px-8 py-3 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg hover:bg-blue-800 hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center" 
+                            onClick={() => {
+                              if (validateRegisterStep(1)) setRegisterStep(2);
+                            }}
+                          >
+                            ถัดไป
+                            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 2: Contact Info */}
+                    {registerStep === 2 && (
+                      <div className="space-y-5 animate-slide-in-right">
+                        <div className="flex items-center mb-6 py-4 px-6 bg-black/50 rounded-full border border-white/20 shadow-lg">
+                          <FaEnvelope className="text-white text-2xl mr-6" />
+                          <div>
+                            <h3 className="text-lg font-semibold text-white">ข้อมูลติดต่อ</h3>
+                            <p className="text-sm text-white">กรอกอีเมลและเบอร์โทรศัพท์ที่ติดต่อได้</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          {/* Email */}
+                          <div className="group">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">อีเมล</label>
+                            <div className="relative">
+                              <input
+                                type="email"
+                                name="email"
+                                value={registerData.email}
+                                onChange={handleRegisterChange}
+                                className={`w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300 ${validation.email === 'duplicate' ? 'border-red-400 focus:border-red-500 bg-red-50' : ''}`}
+                                placeholder="กรอกอีเมล @msu.ac.th"
+                                required
+                              />
+                              <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                              {validation.email === 'duplicate' && (
+                                <div className="text-red-500 text-xs mt-1 animate-shake">อีเมลนี้ถูกใช้ไปแล้ว</div>
+                              )}
+                            </div>
+                          </div>
+                          {/* Phone */}
+                          <div className="group">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">เบอร์โทรศัพท์</label>
+                            <div className="relative">
+                              <input
+                                type="tel"
+                                name="phone"
+                                value={registerData.phone}
+                                onChange={handleRegisterChange}
+                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300"
+                                placeholder="กรอกเบอร์โทรศัพท์"
+                                required
+                              />
+                              <FaPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between pt-4">
+                          <button
+                            type="button"
+                            className="px-6 py-3 bg-gray-400 text-white font-semibold rounded-full shadow-lg hover:bg-gray-500 transform hover:scale-105 transition-all duration-300 flex items-center"
+                            onClick={() => setRegisterStep(1)}
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            ย้อนกลับ
+                          </button>
+                          <button
+                            type="button"
+                            className="px-8 py-3 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg hover:bg-blue-800 hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center"
+                            onClick={() => {
+                              if (validateRegisterStep(2)) setRegisterStep(3);
+                            }}
+                          >
+                            ถัดไป
+                            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 3: Address Info */}
+                    {registerStep === 3 && (
+                      <div className="space-y-5 animate-slide-in-right">
+                        <div className="flex items-center mb-6 py-4 px-6 bg-black/50 rounded-full border border-white/20 shadow-lg">
+                          <FaMapMarkerAlt className="text-white text-2xl mr-6" />
+                          <div>
+                            <h3 className="text-lg font-semibold text-white">ข้อมูลที่อยู่</h3>
+                            <p className="text-sm text-white">ที่อยู่สำหรับการจัดส่งและติดต่อ</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-5">
+                          {/* Current Address */}
+                          <div className="group">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2 ">ที่อยู่ปัจจุบัน</label>
+                            <div className="relative">
+                              <textarea 
+                                name="currentAddress" 
+                                value={registerData.currentAddress} 
+                                onChange={handleRegisterChange} 
+                                rows="3" 
+                                className=" w-full px-7 py-3 pl-12 bg-gray-50 border-2 border-gray-200 rounded-4xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 resize-none group-hover:border-blue-300" 
+                                placeholder="บ้านเลขที่, ถนน, ซอย" 
+                                required
+                              />
+                              <FaMapMarkerAlt className="absolute left-5 top-4 text-red-500" />
+                            </div>
+                          </div>
+
+                          {/* Location Selects */}
+                          <div className="grid grid-cols-1 md:grid-cols-1 gap-5">
+                            {/* Province */}
+                            <div className="group">
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">จังหวัด</label>
+                              <div className="relative">
+                                <select 
+                                  name="province" 
+                                  value={registerData.provinceId} 
+                                  onChange={handleProvinceChange} 
+                                  className="w-full h-12 pl-10 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300" 
+                                  required
+                                >
+                                  <option value="">เลือกจังหวัด</option>
+                                  {provinces.map(province => (
+                                    <option key={province.id} value={province.id}>{province.name_th}</option>
+                                  ))}
+                                </select>
+                                <FaBuilding className="absolute left-4 top-1/2 transform -translate-y-1/2 text-yellow-600" />
+                                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* District */}
+                            <div className="group">
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">อำเภอ/เขต</label>
+                              <div className="relative">
+                                <select 
+                                  name="district" 
+                                  value={registerData.amphureId} 
+                                  onChange={handleDistrictChange} 
+                                  className="w-full h-12 pl-10 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                  required 
+                                  disabled={!registerData.provinceId}
+                                >
+                                  <option value="">เลือกอำเภอ/เขต</option>
+                                  {amphures.map(amphure => (
+                                    <option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>
+                                  ))}
+                                </select>
+                                <FaBuilding className="absolute left-4 top-1/2 transform -translate-y-1/2 text-yellow-600" />
+                                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Sub-district */}
+                            <div className="group">
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">ตำบล/แขวง</label>
+                              <div className="relative">
+                                <select 
+                                  name="subdistrict" 
+                                  value={registerData.tambonId} 
+                                  onChange={handleSubdistrictChange} 
+                                  className="w-full h-12 pl-10 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                  required 
+                                  disabled={!registerData.amphureId}
+                                >
+                                  <option value="">เลือกตำบล/แขวง</option>
+                                  {tambons.map(tambon => (
+                                    <option key={tambon.id} value={tambon.id}>{tambon.name_th}</option>
+                                  ))}
+                                </select>
+                                <FaBuilding className="absolute left-4 top-1/2 transform -translate-y-1/2 text-yellow-600" />
+                                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Postal Code */}
+                          <div className="group">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสไปรษณีย์</label>
+                            <div className="relative">
+                              <input 
+                                type="text" 
+                                name="postalCode" 
+                                value={registerData.postalCode} 
+                                onChange={handleRegisterChange} 
+                                className="w-full h-12 pl-12 pr-4 bg-gray-100 border-2 border-gray-300 rounded-xl focus:outline-none text-gray-600 cursor-not-allowed select-none" 
+                                placeholder="รหัสไปรษณีย์" 
+                                required 
+                                readOnly 
+                              />
+                              <FaMapMarkerAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-500" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between pt-4">
+                          <button 
+                            type="button" 
+                            className="px-6 py-3 bg-gray-400 text-white font-semibold rounded-full shadow-lg hover:bg-gray-500 transform hover:scale-105 transition-all duration-300 flex items-center" 
+                            onClick={() => setRegisterStep(2)}
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            ย้อนกลับ
+                          </button>
+                          <button 
+                            type="button" 
+                            disabled={isLoading} 
+                            className={`px-8 py-3 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg hover:bg-blue-800 hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center ${
+                              isLoading ? 'opacity-70 cursor-not-allowed' : ''
+                            }`}
+                            onClick={async () => {
+                              if (validateRegisterStep(3)) {
+                                // ตรวจสอบว่าต้องใช้อีเมล @msu.ac.th เท่านั้นสำหรับ OTP
+                                const isMsuEmail = registerData.email && /@msu\.ac\.th$/.test(registerData.email);
+                                if (!isMsuEmail) {
+                                  setNotification({ 
+                                    show: true, 
+                                    type: 'warning', 
+                                    title: 'ข้อมูลไม่ครบ', 
+                                    message: 'กรุณากรอกอีเมล @msu.ac.th เพื่อรับรหัส OTP', 
+                                    onClose: () => setNotification(n => ({ ...n, show: false })) 
+                                  });
+                                  return;
+                                }
+                                setIsLoading(true);
+                                try {
+                                  await axios.post('http://localhost:5000/api/users/request-otp', { contact: registerData.email });
+                                  setOtpDialog({ show: true, email: registerData.email, error: '' });
+                                } catch (err) {
+                                  setNotification({ 
+                                    show: true, 
+                                    type: 'error', 
+                                    title: 'ส่ง OTP ไม่สำเร็จ', 
+                                    message: err.response?.data?.message || 'เกิดข้อผิดพลาดในการส่ง OTP', 
+                                    onClose: () => setNotification(n => ({ ...n, show: false })) 
+                                  });
+                                }
+                                setIsLoading(false);
+                              }
+                            }}
+                          >
+                            {isLoading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"></div>
+                                กำลังสมัครสมาชิก...
+                              </>
+                            ) : (
+                              <>
+                                <FaUserAlt className="mr-2" />
+                                สมัครสมาชิก
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </form>
+                </div>
+              )}
             </div>
-                <form onSubmit={handleRegisterSubmit} className="space-y-6">
-                  {/* Multi-step register */}
-                  {registerStep === 0 && (
-                    <div className="space-y-4">
-                      <div className="flex items-center mb-4">
-                        <FaIdCard className="text-blue-600 text-lg mr-3" />
-                        <h3 className="text-lg font-semibold text-white">ข้อมูลพื้นฐาน</h3>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">รหัสนิสิต/บุคลากร</label>
-                          <div className="relative">
-                          <input type="text" name="idNumber" value={registerData.idNumber} onChange={handleRegisterChange} className={`w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 ${validation.idNumber === 'duplicate' ? 'border-red-500' : ''}`} placeholder="เช่น 65011211033" required />
-                          {validation.idNumber === 'duplicate' && <div className="text-red-500 text-xs mt-1">รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว</div>}
-                            <FaIdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">ชื่อ-นามสกุล</label>
-                          <div className="relative">
-                            <input type="text" name="fullName" value={registerData.fullName} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="กรอกชื่อ-นามสกุล" required />
-                            <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 text-sm" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">ตำแหน่ง</label>
-                          <div className="relative">
-                            <select name="position" value={registerData.position} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required>
-                              <option value="">เลือกตำแหน่ง</option>
-                              {positions.map(pos => (<option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>))}
-                            </select>
-                            <FaUserAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 text-sm" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">สาขา</label>
-                          <div className="relative">
-                            <select name="department" value={registerData.department} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required>
-                              <option value="">เลือกสาขา</option>
-                              {branches.map(branch => (<option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>))}
-                            </select>
-                            <FaGraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 text-sm" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-end mt-4">
-                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => {
-                          if (validateRegisterStep(0)) setRegisterStep(1);
-                        }}>ดำเนินการต่อ</button>
-                      </div>
-                    </div>
-                  )}
-                  {registerStep === 1 && (
-                    <div className="space-y-4">
-                      <div className="flex items-center mb-4">
-                        <FaLock className="text-indigo-400 text-lg mr-3" />
-                        <h3 className="text-lg font-semibold text-white">ข้อมูลบัญชี</h3>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium text-white/80 mb-1">ชื่อผู้ใช้งาน</label>
-                          <div className="relative">
-                            <input type="text" name="username" value={registerData.username} readOnly tabIndex={-1} className={`w-full h-10 pl-10 pr-3 bg-gray-300 border-gray-400 text-gray-600 rounded-lg focus:ring-0 focus:outline-none text-sm cursor-not-allowed select-none ${validation.username === 'duplicate' ? 'border-red-500' : ''}`} placeholder="ชื่อผู้ใช้งานจะตรงกับรหัสนิสิต/บุคลากร" required />
-                            {validation.username === 'duplicate' && <div className="text-red-500 text-xs mt-1">ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว</div>}
-                            <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 text-sm" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">รหัสผ่าน</label>
-                          <div className="relative">
-                            <input type={showPassword ? 'text' : 'password'} name="password" value={registerData.password} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="กรอกรหัสผ่าน" required />
-                            <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowPassword(v => !v)}>{showPassword ? <FaEyeSlash /> : <FaEye />}</button>
-                            <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">ยืนยันรหัสผ่าน</label>
-                          <div className="relative">
-                            <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={registerData.confirmPassword} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="ยืนยันรหัสผ่าน" required />
-                            <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>{showConfirmPassword ? <FaEyeSlash /> : <FaEye />}</button>
-                            <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
-                          </div>
-                        </div>
-                        {!passwordMatch && (<div className="text-red-500 text-xs mt-1">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</div>)}
-                      </div>
-                      <div className="flex justify-between mt-4">
-                        <button type="button" className="bg-gray-400 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-gray-500 transition" onClick={() => setRegisterStep(0)}>ย้อนกลับ</button>
-                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => {
-                          if (validateRegisterStep(1)) setRegisterStep(2);
-                        }}>ดำเนินการต่อ</button>
-                      </div>
-                    </div>
-                  )}
-                  {registerStep === 2 && (
-                    <div className="space-y-4">
-                      <div className="flex items-center mb-4">
-                        <FaEnvelope className="text-pink-500 text-lg mr-3" />
-                        <h3 className="text-lg font-semibold text-white">ข้อมูลติดต่อ</h3>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">อีเมล</label>
-                          <div className="relative">
-                            <input type="email" name="email" value={registerData.email} onChange={handleRegisterChange} className={`w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 ${validation.email === 'duplicate' ? 'border-red-500' : ''}`} placeholder="example@email.com" required />
-                            {validation.email === 'duplicate' && <div className="text-red-500 text-xs mt-1">อีเมลนี้ถูกใช้ไปแล้ว</div>}
-                            <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-500 text-sm" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">เบอร์โทร</label>
-                          <div className="relative">
-                            <input type="tel" name="phone" value={registerData.phone} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="กรอกเบอร์โทรศัพท์" required />
-                            <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 text-sm" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between mt-4">
-                        <button type="button" className="bg-gray-400 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-gray-500 transition" onClick={() => setRegisterStep(1)}>ย้อนกลับ</button>
-                        <button type="button" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition" onClick={() => {
-                          if (validateRegisterStep(2)) setRegisterStep(3);
-                        }}>ดำเนินการต่อ</button>
-                      </div>
-                    </div>
-                  )}
-                  {registerStep === 3 && (
-                    <div className="space-y-4">
-                      <div className="flex items-center mb-4">
-                        <FaMapMarkerAlt className="text-red-500 text-lg mr-3" />
-                        <h3 className="text-lg font-semibold text-white">ข้อมูลที่อยู่</h3>
-                      </div>
-                      <div className="grid grid-cols-1 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">ที่อยู่ปัจจุบัน</label>
-                          <div className="relative">
-                            <textarea name="currentAddress" value={registerData.currentAddress} onChange={handleRegisterChange} rows="3" className="w-full px-3 py-2 pl-10 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 resize-none" placeholder="บ้านเลขที่, ถนน, ซอย" required></textarea>
-                            <FaMapMarkerAlt className="absolute left-3 top-3 text-red-500 text-sm" />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-xs font-medium text-white/80 mb-1">จังหวัด</label>
-                            <div className="relative">
-                              <select name="province" value={registerData.provinceId} onChange={handleProvinceChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required>
-                                <option value="">เลือกจังหวัด</option>
-                                {provinces.map(province => (<option key={province.id} value={province.id}>{province.name_th}</option>))}
-                              </select>
-                              <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-white/80 mb-1">อำเภอ/เขต</label>
-                            <div className="relative">
-                              <select name="district" value={registerData.amphureId} onChange={handleDistrictChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required disabled={!registerData.provinceId}>
-                                <option value="">เลือกอำเภอ/เขต</option>
-                                {amphures.map(amphure => (<option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>))}
-                              </select>
-                              <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-white/80 mb-1">ตำบล/แขวง</label>
-                            <div className="relative">
-                              <select name="subdistrict" value={registerData.tambonId} onChange={handleSubdistrictChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800 appearance-none" required disabled={!registerData.amphureId}>
-                                <option value="">เลือกตำบล/แขวง</option>
-                                {tambons.map(tambon => (<option key={tambon.id} value={tambon.id}>{tambon.name_th}</option>))}
-                              </select>
-                              <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 text-sm" />
-                            </div>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/80 mb-1">รหัสไปรษณีย์</label>
-                          <div className="relative">
-                            <input type="text" name="postalCode" value={registerData.postalCode} onChange={handleRegisterChange} className="w-full h-10 pl-10 pr-3 bg-white/90 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none text-sm text-gray-800" placeholder="รหัสไปรษณีย์" required readOnly />
-                            <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-500 text-sm" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between mt-4">
-                        <button type="button" className="bg-gray-400 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-gray-500 transition" onClick={() => setRegisterStep(2)}>ย้อนกลับ</button>
-                        <button type="button" disabled={isLoading} className={`bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium shadow hover:bg-indigo-700 transition flex items-center justify-center ${isLoading ? 'opacity-70' : ''}`} onClick={async () => {
-                          if (validateRegisterStep(3)) {
-                            // ตรวจสอบว่าต้องใช้อีเมล @msu.ac.th เท่านั้นสำหรับ OTP
-                            const isMsuEmail = registerData.email && /@msu\.ac\.th$/.test(registerData.email);
-                            if (!isMsuEmail) {
-                              setNotification({ show: true, type: 'warning', title: 'ข้อมูลไม่ครบ', message: 'กรุณากรอกอีเมล @msu.ac.th เพื่อรับรหัส OTP', onClose: () => setNotification(n => ({ ...n, show: false })) });
-                              return;
-                            }
-                            setIsLoading(true);
-                            try {
-                              await axios.post('http://localhost:5000/api/users/request-otp', { contact: registerData.email });
-                              setOtpDialog({ show: true, email: registerData.email, error: '' });
-                            } catch (err) {
-                              setNotification({ show: true, type: 'error', title: 'ส่ง OTP ไม่สำเร็จ', message: err.response?.data?.message || 'เกิดข้อผิดพลาดในการส่ง OTP', onClose: () => setNotification(n => ({ ...n, show: false })) });
-                            }
-                            setIsLoading(false);
-                          }
-                        }}>{isLoading ? (<><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>กำลังสมัครสมาชิก...</>) : 'สมัครสมาชิก'}</button>
-                      </div>
-                    </div>
-                  )}
-                </form>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -825,6 +1205,7 @@ const AuthSystem = (props) => {
         type={notification.type}
         onClose={notification.onClose}
       />
+      
       {/* Notification แจ้งเตือนเมื่อจะออกจากสมัครสมาชิก */}
       <Notification
         show={showRegisterLeaveDialog}
@@ -832,31 +1213,173 @@ const AuthSystem = (props) => {
         message="หากคุณเปลี่ยนไปหน้าเข้าสู่ระบบข้อมูลที่กรอกไว้จะหายทั้งหมดต้องการดำเนินการต่อหรือไม่?"
         type="warning"
         duration={0}
+        onClose={() => setShowRegisterLeaveDialog(false)}
         actions={[
-          { label: 'ยกเลิก', onClick: () => setShowRegisterLeaveDialog(false) },
-          { label: 'ดำเนินการต่อ', onClick: () => {
-            setShowRegisterLeaveDialog(false);
-            setActiveTab('login');
-            setRegisterData({
-              idNumber: '',
-              fullName: '',
-              username: '',
-              password: '',
-              confirmPassword: '',
-              email: '',
-              phone: '',
-              position: '',
-              department: '',
-              currentAddress: '',
-              provinceId: '',
-              amphureId: '',
-              tambonId: '',
-              postalCode: ''
-            });
-            setRegisterStep(0);
-          }}
+          { 
+            label: 'ยกเลิก', 
+            onClick: () => setShowRegisterLeaveDialog(false) 
+          },
+          { 
+            label: 'ดำเนินการต่อ', 
+            onClick: () => {
+              setShowRegisterLeaveDialog(false);
+              setActiveTab('login');
+              setRegisterData({
+                idNumber: '',
+                fullName: '',
+                username: '',
+                password: '',
+                confirmPassword: '',
+                email: '',
+                phone: '',
+                position: '',
+                department: '',
+                currentAddress: '',
+                provinceId: '',
+                amphureId: '',
+                tambonId: '',
+                postalCode: ''
+              });
+              setRegisterStep(0);
+            }
+          }
         ]}
       />
+
+      {/* Custom Styles */}
+      <style jsx>{`
+        @keyframes blob {
+          0% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+          100% {
+            transform: translate(0px, 0px) scale(1);
+          }
+        }
+
+        @keyframes float-slow {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-20px);
+          }
+        }
+
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fade-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes fade-in-left {
+          from {
+            opacity: 0;
+            transform: translateX(-30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slide-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes shake {
+          0%, 100% {
+            transform: translateX(0);
+          }
+          10%, 30%, 50%, 70%, 90% {
+            transform: translateX(-2px);
+          }
+          20%, 40%, 60%, 80% {
+            transform: translateX(2px);
+          }
+        }
+
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+
+        .animate-float-slow {
+          animation: float-slow 6s ease-in-out infinite;
+        }
+
+        .animate-fade-in-up {
+          animation: fade-in-up 0.8s ease-out;
+        }
+
+        .animate-fade-in-right {
+          animation: fade-in-right 0.6s ease-out;
+        }
+
+        .animate-fade-in-left {
+          animation: fade-in-left 0.6s ease-out;
+        }
+
+        .animate-slide-in-right {
+          animation: slide-in-right 0.5s ease-out;
+        }
+
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+
+        .animation-delay-500 {
+          animation-delay: 0.5s;
+        }
+
+        .animation-delay-1000 {
+          animation-delay: 1s;
+        }
+
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+
+        .hover\:scale-102:hover {
+          transform: scale(1.02);
+        }
+
+        .shadow-3xl {
+          box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+        }
+      `}</style>
     </div>
   );
 };
