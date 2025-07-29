@@ -1015,7 +1015,7 @@ const AuthSystem = (props) => {
                           </div>
 
                           {/* Location Selects */}
-                          <div className="grid grid-cols-1 md:grid-cols-1 gap-5">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                             {/* Province */}
                             <div className="group">
                               <label className="block text-sm font-semibold text-gray-700 mb-2">จังหวัด</label>
