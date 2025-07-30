@@ -10,11 +10,18 @@ import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 // ส่ง OTP ไปอีเมล (สมัครสมาชิก)
+// ส่ง OTP ไปอีเมล (สมัครสมาชิก)
 router.post('/request-otp', userController.requestRegisterOtp);
 // ตรวจสอบ OTP (สมัครสมาชิก)
-router.post('/verify-otp', userController.verifyRegisterOtp);
-// ส่ง OTP ไปอีเมล
+router.post('/verify-otp-register', userController.verifyRegisterOtp);
+// ส่ง OTP ไปอีเมล (ลืมรหัสผ่าน)
 router.post('/request-password-otp', userController.requestPasswordOtp);
+
+// ตรวจสอบ OTP (ลืมรหัสผ่าน)
+router.post('/verify-otp', userController.verifyPasswordOtp);
+
+// เปลี่ยนรหัสผ่าน (reset password)
+router.post('/reset-password', userController.resetPassword);
 
 // CORS middleware
 router.use((req, res, next) => {

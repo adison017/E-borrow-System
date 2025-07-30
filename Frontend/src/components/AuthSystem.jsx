@@ -52,6 +52,20 @@ const AuthSystem = (props) => {
   const [selected, setSelected] = useState({ province_id: undefined, amphure_id: undefined, tambon_id: undefined });
   const [notification, setNotification] = useState({ show: false, type: 'info', title: '', message: '', onClose: null });
   const [showRegisterLeaveDialog, setShowRegisterLeaveDialog] = useState(false);
+  // แจ้งเตือนออกจาก forgot password (step 2)
+  const [showForgotLeaveDialog, setShowForgotLeaveDialog] = useState(false);
+  const [pendingTab, setPendingTab] = useState(null);
+  // ฟังก์ชันเปลี่ยน tab พร้อมเช็ค forgotStep === 2
+  const handleTabChange = (tab) => {
+    if (activeTab === 'forgot' && forgotStep === 2) {
+      setPendingTab(tab);
+      setShowForgotLeaveDialog(true);
+    } else if (tab === 'login' && activeTab === 'register' && Object.values(registerData).some(v => v)) {
+      setShowRegisterLeaveDialog(true);
+    } else {
+      setActiveTab(tab);
+    }
+  };
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(true);
@@ -359,13 +373,12 @@ const AuthSystem = (props) => {
     setOtpDialog({ show: true, email: registerData.email, error: '' });
   };
 
-  // OTP Verification Handler
+  // OTP Verification Handler (สมัครสมาชิก)
   const handleOtpVerify = async (otp) => {
     setIsLoading(true);
     try {
-      // สมมติใช้ email เป็นหลัก (ถ้ามี)
       const contact = otpDialog.email;
-      const res = await axios.post('http://localhost:5000/api/users/verify-otp', { contact, otp });
+      const res = await axios.post('http://localhost:5000/api/users/verify-otp-register', { contact, otp });
       if (res.data && res.data.success) {
         setOtpVerified(true);
         setOtpDialog({ show: false, email: '', error: '' });
@@ -434,6 +447,47 @@ const AuthSystem = (props) => {
       setOtpDialog(d => ({ ...d, error: 'OTP ไม่ถูกต้องหรือหมดอายุ' }));
       setIsLoading(false);
     }
+  };
+
+  // OTP Verification Handler (ลืมรหัสผ่าน)
+  const handleForgotOtpVerify = async (otp) => {
+    setForgotLoading(true);
+    try {
+      const res = await axios.post('http://localhost:5000/api/users/verify-otp', { email: forgotData.email, otp });
+      if (res.data && res.data.success) {
+        setForgotData(prev => ({ ...prev, otp })); // เก็บ otp ไว้ใน state
+        setForgotStep(2); // ไปหน้ากรอกรหัสผ่านใหม่
+        setForgotError('');
+      } else {
+        setForgotError('OTP ไม่ถูกต้อง');
+      }
+    } catch (error) {
+      setForgotError('OTP ไม่ถูกต้องหรือหมดอายุ');
+    }
+    setForgotLoading(false);
+  };
+
+  // Handler สำหรับ reset password (ยิงเฉพาะ /reset-password)
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    try {
+      const res = await axios.post('http://localhost:5000/api/users/reset-password', {
+        email: forgotData.email,
+        otp: forgotData.otp,
+        password: forgotData.password
+      });
+      if (res.data && res.data.success) {
+        setForgotStep(0);
+        setActiveTab('login');
+        setForgotData({ email: '', otp: '', password: '', confirmPassword: '' });
+      } else {
+        setForgotError(res.data?.message || 'เกิดข้อผิดพลาด');
+      }
+    } catch (error) {
+      setForgotError(error.response?.data?.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน');
+    }
+    setForgotLoading(false);
   };
 
   return (
@@ -510,13 +564,7 @@ const AuthSystem = (props) => {
               {/* Tab Navigation */}
               <div className="flex bg-blue-50 rounded-full px-4 py-2 mb-8 shadow-inner gap-x-4">
                 <button
-                  onClick={() => {
-                    if (activeTab === 'register' && Object.values(registerData).some(v => v)) {
-                      setShowRegisterLeaveDialog(true);
-                    } else {
-                      setActiveTab('login');
-                    }
-                  }}
+                  onClick={() => handleTabChange('login')}
                   className={`flex-1 py-4 px-6 rounded-full font-semibold text-sm transition-all duration-300 transform ${
                     activeTab === 'login'
                       ? 'bg-white text-blue-700 shadow-lg scale-105 border-2 border-blue-200'
@@ -529,7 +577,7 @@ const AuthSystem = (props) => {
                   </div>
                 </button>
                 <button
-                  onClick={() => setActiveTab('register')}
+                  onClick={() => handleTabChange('register')}
                   className={`flex-1 py-4 px-6 rounded-full font-semibold text-sm transition-all duration-300 transform ${
                     activeTab === 'register'
                       ? 'bg-white text-blue-700 shadow-lg scale-105 border-2 border-blue-200'
@@ -542,10 +590,7 @@ const AuthSystem = (props) => {
                   </div>
                 </button>
                 <button
-                  onClick={() => {
-                    console.log('Switch to forgot password tab');
-                    setActiveTab('forgot');
-                  }}
+                  onClick={() => handleTabChange('forgot')}
                   className={`flex-1 py-4 px-6 rounded-full font-semibold text-sm transition-all duration-300 transform ${
                     activeTab === 'forgot'
                       ? 'bg-white text-blue-700 shadow-lg scale-105 border-2 border-blue-200'
@@ -557,6 +602,31 @@ const AuthSystem = (props) => {
                     <span>ลืมรหัสผ่าน</span>
                   </div>
                 </button>
+              {/* Notification แจ้งเตือนเมื่อจะออกจาก forgot password (step 2) */}
+              <Notification
+                show={showForgotLeaveDialog}
+                title="แจ้งเตือน"
+                message="หากคุณเปลี่ยนไปหน้าอื่นข้อมูลที่กรอกไว้จะหายทั้งหมด ต้องการดำเนินการต่อหรือไม่?"
+                type="warning"
+                duration={0}
+                onClose={() => setShowForgotLeaveDialog(false)}
+                actions={[
+                  {
+                    label: 'ยกเลิก',
+                    onClick: () => setShowForgotLeaveDialog(false)
+                  },
+                  {
+                    label: 'ดำเนินการต่อ',
+                    onClick: () => {
+                      setShowForgotLeaveDialog(false);
+                      setForgotStep(0);
+                      setForgotData({ email: '', otp: '', password: '', confirmPassword: '' });
+                      setForgotError('');
+                      setActiveTab(pendingTab);
+                    }
+                  }
+                ]}
+              />
               </div>
 
               {activeTab === 'forgot' && (
@@ -570,11 +640,9 @@ const AuthSystem = (props) => {
                       e.preventDefault();
                       setForgotError('');
                       setForgotSuccess('');
-                      setForgotLoading(true);
-                      try {
-                        if (forgotStep === 0) {
-                          console.log('[Forgot] Request OTP', { email: forgotData.email });
-                          // ขอ OTP
+                      if (forgotStep === 0) {
+                        setForgotLoading(true);
+                        try {
                           const res = await fetch('http://localhost:5000/api/users/request-password-otp', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -584,25 +652,19 @@ const AuthSystem = (props) => {
                           if (!res.ok) throw new Error(data.message || 'ไม่สามารถส่ง OTP ได้');
                           setForgotStep(1);
                           setForgotSuccess('ส่ง OTP ไปยังอีเมลแล้ว กรุณาตรวจสอบอีเมลของคุณ');
-                        } else if (forgotStep === 1) {
-                          console.log('[Forgot] Verify OTP', { email: forgotData.email, otp: forgotData.otp });
-                          // ตรวจสอบ OTP
-                          const res = await fetch('http://localhost:5000/api/users/verify-otp', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: forgotData.email, otp: forgotData.otp })
-                          });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data.message || 'OTP ไม่ถูกต้อง');
-                          setForgotStep(2);
-                          setForgotSuccess('OTP ถูกต้อง กรุณาตั้งรหัสผ่านใหม่');
-                        } else if (forgotStep === 2) {
-                          console.log('[Forgot] Reset Password', { email: forgotData.email, password: forgotData.password, confirmPassword: forgotData.confirmPassword });
-                          // ตั้งรหัสผ่านใหม่
-                          if (forgotData.password !== forgotData.confirmPassword) {
-                            setForgotError('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
-                            return;
-                          }
+                        } catch (err) {
+                          setForgotError(err.message);
+                        } finally {
+                          setForgotLoading(false);
+                        }
+                      } else if (forgotStep === 2) {
+                        // ตั้งรหัสผ่านใหม่
+                        if (forgotData.password !== forgotData.confirmPassword) {
+                          setForgotError('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
+                          return;
+                        }
+                        setForgotLoading(true);
+                        try {
                           const res = await fetch('http://localhost:5000/api/users/reset-password', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -617,12 +679,11 @@ const AuthSystem = (props) => {
                             setForgotData({ email: '', otp: '', password: '', confirmPassword: '' });
                             setForgotSuccess('');
                           }, 2000);
+                        } catch (err) {
+                          setForgotError(err.message);
+                        } finally {
+                          setForgotLoading(false);
                         }
-                      } catch (err) {
-                        setForgotError(err.message);
-                        console.error('[Forgot] Error:', err);
-                      } finally {
-                        setForgotLoading(false);
                       }
                     }}
                     className="space-y-7"
@@ -671,6 +732,7 @@ const AuthSystem = (props) => {
                             });
                             const data = await res.json();
                             if (!res.ok) throw new Error(data.message || 'OTP ไม่ถูกต้อง');
+                            setForgotData(prev => ({ ...prev, otp }));
                             setForgotStep(2);
                             setForgotSuccess('OTP ถูกต้อง กรุณาตั้งรหัสผ่านใหม่');
                           } catch (err) {
@@ -788,6 +850,14 @@ const AuthSystem = (props) => {
                           >
                             {forgotLoading ? 'กำลังเปลี่ยนรหัสผ่าน...' : 'เปลี่ยนรหัสผ่าน'}
                           </button>
+                          {/* <Notification
+                            show={forgotSuccess !== ''}
+                            title="เปลี่ยนรหัสผ่านสำเร็จ"
+                            message={forgotSuccess || 'คุณได้เปลี่ยนรหัสผ่านสำเร็จแล้ว'}
+                            type="success"
+                            duration={4000}
+                            onClose={() => setForgotSuccess('')}
+                          /> */}
                       </div>
                     )}
                   </form>

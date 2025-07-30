@@ -116,6 +116,63 @@ const upload = multer({
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
 const userController = {
+  // POST /api/users/reset-password
+  resetPassword: async (req, res) => {
+    try {
+      const { email, otp, password } = req.body;
+      if (!email || !otp || !password) {
+        return res.status(400).json({ message: 'ข้อมูลไม่ครบ' });
+      }
+      const record = otpStore.get(email);
+      if (!record) {
+        return res.status(400).json({ message: 'ไม่พบ OTP หรือหมดอายุ' });
+      }
+      if (record.otp !== otp) {
+        return res.status(400).json({ message: 'OTP ไม่ถูกต้อง' });
+      }
+      if (Date.now() > record.expires) {
+        otpStore.delete(email);
+        return res.status(400).json({ message: 'OTP หมดอายุ' });
+      }
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      // Update user password
+      const user = await User.findByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: 'ไม่พบผู้ใช้งานนี้' });
+      }
+      await User.update(user.user_id, { password: hashedPassword });
+      otpStore.delete(email);
+      res.json({ success: true, message: 'เปลี่ยนรหัสผ่านสำเร็จ' });
+    } catch (err) {
+      res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน', error: err.message });
+    }
+  },
+  // POST /api/users/verify-otp (เปลี่ยนรหัสผ่าน)
+  verifyPasswordOtp: async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+      if (!email || !otp) {
+        return res.status(400).json({ message: 'ข้อมูลไม่ครบ' });
+      }
+      const record = otpStore.get(email);
+      if (!record) {
+        return res.status(400).json({ message: 'ไม่พบ OTP หรือหมดอายุ' });
+      }
+      if (record.otp !== otp) {
+        return res.status(400).json({ message: 'OTP ไม่ถูกต้อง' });
+      }
+      if (Date.now() > record.expires) {
+        otpStore.delete(email);
+        return res.status(400).json({ message: 'OTP หมดอายุ' });
+      }
+      // OTP ถูกต้อง
+      // ไม่ลบ otpStore ทันที ให้ลบตอนเปลี่ยนรหัสผ่านสำเร็จ
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: 'เกิดข้อผิดพลาดในการตรวจสอบ OTP', error: err.message });
+    }
+  },
   // POST /api/users/request-otp (สมัครสมาชิก)
   requestRegisterOtp,
   // POST /api/users/verify-otp (สมัครสมาชิก)
