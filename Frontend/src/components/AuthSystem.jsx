@@ -479,6 +479,7 @@ const AuthSystem = (props) => {
       });
       if (res.data && res.data.success) {
         setForgotStep(0);
+        setForgotSuccess('เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่');
         setActiveTab('login');
         setForgotData({ email: '', otp: '', password: '', confirmPassword: '' });
       } else {
@@ -495,9 +496,9 @@ const AuthSystem = (props) => {
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-600/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-blue-600/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
         <div className="absolute top-20 right-60 w-80 h-80 bg-blue-600/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-        <div className="absolute -bottom-60 -right-40 w-80 h-80 bg-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-60 -right-40 w-80 h-80 bg-blue-600/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
       </div>
 
       {/* Floating Equipment Icons */}
@@ -551,57 +552,70 @@ const AuthSystem = (props) => {
                 </p>
 
                 {/* Decorative Elements */}
-                <div className="mt-8 flex justify-center space-x-4">
-                  <div className="w-12 h-1 bg-blue-500 rounded-full animate-pulse"></div>
-                  <div className="w-8 h-1 bg-blue-600 rounded-full animate-pulse animation-delay-300"></div>
-                  <div className="w-12 h-1 bg-blue-500 rounded-full animate-pulse animation-delay-600"></div>
+                <div className="mt-2 flex justify-center">
+                  <div className="w-full h-2 bg-white rounded-full animate-pulse animation-delay-300"></div>
                 </div>
               </div>
             </div>
 
             {/* Right Panel - Forms */}
-            <div className="w-full lg:w-3/5 p-8 lg:p-12">
+            <div className="w-full lg:w-3/5 p-4 lg:p-12">
               {/* Tab Navigation */}
-              <div className="flex bg-blue-50 rounded-full px-4 py-2 mb-8 shadow-inner gap-x-4">
+              <div className="flex bg-blue-50 rounded-full px-4 py-2 mb-8 shadow-inner gap-x-3 overflow-x-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
                 <button
                   onClick={() => handleTabChange('login')}
-                  className={`flex-1 py-4 px-6 rounded-full font-semibold text-sm transition-all duration-300 transform ${
+                  className={`flex-1 min-w-[90px] py-3 px-3 md:py-4 md:px-6 rounded-full font-semibold text-xs md:text-sm transition-all duration-300 transform bg-blue-200 border-blue-200 ${
                     activeTab === 'login'
                       ? 'bg-white text-blue-700 shadow-lg scale-105 border-2 border-blue-200'
                       : 'text-blue-600 hover:bg-blue-100 hover:scale-102'
                   }`}
                 >
-                  <div className="flex items-center justify-center space-x-2">
-                    <FaUser className={`text-lg ${activeTab === 'login' ? 'animate-bounce' : ''}`} />
-                    <span>เข้าสู่ระบบ</span>
+                  <div className="flex items-center justify-center space-x-1 md:space-x-2">
+                    <FaUser className={`text-base md:text-lg ${activeTab === 'login' ? 'animate-bounce' : ''}`} />
+                    <span className="truncate">เข้าสู่ระบบ</span>
                   </div>
                 </button>
                 <button
                   onClick={() => handleTabChange('register')}
-                  className={`flex-1 py-4 px-6 rounded-full font-semibold text-sm transition-all duration-300 transform ${
+                  className={`flex-1 min-w-[90px] py-3 px-3 md:py-4 md:px-6 rounded-full font-semibold text-xs md:text-sm transition-all duration-300 transform  bg-blue-200 border-blue-200 ${
                     activeTab === 'register'
                       ? 'bg-white text-blue-700 shadow-lg scale-105 border-2 border-blue-200'
                       : 'text-blue-600 hover:bg-blue-100 hover:scale-102'
                   }`}
                 >
-                  <div className="flex items-center justify-center space-x-2">
-                    <FaUserAlt className={`text-lg ${activeTab === 'register' ? 'animate-bounce' : ''}`} />
-                    <span>สมัครสมาชิก</span>
+                  <div className="flex items-center justify-center space-x-1 md:space-x-2">
+                    <FaUserAlt className={`text-base md:text-lg ${activeTab === 'register' ? 'animate-bounce' : ''}`} />
+                    <span className="truncate">สมัครสมาชิก</span>
                   </div>
                 </button>
                 <button
                   onClick={() => handleTabChange('forgot')}
-                  className={`flex-1 py-4 px-6 rounded-full font-semibold text-sm transition-all duration-300 transform ${
+                  className={`flex-1 min-w-[90px] py-3 px-3 md:py-4 md:px-6 rounded-full font-semibold text-xs md:text-sm transition-all duration-300 transform bg-blue-200 border-blue-200 ${
                     activeTab === 'forgot'
                       ? 'bg-white text-blue-700 shadow-lg scale-105 border-2 border-blue-200'
-                      : 'text-blue-600 hover:bg-blue-100 hover:scale-102'
+                      : 'text-blue-600 hover:bg-blue-100 hover:scale-102 '
                   }`}
                 >
-                  <div className="flex items-center justify-center space-x-2">
-                    <FaLock className={`text-lg ${activeTab === 'forgot' ? 'animate-bounce' : ''}`} />
-                    <span>ลืมรหัสผ่าน</span>
+                  <div className="flex items-center justify-center space-x-1 md:space-x-2">
+                    <FaLock className={`text-base md:text-lg ${activeTab === 'forgot' ? 'animate-bounce' : ''}`} />
+                    <span className="truncate">ลืมรหัสผ่าน</span>
                   </div>
                 </button>
+              {/* Custom scrollbar for horizontal scroll on small screens */}
+              <style>{`
+                .scrollbar-thin::-webkit-scrollbar {
+                  height: 6px;
+                }
+                .scrollbar-thin::-webkit-scrollbar-thumb {
+                  background: #bfdbfe;
+                  border-radius: 4px;
+                }
+                .scrollbar-thin::-webkit-scrollbar-track {
+                  background: #f0f9ff;
+                }
+              `}</style>
               {/* Notification แจ้งเตือนเมื่อจะออกจาก forgot password (step 2) */}
               <Notification
                 show={showForgotLeaveDialog}
@@ -672,12 +686,18 @@ const AuthSystem = (props) => {
                           });
                           const data = await res.json();
                           if (!res.ok) throw new Error(data.message || 'เปลี่ยนรหัสผ่านไม่สำเร็จ');
-                          setForgotSuccess('เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสใหม่');
+                          setNotification({
+                            show: true,
+                            type: 'success',
+                            title: 'สำเร็จ',
+                            message: 'เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่ของคุณ',
+                            duration: 4000,
+                            onClose: () => setNotification(n => ({ ...n, show: false }))
+                          });
                           setTimeout(() => {
                             setActiveTab('login');
                             setForgotStep(0);
                             setForgotData({ email: '', otp: '', password: '', confirmPassword: '' });
-                            setForgotSuccess('');
                           }, 2000);
                         } catch (err) {
                           setForgotError(err.message);
@@ -850,14 +870,6 @@ const AuthSystem = (props) => {
                           >
                             {forgotLoading ? 'กำลังเปลี่ยนรหัสผ่าน...' : 'เปลี่ยนรหัสผ่าน'}
                           </button>
-                          {/* <Notification
-                            show={forgotSuccess !== ''}
-                            title="เปลี่ยนรหัสผ่านสำเร็จ"
-                            message={forgotSuccess || 'คุณได้เปลี่ยนรหัสผ่านสำเร็จแล้ว'}
-                            type="success"
-                            duration={4000}
-                            onClose={() => setForgotSuccess('')}
-                          /> */}
                       </div>
                     )}
                   </form>
@@ -927,7 +939,7 @@ const AuthSystem = (props) => {
                       <div className="flex justify-end">
                         <button
                           type="button"
-                          className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-300 hover:underline bg-transparent border-0 p-0"
+                          className="text-sm font-medium text-black hover:text-blue-800 transition-colors duration-300 bg-transparent border-0 px-3"
                           onClick={() => setActiveTab('forgot')}
                         >
                           ลืมรหัสผ่าน?
