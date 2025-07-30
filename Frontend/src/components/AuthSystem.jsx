@@ -36,6 +36,12 @@ function getRegisterErrorMessage(error) {
 
 const AuthSystem = (props) => {
   const [activeTab, setActiveTab] = useState('login');
+  // Forgot password states
+  const [forgotStep, setForgotStep] = useState(0); // 0: email, 1: otp, 2: new password
+  const [forgotData, setForgotData] = useState({ email: '', otp: '', password: '', confirmPassword: '' });
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [availableDistricts, setAvailableDistricts] = useState([]);
@@ -535,7 +541,258 @@ const AuthSystem = (props) => {
                     <span>สมัครสมาชิก</span>
                   </div>
                 </button>
+                <button
+                  onClick={() => {
+                    console.log('Switch to forgot password tab');
+                    setActiveTab('forgot');
+                  }}
+                  className={`flex-1 py-4 px-6 rounded-full font-semibold text-sm transition-all duration-300 transform ${
+                    activeTab === 'forgot'
+                      ? 'bg-white text-blue-700 shadow-lg scale-105 border-2 border-blue-200'
+                      : 'text-blue-600 hover:bg-blue-100 hover:scale-102'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <FaLock className={`text-lg ${activeTab === 'forgot' ? 'animate-bounce' : ''}`} />
+                    <span>ลืมรหัสผ่าน</span>
+                  </div>
+                </button>
               </div>
+
+              {activeTab === 'forgot' && (
+                <div className="animate-fade-in-left">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">ลืมรหัสผ่าน</h2>
+                    <p className="text-gray-600">กรอกอีเมลที่ลงทะเบียนไว้เพื่อขอ OTP และตั้งรหัสผ่านใหม่</p>
+                  </div>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      setForgotError('');
+                      setForgotSuccess('');
+                      setForgotLoading(true);
+                      try {
+                        if (forgotStep === 0) {
+                          console.log('[Forgot] Request OTP', { email: forgotData.email });
+                          // ขอ OTP
+                          const res = await fetch('http://localhost:5000/api/users/request-password-otp', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: forgotData.email })
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.message || 'ไม่สามารถส่ง OTP ได้');
+                          setForgotStep(1);
+                          setForgotSuccess('ส่ง OTP ไปยังอีเมลแล้ว กรุณาตรวจสอบอีเมลของคุณ');
+                        } else if (forgotStep === 1) {
+                          console.log('[Forgot] Verify OTP', { email: forgotData.email, otp: forgotData.otp });
+                          // ตรวจสอบ OTP
+                          const res = await fetch('http://localhost:5000/api/users/verify-otp', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: forgotData.email, otp: forgotData.otp })
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.message || 'OTP ไม่ถูกต้อง');
+                          setForgotStep(2);
+                          setForgotSuccess('OTP ถูกต้อง กรุณาตั้งรหัสผ่านใหม่');
+                        } else if (forgotStep === 2) {
+                          console.log('[Forgot] Reset Password', { email: forgotData.email, password: forgotData.password, confirmPassword: forgotData.confirmPassword });
+                          // ตั้งรหัสผ่านใหม่
+                          if (forgotData.password !== forgotData.confirmPassword) {
+                            setForgotError('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
+                            return;
+                          }
+                          const res = await fetch('http://localhost:5000/api/users/reset-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: forgotData.email, otp: forgotData.otp, password: forgotData.password })
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.message || 'เปลี่ยนรหัสผ่านไม่สำเร็จ');
+                          setForgotSuccess('เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสใหม่');
+                          setTimeout(() => {
+                            setActiveTab('login');
+                            setForgotStep(0);
+                            setForgotData({ email: '', otp: '', password: '', confirmPassword: '' });
+                            setForgotSuccess('');
+                          }, 2000);
+                        }
+                      } catch (err) {
+                        setForgotError(err.message);
+                        console.error('[Forgot] Error:', err);
+                      } finally {
+                        setForgotLoading(false);
+                      }
+                    }}
+                    className="space-y-7"
+                  >
+                    {forgotStep === 0 && (
+                      <div className="space-y-5 animate-slide-in-right">
+                        <div className="group">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">อีเมล</label>
+                          <div className="relative">
+                            <input
+                              type="email"
+                              name="email"
+                              value={forgotData.email}
+                              onChange={e => setForgotData(d => ({ ...d, email: e.target.value }))}
+                              className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300"
+                              placeholder="กรอกอีเมลที่ลงทะเบียน"
+                              required
+                            />
+                            <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                          </div>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={forgotLoading || !forgotData.email}
+                          className={`w-full h-12 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${forgotLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-800 hover:shadow-xl hover:scale-105 active:scale-95'}`}
+                        >
+                          {forgotLoading ? 'กำลังส่ง OTP...' : 'ขอ OTP'}
+                        </button>
+                      </div>
+                    )}
+                    {forgotStep === 1 && (
+                      <OtpDialog
+                        show={true}
+                        title="ยืนยัน OTP"
+                        message={`กรุณากรอกรหัส OTP ที่ส่งไปยัง ${forgotData.email}`}
+                        error={forgotError}
+                        onSubmit={async (otp) => {
+                          setForgotLoading(true);
+                          setForgotError("");
+                          try {
+                            // ตรวจสอบ OTP
+                            const res = await fetch('http://localhost:5000/api/users/verify-otp', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ email: forgotData.email, otp })
+                            });
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data.message || 'OTP ไม่ถูกต้อง');
+                            setForgotStep(2);
+                            setForgotSuccess('OTP ถูกต้อง กรุณาตั้งรหัสผ่านใหม่');
+                          } catch (err) {
+                            setForgotError(err.message);
+                          } finally {
+                            setForgotLoading(false);
+                          }
+                        }}
+                        onClose={() => {
+                          setForgotStep(0);
+                          setForgotData(d => ({ ...d, otp: '' }));
+                          setForgotError('');
+                          setForgotSuccess('');
+                        }}
+                      />
+                    )}
+                    {forgotStep === 2 && (
+                      <div className="space-y-5 animate-slide-in-right">
+                        <div className="group">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสผ่านใหม่</label>
+                          <div className="relative">
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              name="password"
+                              value={forgotData.password}
+                              onChange={e => setForgotData(d => ({ ...d, password: e.target.value }))}
+                              className="w-full h-12 pl-12 pr-12 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300"
+                              placeholder="กรอกรหัสผ่านใหม่"
+                              required
+                            />
+                            <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                            <button
+                              type="button"
+                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300"
+                              onClick={() => setShowPassword(v => !v)}
+                            >
+                              {showPassword ? <FaEyeSlash /> : <FaEye />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="group">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">ยืนยันรหัสผ่านใหม่</label>
+                          <div className="relative">
+                            <input
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              name="confirmPassword"
+                              value={forgotData.confirmPassword}
+                              onChange={e => setForgotData(d => ({ ...d, confirmPassword: e.target.value }))}
+                              className={`w-full h-12 pl-12 pr-12 bg-gray-50 border-2 rounded-full focus:outline-none transition-all duration-300 text-gray-800 ${
+                                forgotData.password !== forgotData.confirmPassword && forgotData.confirmPassword
+                                  ? 'border-red-400 focus:border-red-500 bg-red-50'
+                                  : 'border-gray-200 focus:border-blue-500 focus:bg-white group-hover:border-blue-300'
+                              }`}
+                              placeholder="ยืนยันรหัสผ่านใหม่"
+                              required
+                            />
+                            <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                            <button
+                              type="button"
+                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300"
+                              onClick={() => setShowConfirmPassword(v => !v)}
+                            >
+                              {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                            </button>
+                          </div>
+                          {forgotData.password !== forgotData.confirmPassword && forgotData.confirmPassword && (
+                            <div className="text-red-500 text-xs mt-1 animate-shake">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</div>
+                          )}
+                        </div>
+                        
+                      </div>
+                    )}
+                    
+                    {forgotStep > 0 && (
+                      <div className="flex justify-between pt-4">
+                        <button
+                          type="button"
+                          className="px-6 py-3 bg-red-600 text-white font-semibold rounded-full shadow-lg hover:bg-red-700 transform hover:scale-105 transition-all duration-300 flex items-center"
+                          onClick={() => {
+                            setNotification({
+                              show: true,
+                              title: 'แจ้งเตือน',
+                              message: 'หากกลับไปกรอกอีเมลใหม่ ข้อมูลที่กรอกไว้จะหาย ต้องการดำเนินการต่อหรือไม่?',
+                              type: 'warning',
+                              duration: 0,
+                              onClose: () => setNotification(n => ({ ...n, show: false })),
+                              actions: [
+                                {
+                                  label: 'ยกเลิก',
+                                  onClick: () => setNotification(n => ({ ...n, show: false }))
+                                },
+                                {
+                                  label: 'ดำเนินการต่อ',
+                                  onClick: () => {
+                                    setNotification(n => ({ ...n, show: false }));
+                                    setForgotStep(0);
+                                    setForgotData({ email: '', otp: '', password: '', confirmPassword: '' });
+                                    setForgotError('');
+                                    setForgotSuccess('');
+                                  }
+                                }
+                              ]
+                            });
+                          }}
+                        >
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          ยกเลิก
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={forgotLoading || !forgotData.password || !forgotData.confirmPassword}
+                            className={`px-6 py-3 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg transform hover:scale-105 transition-all duration-300 flex items-center ${forgotLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-800 hover:shadow-xl hover:scale-105 active:scale-95'}`}
+                          >
+                            {forgotLoading ? 'กำลังเปลี่ยนรหัสผ่าน...' : 'เปลี่ยนรหัสผ่าน'}
+                          </button>
+                      </div>
+                    )}
+                  </form>
+                </div>
+              )}
 
               {/* Login Form */}
               {activeTab === 'login' && (
@@ -598,10 +855,14 @@ const AuthSystem = (props) => {
 
                       {/* Forgot Password Link */}
                       <div className="flex justify-end">
-                        <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-300 hover:underline">
+                        <button
+                          type="button"
+                          className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-300 hover:underline bg-transparent border-0 p-0"
+                          onClick={() => setActiveTab('forgot')}
+                        >
                           ลืมรหัสผ่าน?
-                        </a>
-                      </div>
+                        </button>
+                      </div> 
                     </div>
 
                     {/* Login Button */}
@@ -1204,6 +1465,8 @@ const AuthSystem = (props) => {
         message={notification.message}
         type={notification.type}
         onClose={notification.onClose}
+        actions={notification.actions}
+        duration={notification.duration}
       />
       
       {/* Notification แจ้งเตือนเมื่อจะออกจากสมัครสมาชิก */}
@@ -1247,7 +1510,7 @@ const AuthSystem = (props) => {
       />
 
       {/* Custom Styles */}
-      <style jsx>{`
+      <style>{`
         @keyframes blob {
           0% {
             transform: translate(0px, 0px) scale(1);
