@@ -34,6 +34,8 @@ function getRegisterErrorMessage(error) {
   return errorMsg;
 }
 
+import { useMemo } from 'react';
+
 const AuthSystem = (props) => {
   const [activeTab, setActiveTab] = useState('login');
   // Forgot password states
@@ -64,6 +66,13 @@ const AuthSystem = (props) => {
       setShowRegisterLeaveDialog(true);
     } else {
       setActiveTab(tab);
+      // ถ้าออกจากหน้า forgot ให้ล้างอีเมลและ error
+      if (activeTab === 'forgot' && tab !== 'forgot') {
+        setForgotData(d => ({ ...d, email: '', otp: '', password: '', confirmPassword: '' }));
+        setForgotError('');
+        setForgotSuccess('');
+        setForgotStep(0);
+      }
     }
   };
   const [showPassword, setShowPassword] = useState(false);
@@ -491,9 +500,27 @@ const AuthSystem = (props) => {
     setForgotLoading(false);
   };
 
+  // Memoize options to reduce re-render
+  const positionOptions = useMemo(() => positions.map(pos => (
+    <option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>
+  )), [positions]);
+  const branchOptions = useMemo(() => branches.map(branch => (
+    <option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>
+  )), [branches]);
+  const provinceOptions = useMemo(() => provinces.map(province => (
+    <option key={province.id} value={province.id}>{province.name_th}</option>
+  )), [provinces]);
+  const amphureOptions = useMemo(() => amphures.map(amphure => (
+    <option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>
+  )), [amphures]);
+  const tambonOptions = useMemo(() => tambons.map(tambon => (
+    <option key={tambon.id} value={tambon.id}>{tambon.name_th}</option>
+  )), [tambons]);
+
   return (
     <div data-theme="light" className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated Background Elements */}
+      {/* Background blobs: remove animation for performance */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-600/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
         <div className="absolute top-40 left-40 w-80 h-80 bg-blue-600/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
@@ -503,16 +530,16 @@ const AuthSystem = (props) => {
 
       {/* Floating Equipment Icons */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 text-blue-300 opacity-30 animate-float-slow">
+        <div className="absolute top-20 left-17 text-blue-300 opacity-30 animate-float-slow">
           <FaLaptop className="text-5xl" />
         </div>
-        <div className="absolute top-40 right-32 text-indigo-300 opacity-30 animate-float-slow animation-delay-1000">
+        <div className="absolute top-40 right-10 text-indigo-300 opacity-30 animate-float-slow animation-delay-1000">
           <FaCog className="text-5xl" />
         </div>
-        <div className="absolute bottom-40 left-32 text-sky-300 opacity-30 animate-float-slow animation-delay-2000">
+        <div className="absolute bottom-40 left-15 text-sky-300 opacity-30 animate-float-slow animation-delay-2000">
           <FaChartBar className="text-5xl" />
         </div>
-        <div className="absolute bottom-40 right-32 text-sky-300 opacity-30 animate-float-slow animation-delay-2000">
+        <div className="absolute bottom-40 right-11 text-sky-300 opacity-30 animate-float-slow animation-delay-2000">
           <GiHandTruck className="text-6xl" />
         </div>
       </div>
@@ -663,11 +690,27 @@ const AuthSystem = (props) => {
                             body: JSON.stringify({ email: forgotData.email })
                           });
                           const data = await res.json();
-                          if (!res.ok) throw new Error(data.message || 'ไม่สามารถส่ง OTP ได้');
+                          if (!res.ok) {
+                            setNotification({
+                              show: true,
+                              type: 'error',
+                              title: 'ไม่พบข้อมูลสมาชิก',
+                              message: data.message || 'ไม่พบอีเมลนี้ในระบบ',
+                              onClose: () => setNotification(n => ({ ...n, show: false }))
+                            });
+                            setForgotLoading(false);
+                            return;
+                          }
                           setForgotStep(1);
                           setForgotSuccess('ส่ง OTP ไปยังอีเมลแล้ว กรุณาตรวจสอบอีเมลของคุณ');
                         } catch (err) {
-                          setForgotError(err.message);
+                          setNotification({
+                            show: true,
+                            type: 'error',
+                            title: 'ไม่พบข้อมูลสมาชิก',
+                            message: 'ไม่พบอีเมลนี้ในระบบ',
+                            onClose: () => setNotification(n => ({ ...n, show: false }))
+                          });
                         } finally {
                           setForgotLoading(false);
                         }
@@ -1078,9 +1121,7 @@ const AuthSystem = (props) => {
                                 required
                               >
                                 <option value="">เลือกตำแหน่ง</option>
-                                {positions.map(pos => (
-                                  <option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>
-                                ))}
+                                {positionOptions}
                               </select>
                               <FaUserAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
                               <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
@@ -1103,9 +1144,7 @@ const AuthSystem = (props) => {
                                 required
                               >
                                 <option value="">เลือกสาขา</option>
-                                {branches.map(branch => (
-                                  <option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>
-                                ))}
+                                {branchOptions}
                               </select>
                               <FaGraduationCap className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
                               <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
@@ -1371,9 +1410,7 @@ const AuthSystem = (props) => {
                                   required
                                 >
                                   <option value="">เลือกจังหวัด</option>
-                                  {provinces.map(province => (
-                                    <option key={province.id} value={province.id}>{province.name_th}</option>
-                                  ))}
+                                  {provinceOptions}
                                 </select>
                                 <FaBuilding className="absolute left-4 top-1/2 transform -translate-y-1/2 text-yellow-600" />
                                 <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
@@ -1397,9 +1434,7 @@ const AuthSystem = (props) => {
                                   disabled={!registerData.provinceId}
                                 >
                                   <option value="">เลือกอำเภอ/เขต</option>
-                                  {amphures.map(amphure => (
-                                    <option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>
-                                  ))}
+                                  {amphureOptions}
                                 </select>
                                 <FaBuilding className="absolute left-4 top-1/2 transform -translate-y-1/2 text-yellow-600" />
                                 <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
@@ -1423,9 +1458,7 @@ const AuthSystem = (props) => {
                                   disabled={!registerData.amphureId}
                                 >
                                   <option value="">เลือกตำบล/แขวง</option>
-                                  {tambons.map(tambon => (
-                                    <option key={tambon.id} value={tambon.id}>{tambon.name_th}</option>
-                                  ))}
+                                  {tambonOptions}
                                 </select>
                                 <FaBuilding className="absolute left-4 top-1/2 transform -translate-y-1/2 text-yellow-600" />
                                 <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
