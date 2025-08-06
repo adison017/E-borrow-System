@@ -10,7 +10,9 @@
     "upload-local-images": "node scripts/upload-local-images-to-cloudinary.js",
     "check-local-images": "node scripts/check-local-images.js",
     "test-cloudinary-upload": "node scripts/test-cloudinary-upload.js",
-    "upload-user-avatars": "node scripts/upload-user-avatars-to-cloudinary.js"
+    "upload-user-avatars": "node scripts/upload-user-avatars-to-cloudinary.js",
+                    "test-document-upload": "node test-document-upload.js",
+                "test-file-extension": "node test-file-extension-fix.js"
   },
   "keywords": [],
   "author": "",

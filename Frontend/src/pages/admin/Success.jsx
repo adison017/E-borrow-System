@@ -119,8 +119,10 @@ function Success() {
       fine_amount: 0,
       signature_image: borrow.signature_image,
       handover_photo: borrow.handover_photo,
-      proof_image: borrow.proof_image
+      proof_image: borrow.proof_image,
+      important_documents: borrow.important_documents || []
     };
+
     setSelectedBorrow(returnItem);
     setIsDetailsOpen(true);
   };

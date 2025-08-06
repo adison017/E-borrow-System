@@ -19,10 +19,12 @@ NODE_ENV=development
 # JWT Secret
 JWT_SECRET=your_jwt_secret_key_here
 
-# Cloudinary Configuration (สำหรับการอัปโหลดไฟล์)
+# Cloudinary Configuration (สำหรับการอัปโหลดไฟล์รูปภาพและไฟล์อื่นๆ)
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+
 
 # LINE Bot Configuration (ไม่บังคับ - ถ้าไม่มีเซิร์ฟเวอร์จะทำงานได้ปกติ)
 # token=your_line_bot_channel_access_token
@@ -43,7 +45,8 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ### ตัวแปรที่จำเป็น (Required)
 - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`: การตั้งค่าฐานข้อมูล MySQL
 - `JWT_SECRET`: คีย์สำหรับการเข้ารหัส JWT tokens
-- `CLOUDINARY_*`: การตั้งค่า Cloudinary สำหรับการอัปโหลดไฟล์
+- `CLOUDINARY_*`: การตั้งค่า Cloudinary สำหรับการอัปโหลดไฟล์รูปภาพและไฟล์อื่นๆ
+
 
 ### ตัวแปรที่ไม่จำเป็น (Optional)
 - `token`, `secretcode`: สำหรับ LINE Bot (ถ้าไม่มีเซิร์ฟเวอร์จะทำงานได้ปกติ)
@@ -54,4 +57,5 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
 - ถ้าไม่มี LINE Bot configuration เซิร์ฟเวอร์จะแสดง warning แต่จะทำงานได้ปกติ
 - ระบบจะใช้ fallback storage สำหรับการอัปโหลดไฟล์ถ้า Cloudinary ไม่ได้ตั้งค่า
+- ระบบจะใช้ local storage สำหรับไฟล์เอกสารสำคัญถ้า Cloudinary ไม่ได้ตั้งค่า
 - ตรวจสอบให้แน่ใจว่าฐานข้อมูล MySQL ทำงานและมีฐานข้อมูล `e_borrow_system`

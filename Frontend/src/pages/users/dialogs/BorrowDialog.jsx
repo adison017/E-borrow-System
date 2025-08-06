@@ -18,6 +18,64 @@ const BorrowDialog = ({
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ฟังก์ชันตรวจสอบประเภทไฟล์ Office
+  const getFileIcon = (fileName) => {
+    const extension = fileName.toLowerCase().split('.').pop();
+    switch (extension) {
+      case 'pdf':
+        return (
+          <svg className="h-4 w-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'doc':
+      case 'docx':
+        return (
+          <svg className="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'xls':
+      case 'xlsx':
+        return (
+          <svg className="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'ppt':
+      case 'pptx':
+        return (
+          <svg className="h-4 w-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'bmp':
+      case 'tiff':
+        return (
+          <svg className="h-4 w-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+          </svg>
+        );
+      default:
+        return (
+          <svg className="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+    }
+  };
+
+  // ฟังก์ชันตรวจสอบประเภทไฟล์ที่อนุญาต
+  const isAllowedFileType = (fileName) => {
+    const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'txt', 'rtf', 'csv'];
+    const extension = fileName.toLowerCase().split('.').pop();
+    return allowedExtensions.includes(extension);
+  };
   // ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
   function getTomorrowTH() {
     const now = new Date();
@@ -60,6 +118,10 @@ const BorrowDialog = ({
         alert(`ไฟล์ ${file.name} มีขนาดใหญ่เกินไป (สูงสุด 10MB)`);
         return false;
       }
+      if (!isAllowedFileType(file.name)) {
+        alert(`ไฟล์ ${file.name} ไม่ใช่ประเภทไฟล์ที่อนุญาต`);
+        return false;
+      }
       return true;
     });
 
@@ -95,6 +157,10 @@ const BorrowDialog = ({
       const validFiles = files.filter(file => {
         if (file.size > 10 * 1024 * 1024) { // 10MB limit
           alert(`ไฟล์ ${file.name} มีขนาดใหญ่เกินไป (สูงสุด 10MB)`);
+          return false;
+        }
+        if (!isAllowedFileType(file.name)) {
+          alert(`ไฟล์ ${file.name} ไม่ใช่ประเภทไฟล์ที่อนุญาต`);
           return false;
         }
         return true;
@@ -320,12 +386,12 @@ const BorrowDialog = ({
                           multiple
                           className="sr-only"
                           onChange={handleFileSelect}
-                          accept="*/*"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.txt,.rtf,.csv"
                           disabled={isSubmitting}
                         />
                       </div>
                       <p className="text-xs text-gray-500">
-                        รองรับไฟล์ทุกประเภท (PDF, DOC, JPG, PNG, etc.)
+                        รองรับไฟล์ Office ทั้งหมด (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX) และรูปภาพ (JPG, PNG, etc.)
                       </p>
                     </div>
                   </div>
@@ -339,9 +405,7 @@ const BorrowDialog = ({
                           <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <div className="flex items-center space-x-2">
                               <div className="flex-shrink-0">
-                                <svg className="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                                </svg>
+                                {getFileIcon(file.name)}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium text-gray-900 truncate">

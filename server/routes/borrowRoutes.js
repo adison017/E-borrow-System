@@ -2,7 +2,6 @@ import express from 'express';
 import * as borrowController from '../controllers/borrowController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 import { uploadImportantDocumentsWithCustomName } from '../utils/cloudinaryUtils.js';
-
 const router = express.Router();
 
 // Protect all borrow routes

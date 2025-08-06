@@ -234,10 +234,10 @@ export const getReturnsByBorrowId = async (borrow_id) => {
 };
 
 export const updateProofImageAndPayStatus = async (borrow_id, proof_image, cloudinary_public_id = null) => {
-  // อัปเดต proof_image, cloudinary_public_id และ pay_status = 'paid' ใน returns
+  // อัปเดต proof_image และ pay_status = 'paid' ใน returns (ไม่มีคอลัมน์ cloudinary_public_id)
   const [result] = await db.query(
-    'UPDATE returns SET proof_image = ?, cloudinary_public_id = ?, pay_status = ?, updated_at = CURRENT_TIMESTAMP WHERE borrow_id = ?',
-    [proof_image, cloudinary_public_id, 'paid', borrow_id]
+    'UPDATE returns SET proof_image = ?, pay_status = ?, updated_at = CURRENT_TIMESTAMP WHERE borrow_id = ?',
+    [proof_image, 'paid', borrow_id]
   );
   // อัปเดต borrow_transactions.status = 'completed'
   await db.query('UPDATE borrow_transactions SET status = ? WHERE borrow_id = ?', ['completed', borrow_id]);

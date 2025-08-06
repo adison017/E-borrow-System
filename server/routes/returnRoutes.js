@@ -103,60 +103,57 @@ router.post('/confirm-payment', returnController.confirmPayment);
 // อัปโหลดสลิปไปยัง Cloudinary (ใหม่)
 router.post('/upload-slip-cloudinary', async (req, res, next) => {
   try {
-    // Get borrow_code from request body first
-    const { borrow_code } = req.body;
-    if (!borrow_code) {
-      return res.status(400).json({ message: 'borrow_code is required' });
-    }
-
-    // Create upload middleware with borrow code
-    const uploadMiddleware = createPaySlipUploadWithBorrowCode(borrow_code);
-
-    uploadMiddleware(req, res, async (err) => {
+    // ใช้ multer เพื่อแยกข้อมูลฟอร์มและไฟล์
+    const parseMulter = multer().any();
+    
+    parseMulter(req, res, async (err) => {
       if (err) {
-        console.error('Upload error:', err);
+        console.error('Multer error:', err);
         return res.status(400).json({
-          message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์',
+          message: 'เกิดข้อผิดพลาดในการประมวลผลไฟล์',
           error: err.message
         });
       }
 
-      if (!req.file) {
+      // ดึง borrow_code จากข้อมูลฟอร์มที่แยกแล้ว
+      const borrow_code = req.body.borrow_code;
+      if (!borrow_code) {
+        return res.status(400).json({ message: 'borrow_code is required' });
+      }
+
+      // ตรวจสอบว่ามีไฟล์อัปโหลดหรือไม่
+      if (!req.files || req.files.length === 0) {
         return res.status(400).json({ message: 'ไม่พบไฟล์ที่อัปโหลด' });
       }
 
+      // หาไฟล์ slip
+      const slipFile = req.files.find(file => file.fieldname === 'slip');
+      if (!slipFile) {
+        return res.status(400).json({ message: 'ไม่พบไฟล์ slip' });
+      }
+
       try {
-        // Check if file was uploaded to Cloudinary or stored locally
-        let responseData = {
-          filename: req.file.filename,
-          original_name: req.file.originalname,
-          file_size: req.file.size,
-          mime_type: req.file.mimetype
-        };
+        // ใช้ฟังก์ชัน uploadPaySlip ที่มีอยู่แล้วจาก cloudinaryUploadUtils
+        const dataUri = `data:${slipFile.mimetype};base64,${slipFile.buffer.toString('base64')}`;
+        const result = await uploadPaySlip(dataUri, borrow_code);
 
-        if (req.file.path && req.file.secure_url) {
-          // Cloudinary upload
-          responseData.cloudinary_url = req.file.secure_url;
-          responseData.cloudinary_public_id = req.file.public_id;
-          responseData.file_path = req.file.path;
-          console.log(`✅ Slip uploaded to Cloudinary: ${req.file.originalname} -> ${req.file.filename}`);
-        } else if (req.file.path) {
-          // Local storage
-          responseData.file_path = req.file.path;
-          responseData.cloudinary_public_id = null;
-          responseData.cloudinary_url = null;
-          responseData.stored_locally = true;
-          console.log(`📁 Slip stored locally: ${req.file.originalname} -> ${req.file.filename}`);
+        if (result.success) {
+          res.json({
+            filename: result.public_id,
+            original_name: slipFile.originalname,
+            file_size: slipFile.size,
+            mime_type: slipFile.mimetype,
+            cloudinary_url: result.url,
+            cloudinary_public_id: result.public_id,
+            file_path: result.url
+          });
+          console.log(`✅ Slip uploaded to Cloudinary: ${slipFile.originalname} -> ${result.public_id}`);
         } else {
-          // Memory storage (fallback)
-          console.warn('⚠️ Slip stored in memory - Cloudinary not configured');
-          responseData.file_path = null;
-          responseData.cloudinary_public_id = null;
-          responseData.cloudinary_url = null;
-          responseData.stored_in_memory = true;
+          res.status(400).json({
+            message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์',
+            error: result.error
+          });
         }
-
-        res.json(responseData);
       } catch (uploadError) {
         console.error('File processing error:', uploadError);
         res.status(500).json({
