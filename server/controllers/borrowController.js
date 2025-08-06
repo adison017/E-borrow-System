@@ -6,6 +6,7 @@ import * as EquipmentModel from '../models/equipmentModel.js'; // เพิ่�
 import { broadcastBadgeCounts } from '../index.js';
 import * as RepairRequest from '../models/repairRequestModel.js';
 import * as ContactInfoModel from '../models/contactInfoModel.js';
+import { createImportantDocumentsUpload } from '../utils/cloudinaryUtils.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -14,7 +15,7 @@ export const createBorrow = async (req, res) => {
   console.log('==== [API] POST /api/borrows ====');
   console.log('payload:', req.body);
   console.log('files:', req.files);
-  const { user_id, borrow_date, return_date, items, purpose } = req.body;
+  const { user_id, borrow_date, return_date, items, purpose, borrow_code: existingBorrowCode } = req.body;
 
   // Parse items if it's a JSON string
   let parsedItems = items;
@@ -36,12 +37,25 @@ export const createBorrow = async (req, res) => {
   if (invalidItem) {
     return res.status(400).json({ message: 'item_id ของอุปกรณ์ต้องไม่เป็น null หรือว่าง' });
   }
-  // สุ่ม borrow_code
-  function generateBorrowCode() {
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return `BR-${random}`;
+
+  // ใช้ borrow_code ที่มีอยู่หรือจาก middleware หรือสร้างใหม่
+  let borrow_code;
+  if (existingBorrowCode) {
+    borrow_code = existingBorrowCode;
+    console.log(`Using existing borrow_code: ${borrow_code}`);
+  } else if (req.generatedBorrowCode) {
+    borrow_code = req.generatedBorrowCode;
+    console.log(`Using generated borrow_code from middleware: ${borrow_code}`);
+  } else {
+    // สุ่ม borrow_code
+    function generateBorrowCode() {
+      const random = Math.floor(1000 + Math.random() * 9000);
+      return `BR-${random}`;
+    }
+    borrow_code = generateBorrowCode();
+    console.log(`Generated new borrow_code: ${borrow_code}`);
   }
-  const borrow_code = generateBorrowCode();
+
   // ลบ logic ตรวจสอบรหัสซ้ำ (findByBorrowCode)
   try {
     // Handle important documents if any
@@ -49,24 +63,32 @@ export const createBorrow = async (req, res) => {
     if (req.files && req.files.length > 0) {
       console.log(`Processing ${req.files.length} important documents for borrow_code: ${borrow_code}`);
 
-      // Process uploaded files (Cloudinary or memory storage)
+      // Process uploaded files (Cloudinary or local storage)
       const documents = [];
       for (const file of req.files) {
         const documentInfo = {
-          filename: file.filename || `${borrow_code}_important_documents_${Date.now()}`,
+          filename: file.filename || `${borrow_code}_important_documents`,
           original_name: file.originalname,
           file_size: file.size,
           mime_type: file.mimetype
         };
 
-        // Check if file was uploaded to Cloudinary or stored in memory
+        // Check if file was uploaded to Cloudinary or stored locally
         if (file.path && file.secure_url) {
           // Cloudinary upload
           documentInfo.file_path = file.path;
           documentInfo.cloudinary_public_id = file.public_id;
           documentInfo.cloudinary_url = file.secure_url;
+          console.log(`✅ File uploaded to Cloudinary: ${file.originalname} -> ${file.filename}`);
+        } else if (file.path) {
+          // Local storage
+          documentInfo.file_path = file.path;
+          documentInfo.cloudinary_public_id = null;
+          documentInfo.cloudinary_url = null;
+          documentInfo.stored_locally = true;
+          console.log(`📁 File stored locally: ${file.originalname} -> ${file.filename}`);
         } else {
-          // Memory storage (fallback when Cloudinary is not configured)
+          // Memory storage (fallback)
           console.warn('⚠️ File stored in memory - Cloudinary not configured');
           documentInfo.file_path = null;
           documentInfo.cloudinary_public_id = null;

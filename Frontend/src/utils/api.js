@@ -157,7 +157,7 @@ export const updateBorrowStatus = (borrow_id, status, rejection_reason, signatur
     handover_photo_length: body.handover_photo ? body.handover_photo.length : 0
   });
 
-  return authFetch(`${API_BASE}/borrows/${borrow_id}`, {
+  return authFetch(`${API_BASE}/borrows/${borrow_id}/status`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
