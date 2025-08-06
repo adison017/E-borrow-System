@@ -276,6 +276,7 @@ export const getBorrowsByStatus = async (statusArray) => {
       bt.rejection_reason,
       bt.signature_image,
       bt.handover_photo,
+      bt.important_documents,
       ret.proof_image
     FROM borrow_transactions bt
     JOIN users u ON bt.user_id = u.user_id
@@ -320,6 +321,7 @@ export const getBorrowsByStatus = async (statusArray) => {
         rejection_reason: row.rejection_reason,
         signature_image: row.signature_image,
         handover_photo: row.handover_photo,
+        important_documents: row.important_documents ? JSON.parse(row.important_documents) : [],
         proof_image: row.proof_image
       };
     }

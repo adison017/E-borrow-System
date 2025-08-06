@@ -37,14 +37,7 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
 
   if (!isOpen || !returnItem) return null;
 
-  // Debug: Check important_documents data
-  console.log('ReturndetailsDialog - returnItem:', {
-    borrow_id: returnItem.borrow_id,
-    borrow_code: returnItem.borrow_code,
-    important_documents: returnItem.important_documents ? 'EXISTS' : 'NULL/EMPTY',
-    important_documents_value: returnItem.important_documents,
-    important_documents_type: typeof returnItem.important_documents
-  });
+
 
 
 

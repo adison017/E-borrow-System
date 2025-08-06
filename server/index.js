@@ -3,20 +3,24 @@ import 'dotenv/config';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
+import express from 'express';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+
+// Import cron job
+import './cron/notifySchedule.js';
+
+// Import models
+import * as BorrowModel from './models/borrowModel.js';
+import * as RepairRequest from './models/repairRequestModel.js';
+import roomModel from './models/roomModel.js';
+
+// Import routes
 import branchRoutes from './routes/branchRoutes.js';
 import newsRoutes from './routes/newsRoutes.js';
 import positionRoutes from './routes/positionRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-
-import express from 'express';
-import http from 'http';
-import { Server as SocketIOServer } from 'socket.io';
-
-
-import './cron/notifySchedule.js';
-import * as BorrowModel from './models/borrowModel.js';
-import * as RepairRequest from './models/repairRequestModel.js';
 import borrowRoutes from './routes/borrowRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import damageLevelRoutes from './routes/damageLevelRoutes.js';
@@ -24,16 +28,9 @@ import equipmentRoutes from './routes/equipmentRoutes.js';
 import lineRoutes from './routes/lineRoutes.js';
 import repairRequestRoutes from './routes/repairRequestRoutes.js';
 import returnRoutes from './routes/returnRoutes.js';
-
-import damageLevelRoutes from './routes/damageLevelRoutes.js';
-import lineRoutes from './routes/lineRoutes.js';
 import roomRoutes from './routes/roomRoutes.js';
 import contactInfoRoutes from './routes/contactInfoRoutes.js';
 import cloudinaryRoutes from './routes/cloudinaryRoutes.js';
-import './cron/notifySchedule.js';
-import * as BorrowModel from './models/borrowModel.js';
-import * as RepairRequest from './models/repairRequestModel.js';
-import roomModel from './models/roomModel.js';
 
 
 
@@ -103,6 +100,8 @@ app.use('/api/line', lineRoutes);
 
 // ตัวนี้ค่อยใส่ทีหลัง
 app.use(express.json());
+
+
 
 // Serve static files from uploads directory with proper MIME types
 // Apply CORS before static serving

@@ -121,6 +121,21 @@ const Fine = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Success Notification */}
+      <AlertDialog
+        show={showSuccessAlert}
+        title="ชำระเงินสำเร็จ!"
+        message="การชำระค่าปรับเสร็จสิ้นแล้ว\nขอบคุณที่ใช้บริการ"
+        type="success"
+        duration={5000}
+        onClose={() => setShowSuccessAlert(false)}
+        actions={[
+          {
+            label: 'ตกลง',
+            onClick: () => setShowSuccessAlert(false)
+          }
+        ]}
+      />
 
       {/* กลุ่มค้างชำระ */}
 

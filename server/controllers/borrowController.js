@@ -73,26 +73,26 @@ export const createBorrow = async (req, res) => {
           mime_type: file.mimetype
         };
 
-        // Check if file was uploaded to Cloudinary or stored locally
-        if (file.path && file.secure_url) {
+        // Check if file was uploaded to Cloudinary
+        if (file.secure_url && file.public_id) {
           // Cloudinary upload
-          documentInfo.file_path = file.path;
-          documentInfo.cloudinary_public_id = file.public_id;
           documentInfo.cloudinary_url = file.secure_url;
-          console.log(`✅ File uploaded to Cloudinary: ${file.originalname} -> ${file.filename}`);
+          documentInfo.cloudinary_public_id = file.public_id;
+          documentInfo.file_path = null;
+          console.log(`☁️ File uploaded to Cloudinary: ${file.originalname} -> ${file.secure_url}`);
         } else if (file.path) {
-          // Local storage
+          // Local storage (fallback)
           documentInfo.file_path = file.path;
-          documentInfo.cloudinary_public_id = null;
           documentInfo.cloudinary_url = null;
+          documentInfo.cloudinary_public_id = null;
           documentInfo.stored_locally = true;
           console.log(`📁 File stored locally: ${file.originalname} -> ${file.filename}`);
         } else {
           // Memory storage (fallback)
           console.warn('⚠️ File stored in memory - Cloudinary not configured');
           documentInfo.file_path = null;
-          documentInfo.cloudinary_public_id = null;
           documentInfo.cloudinary_url = null;
+          documentInfo.cloudinary_public_id = null;
           documentInfo.stored_in_memory = true;
         }
 
