@@ -1,606 +1,441 @@
-import {
-  Assignment as AssignmentIcon,
-  AssignmentReturn as AssignmentReturnIcon,
-  BarChart as BarChartIcon,
-  Build as BuildIcon,
-  BusinessCenter as BusinessCenterIcon,
-  Category as CategoryIcon,
-  CheckCircle as DoneIcon,
-  History as HistoryIcon,
-  Inventory as InventoryIcon,
-  ListAlt as ListAltIcon,
-  Notifications as NotificationsIcon,
-  Pending as PendingIcon,
-  PieChartOutline as PieChartOutlineIcon,
-  Schedule as ScheduleIcon,
-  TrendingUp as TrendingUpIcon,
-  Warning as WarningIcon
-} from '@mui/icons-material';
-import { DataGrid } from '@mui/x-data-grid';
+import axios from 'axios';
 import { motion } from 'framer-motion';
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { FaChartBar, FaChartLine, FaExclamationTriangle, FaTools } from 'react-icons/fa';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-// Derived data based on analysis of BorrowApprovalList.jsx, Historyborrow.jsx, 
-// RepairApprovalList.jsx, and HistoryRepair.jsx mockData
-const borrowingCount = 1; // From Historyborrow.jsx (1 item with status "borrowing")
-const pendingBorrowCount = 2; // From BorrowApprovalList.jsx (2 items with status "pending")
-const pendingRepairCount = 2; // From RepairApprovalList.jsx (2 items with status "pending")
-const approvedRepairCount = 1; // From RepairApprovalList.jsx (1 item with status "approved")
-const inProgressRepairCount = 1; // From HistoryRepair.jsx (1 item with status "inprogress")
+const API = (endpoint) => `/api/dashboard/${endpoint}`;
 
-const itemsInRepairTotal = inProgressRepairCount + approvedRepairCount; // 1 + 1 = 2
-
-const initialDashboardStats = {
-  totalEquipment: 270,
-  availableEquipment: 150,
-  borrowedEquipment: 75,
-  pendingRequests: pendingBorrowCount + pendingRepairCount,
-  lateReturns: 8
-};
-
-// Reporting data derived from executive files
-// Equipment categories data (most borrowed by category)
-const equipmentCategoryData = [
-  { name: 'อุปกรณ์คอมพิวเตอร์', count: 28, color: '#8884d8' },
-  { name: 'อุปกรณ์สำนักงาน', count: 23, color: '#82ca9d' },
-  { name: 'อุปกรณ์การประชุม', count: 15, color: '#ffc658' },
-  { name: 'อุปกรณ์มัลติมีเดีย', count: 12, color: '#ff8042' },
-  { name: 'อุปกรณ์พกพา', count: 10, color: '#0088fe' }
+const widgetConfigs = [
+  { key: 'monthlyBorrow', title: 'ยอดการยืมรายเดือน', type: 'line', endpoint: 'monthly-borrow' },
+  { key: 'returnStatus', title: 'สถานะการคืนอุปกรณ์', type: 'pie', endpoint: 'return-status' },
+  { key: 'topBorrowedEquipment', title: 'อุปกรณ์ถูกยืมมากสุด 5 อันดับ', type: 'bar', endpoint: 'top-borrowed-equipment' },
+  { key: 'repairStatus', title: 'คำขอซ่อมแยกตามสถานะ', type: 'bar', endpoint: 'repair-status' },
+  { key: 'weeklyBorrowTrend', title: 'แนวโน้มการยืมรายสัปดาห์', type: 'area', endpoint: 'weekly-borrow-trend' },
+  { key: 'borrowForecast', title: 'คาดการณ์การยืมในเดือนถัดไป', type: 'kpi', endpoint: 'borrow-forecast' },
+  { key: 'topDamagedEquipment', title: 'อุปกรณ์ที่มีประวัติเสียหายซ้ำ (Top 5)', type: 'bar', endpoint: 'top-damaged-equipment' },
+  { key: 'topRiskUsers', title: 'ผู้ใช้ที่มีค่าปรับรวมสูงสุด (Top 5 Risk User)', type: 'table', endpoint: 'top-risk-users' },
+  { key: 'totalEquipmentValue', title: 'มูลค่าอุปกรณ์ในระบบทั้งหมด', type: 'kpi', endpoint: 'total-equipment-value' },
+  { key: 'totalDamagedValue', title: 'มูลค่าอุปกรณ์ที่เสียหาย/สูญหายรวม', type: 'kpi', endpoint: 'total-damaged-value' },
+  { key: 'totalRepairCost', title: 'ค่าใช้จ่ายซ่อมทั้งหมด', type: 'kpi', endpoint: 'total-repair-cost' },
+  { key: 'depreciation', title: 'ค่าเสื่อมราคาทรัพย์สินโดยประมาณ', type: 'line', endpoint: 'depreciation' },
+  { key: 'repairVsBorrowRatio', title: 'อัตราส่วนคำขอซ่อมต่อการยืมทั้งหมด', type: 'pie', endpoint: 'repair-vs-borrow-ratio' },
+  { key: 'topFineCategories', title: 'หมวดหมู่ที่ก่อค่าปรับสูงสุด', type: 'bar', endpoint: 'top-fine-categories' },
+  { key: 'frequentDamageUsers', title: 'ผู้ใช้งานที่คืนของเสียบ่อย', type: 'table', endpoint: 'frequent-damage-users' },
+  { key: 'branchBorrowSummary', title: 'ค่าสรุปการยืมตามสาขา', type: 'bar', endpoint: 'branch-borrow-summary' },
 ];
 
-// Department borrowing statistics
-const departmentBorrowData = [
-  { name: 'แผนกไอที', count: 25, color: '#8884d8' },
-  { name: 'แผนกการตลาด', count: 18, color: '#82ca9d' },
-  { name: 'แผนกบัญชี', count: 15, color: '#ffc658' },
-  { name: 'แผนกบริหาร', count: 12, color: '#ff8042' },
-  { name: 'แผนกทรัพยากรบุคคล', count: 10, color: '#0088fe' }
-];
-
-// Monthly trends data (borrowing and repairs)
-const monthlyTrendsData = [
-  { month: 'ม.ค.', borrowCount: 30, repairCount: 5 },
-  { month: 'ก.พ.', borrowCount: 25, repairCount: 8 },
-  { month: 'มี.ค.', borrowCount: 35, repairCount: 7 },
-  { month: 'เม.ย.', borrowCount: 28, repairCount: 10 },
-  { month: 'พ.ค.', borrowCount: 32, repairCount: 6 }
-];
-
-// Equipment repair frequency
-const equipmentRepairData = [
-  { name: 'เครื่องคอมพิวเตอร์', count: 8, color: '#8884d8' },
-  { name: 'เครื่องพิมพ์', count: 6, color: '#82ca9d' },
-  { name: 'เครื่องปรับอากาศ', count: 5, color: '#ffc658' },
-  { name: 'โปรเจคเตอร์', count: 4, color: '#ff8042' },
-  { name: 'ไมโครโฟน', count: 2, color: '#0088fe' }
-];
-
-// Sample data from BorrowApprovalList.jsx
-const pendingBorrowRequests = [
-  { 
-    id: "BOR-2025-0001", 
-    equipmentName: "โน๊ตบุ๊ค Dell XPS 15", 
-    requesterName: "ชัยวัฒน์ มีสุข", 
-    department: "แผนกไอที",
-    borrowDate: "2025-05-05", 
-    dueDate: "2025-05-12",
-    status: "รออนุมัติ" 
-  },
-  { 
-    id: "BOR-2025-0002", 
-    equipmentName: "เครื่องพิมพ์ HP LaserJet", 
-    requesterName: "สุดารัตน์ แสงทอง", 
-    department: "แผนกบัญชี",
-    borrowDate: "2025-05-06", 
-    dueDate: "2025-05-09",
-    status: "รออนุมัติ" 
-  }
-];
-
-// Sample data from RepairApprovalList.jsx
-const pendingRepairRequests = [
-  { 
-    id: "REP-2025-0001", 
-    equipmentName: "เครื่องคอมพิวเตอร์ Dell", 
-    requesterName: "ชัยวัฒน์ มีสุข", 
-    department: "แผนกไอที",
-    requestDate: "2025-05-01", 
-    estimatedCost: "2,500",
-    status: "รออนุมัติ",
-    priority: "ปานกลาง"
-  },
-  { 
-    id: "REP-2025-0002", 
-    equipmentName: "เครื่องพิมพ์ HP LaserJet", 
-    requesterName: "สุดารัตน์ แสงทอง", 
-    department: "แผนกบัญชี",
-    requestDate: "2025-05-03", 
-    estimatedCost: "1,200",
-    status: "รออนุมัติ",
-    priority: "ต่ำ"
-  }
-];
-
-const newMyRequestsData = [
-  { id: "BOR-2025-0001", item: "โน๊ตบุ๊ค Dell XPS 15", user: "ชัยวัฒน์ มีสุข", status: "รออนุมัติ", requestDate: "2025-05-05", borrowDate: "2025-05-05", returnDate: "2025-05-12" },
-  { id: "BOR-2025-0002", item: "เครื่องพิมพ์ HP LaserJet", user: "สุดารัตน์ แสงทอง", status: "รออนุมัติ", requestDate: "2025-05-06", borrowDate: "2025-05-06", returnDate: "2025-05-09" },
-];
+const colorPalette = ['#1e40af', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0891b2', '#be185d', '#0d9488', '#7c2d12', '#86198f'];
 
 const DashboardExeutive = () => {
-  const [stats] = useState(initialDashboardStats);
+  const [data, setData] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const equipmentStatusData = [
-    { name: 'พร้อมใช้งาน', value: stats.availableEquipment, color: '#4CAF50' },
-    { name: 'ถูกยืม', value: stats.borrowedEquipment, color: '#2196F3' },
-    { name: 'ซ่อมบำรุง', value: itemsInRepairTotal, color: '#FF9800' }
-  ];
+  // Fetch dashboard data from all endpoints
+  useEffect(() => {
+    const fetchAllData = async () => {
+      setLoading(true);
+      const newData = {};
+      await Promise.all(
+        widgetConfigs.map(async (cfg) => {
+          try {
+            const res = await axios.get(API(cfg.endpoint));
+            console.log(`[API] ${cfg.endpoint} response:`, res.data);
+            newData[cfg.key] = res.data;
+          } catch (err) {
+            console.error(`Dashboard API error: ${cfg.endpoint}`, err);
+            if (["table","bar","line","pie","area","donut"].includes(cfg.type)) {
+              newData[cfg.key] = [];
+            } else {
+              newData[cfg.key] = {};
+            }
+          }
+        })
+      );
+      console.log('[DashboardExeutive] setData:', newData);
+      setData(newData);
+      setLoading(false);
+    };
+    fetchAllData();
+  }, []);
 
-  const myRequestsColumns = [
-    { field: 'id', headerName: 'รหัสคำขอ', width: 100, cellClassName: 'font-medium' },
-    { field: 'item', headerName: 'รายการ', width: 180 },
-    { field: 'user', headerName: 'ผู้ขอ', width: 150 },
-    { field: 'status', headerName: 'สถานะ', width: 120, renderCell: (params) => {
-      let colorClass = 'text-gray-700';
-      let bgColorClass = 'bg-gray-100';
-      if (params.value === 'อนุมัติแล้ว') { colorClass = 'text-green-700'; bgColorClass = 'bg-green-100'; }
-      else if (params.value === 'รออนุมัติ') { colorClass = 'text-yellow-700'; bgColorClass = 'bg-yellow-100'; }
-      else if (params.value === 'ปฏิเสธ') { colorClass = 'text-red-700'; bgColorClass = 'bg-red-100'; }
-      return <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${colorClass} ${bgColorClass}`}>{params.value}</span>;
-    }},
-    { field: 'requestDate', headerName: 'วันที่ขอ', width: 110 },
-    { field: 'borrowDate', headerName: 'วันที่ยืม', width: 110 },
-    { field: 'returnDate', headerName: 'วันที่คืน', width: 110 },
-  ];
-
-  // Custom columns for approval tables
-  const borrowApprovalColumns = [
-    { field: 'id', headerName: 'รหัสคำขอ', width: 130 },
-    { field: 'equipmentName', headerName: 'อุปกรณ์', width: 200 },
-    { field: 'requesterName', headerName: 'ผู้ขอ', width: 150 },
-    { field: 'status', headerName: 'สถานะ', width: 110, renderCell: (params) => (
-      <span className="px-2.5 py-1 text-xs font-semibold rounded-full text-yellow-700 bg-yellow-100">
-        {params.value}
-      </span>
-    )},
-    { field: 'borrowDate', headerName: 'วันที่ยืม', width: 100 },
-    { field: 'dueDate', headerName: 'วันที่คืน', width: 100 }
-  ];
-  
-  const repairApprovalColumns = [
-    { field: 'id', headerName: 'รหัสคำขอ', width: 130 },
-    { field: 'equipmentName', headerName: 'อุปกรณ์', width: 200 },
-    { field: 'requesterName', headerName: 'ผู้ขอ', width: 150 },
-    { field: 'status', headerName: 'สถานะ', width: 110, renderCell: (params) => (
-      <span className="px-2.5 py-1 text-xs font-semibold rounded-full text-yellow-700 bg-yellow-100">
-        {params.value}
-      </span>
-    )},
-    { field: 'requestDate', headerName: 'วันที่แจ้ง', width: 100 },
-    { field: 'estimatedCost', headerName: 'ค่าใช้จ่าย (บาท)', width: 130 },
-    { field: 'priority', headerName: 'ความสำคัญ', width: 110 }
-  ];
-
-  const upcomingReturnsData = [
-    { id: 1, item: 'โน้ตบุ๊ค ASUS', user: 'วันดี มีสุข', returnDate: '22/04/2025', status: 'ปกติ' },
-    { id: 2, item: 'กล้องวิดีโอ Sony', user: 'ปรีชา ใจงาม', returnDate: '23/04/2025', status: 'ปกติ' },
-    { id: 3, item: 'ลำโพง JBL', user: 'สุชาติ แคล้วรอด', returnDate: '24/04/2025', status: 'ใกล้เกินกำหนด' },
-    { id: 4, item: 'iPad Pro', user: 'นารี รักษ์ดี', returnDate: '25/04/2025', status: 'ปกติ' },
-    { id: 5, item: 'Macbook Pro 16"', user: 'ทรงพล ตั้งจริง', returnDate: '21/04/2025', status: 'เกินกำหนด' },
-  ];
-
-  const recentActivitiesData = [
-    { id: 1, type: 'อนุมัติคำขอ', description: 'อนุมัติคำขอยืม Macbook Pro', timestamp: '2 ชั่วโมงที่แล้ว', user: 'คุณหญิง สุขใจ', item: 'Macbook Pro' },
-    { id: 2, type: 'แจ้งเตือน', description: 'iPad Pro ครบกำหนดคืนวันนี้', timestamp: '3 ชั่วโมงที่แล้ว', item: 'iPad Pro' },
-    { id: 3, type: 'คำขอใหม่', description: 'คำขอยืมโดรนถ่ายภาพ', timestamp: 'เมื่อวานนี้', user: 'แผนกการตลาด', item: 'โดรนถ่ายภาพ' },
-    { id: 4, type: 'ครุภัณฑ์ใหม่', description: 'เพิ่มโปรเจคเตอร์ Epson ใหม่', timestamp: '2 วันที่แล้ว', item: 'Projector Epson EB-L200SW' },
-    { id: 5, type: 'เกินกำหนด', description: 'Macbook Pro เกินกำหนดคืน', timestamp: 'วันนี้', item: 'Macbook Pro 16"' }
-  ];
-  
+  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.07, delayChildren: 0.2 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.1 } }
   };
-
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.4 } }
+    hidden: { y: 30, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: "easeOut" } }
   };
 
-  const getStatusColor = (status) => {
-    if (status === 'ใกล้เกินกำหนด') return 'border-yellow-500 bg-yellow-50 hover:shadow-yellow-200/50';
-    if (status === 'เกินกำหนด') return 'border-red-500 bg-red-50 hover:shadow-red-200/50';
-    return 'border-gray-300 bg-white hover:shadow-blue-200/30';
-  };
 
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case 'อนุมัติคำขอ': return <DoneIcon className="text-green-500" />;
-      case 'แจ้งเตือน': return <NotificationsIcon className="text-yellow-500" />;
-      case 'คำขอใหม่': return <PendingIcon className="text-blue-500" />;
-      case 'ครุภัณฑ์ใหม่': return <InventoryIcon className="text-purple-500" />;
-      case 'เกินกำหนด': return <WarningIcon className="text-red-500" />;
-      default: return <ListAltIcon className="text-gray-500" />;
-    }
-  };
-
-  const statCardsData = [
-      { title: 'ครุภัณฑ์ทั้งหมด', value: stats.totalEquipment, icon: <InventoryIcon className="text-blue-500" />, color: "blue" },
-      { title: 'พร้อมใช้งาน', value: stats.availableEquipment, icon: <DoneIcon className="text-green-500" />, color: "green" },
-      { title: 'ถูกยืม', value: stats.borrowedEquipment, icon: <AssignmentReturnIcon className="text-sky-500" />, color: "sky" },
-      { title: 'คำขอรออนุมัติ', value: stats.pendingRequests, icon: <NotificationsIcon className="text-yellow-500" />, color: "yellow" },
-      { title: 'คืนเกินกำหนด', value: stats.lateReturns, icon: <WarningIcon className="text-red-500" />, color: "red" }
+  // Enhanced summary cards with icons and better styling
+  const summaryCards = [
+    {
+      title: 'มูลค่าครุภัณฑ์ทั้งหมด',
+      value: Number((data.totalEquipmentValue && (typeof data.totalEquipmentValue.total_value === 'string' ? parseFloat(data.totalEquipmentValue.total_value) : data.totalEquipmentValue.total_value)) ?? 0),
+      color: 'blue',
+      bgGradient: 'from-blue-500 to-blue-600',
+      icon: <FaChartBar className="text-4xl text-blue-500" />,
+      unit: ' บาท',
+    },
+    {
+      title: 'มูลค่าครุภัณฑ์เสียหาย/สูญหาย',
+      value: Number((data.totalDamagedValue && (typeof data.totalDamagedValue.damaged_value === 'string' ? parseFloat(data.totalDamagedValue.damaged_value) : data.totalDamagedValue.damaged_value)) ?? 0),
+      color: 'red',
+      bgGradient: 'from-red-500 to-red-600',
+      icon: <FaExclamationTriangle className="text-4xl text-red-500" />,
+      unit: ' บาท',
+    },
+    {
+      title: 'ค่าใช้จ่ายซ่อมแซมรวม',
+      value: Number((data.totalRepairCost && (typeof data.totalRepairCost.total_repair_cost === 'string' ? parseFloat(data.totalRepairCost.total_repair_cost) : data.totalRepairCost.total_repair_cost)) ?? 0),
+      color: 'orange',
+      bgGradient: 'from-orange-500 to-orange-600',
+      icon: <FaTools className="text-4xl text-orange-500" />,
+      unit: ' บาท',
+    },
+    {
+      title: 'คาดการณ์จำนวนการยืมเดือนถัดไป',
+      value: Number((data.borrowForecast && (typeof data.borrowForecast.forecast === 'string' ? parseFloat(data.borrowForecast.forecast) : data.borrowForecast.forecast)) ?? 0),
+      color: 'green',
+      bgGradient: 'from-green-500 to-green-600',
+      icon: <FaChartLine className="text-4xl text-green-500" />,
+      unit: ' ครั้ง',
+    },
   ];
 
-  return (
-    <motion.div 
-      className="p-6 md:p-8 flex-grow bg-white text-gray-800 min-h-screen"
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-    >
-      <div className="max-w-7xl mx-auto">
-        <motion.h1 
-            className="text-3xl font-bold mb-8 text-gray-800 pb-4"
-            variants={itemVariants}
-        >
-            แดชบอร์ดผู้บริหาร
-        </motion.h1>
+  // Loading screen
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600 text-lg font-medium">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
 
-        {/* Stats Cards */}
-        <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-8"
-            variants={containerVariants}
-        >
-          {statCardsData.map(stat => (
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
+      <motion.div 
+        className="px-2 sm:px-4 md:px-8 py-8 max-w-[1600px] mx-auto" 
+        initial="hidden" 
+        animate="visible" 
+        variants={containerVariants}
+      >
+        {/* Header Section */}
+        <motion.div className="mb-8" variants={itemVariants}>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold bg-black bg-clip-text text-transparent">
+              แดชบอร์ดผู้บริหาร
+            </h1>
+          </div>
+          <p className="text-slate-500 text-base md:text-lg">ภาพรวมและการวิเคราะห์การจัดการอุปกรณ์</p>
+        </motion.div>
+
+        {/* Enhanced Summary Cards */}
+        <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-14" variants={containerVariants}>
+          {summaryCards.map((card, idx) => (
             <motion.div 
-              key={stat.title} 
-              className={`bg-white p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-l-4 border-${stat.color}-500`}
+              key={card.title} 
+              className="group relative overflow-hidden"
               variants={itemVariants} 
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ scale: 1.04, transition: { duration: 0.16 } }}
             >
-              <div className="flex justify-between items-center">
-                  <div>
-                      <p className="text-gray-600 text-sm font-medium">{stat.title}</p>
-                      <p className={`text-3xl font-bold my-1 text-${stat.color}-600`}>{stat.value}</p>
+              <div className={`bg-white rounded-2xl shadow-md hover:shadow-2xl border border-slate-100 transition-all duration-300 p-8 flex flex-col justify-between h-full relative overflow-hidden`}> 
+                {/* Gradient overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} opacity-10 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl pointer-events-none`}></div>
+                <div className="relative z-10 flex flex-col gap-4 h-full ">
+                  <div className="flex items-center gap-3 mb-2 ">
+                    <span>{card.icon}</span>
+                    <h3 className="text-slate-700 text-lg font-bold leading-tight">{card.title}</h3>
                   </div>
-                  <div className={`p-3 rounded-full bg-${stat.color}-100`}>
-                      {stat.icon}
+                  <div className="flex items-end gap-2 mt-auto">
+                    <span className={`text-4xl font-extrabold text-${card.color}-600 drop-shadow`}>{card.value.toLocaleString()}</span>
+                    <span className="text-slate-500 text-lg font-medium">{card.unit}</span>
                   </div>
+                </div>
               </div>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* New Approval Sections */}
-        <motion.div 
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
-          variants={containerVariants}
-        >
-          {/* Borrow Approval List */}
-          <motion.div 
-            className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 h-auto"
-            variants={itemVariants}
-            whileHover={{ scale: 1.01 }}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-700 flex items-center">
-                <AssignmentIcon className="mr-2 text-blue-500" />
-                คำขอยืมรออนุมัติ ({pendingBorrowRequests.length})
-              </h2>
-              <Link 
-                to="/BorrowApprovalList"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
-              >
-                ดูทั้งหมด
-              </Link>
+        {/* Main Analytics Grid */}
+        <motion.div className="grid grid-cols-1 xl:grid-cols-3 gap-10 mb-14" variants={containerVariants}>
+          {/* Return Status */}
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-slate-800">สถานะครุภัณฑ์</h2>
             </div>
-            <div className="h-[300px] w-full">
-              <DataGrid
-                rows={pendingBorrowRequests}
-                columns={borrowApprovalColumns}
-                pageSize={4}
-                rowsPerPageOptions={[4]}
-                disableSelectionOnClick
-                autoHeight={false}
-                className="border-none rounded-lg"
-                sx={{
-                  fontSize: '0.875rem',
-                  border: 'none',
-                  '& .MuiDataGrid-columnHeaders': {
-                    backgroundColor: '#f9fafb',
-                    color: '#374151',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase',
-                    fontSize: '0.75rem',
-                    borderBottom: 'none' 
-                  },
-                  '& .MuiDataGrid-cell': {
-                    borderBottom: 'none', 
-                    padding: '8px 16px',
-                  },
-                  '& .MuiDataGrid-row:hover': {
-                    backgroundColor: '#f3f4f6',
-                  },
-                  '& .MuiDataGrid-footerContainer': {
-                      borderTop: 'none' 
-                  },
-                  '& .MuiDataGrid-virtualScroller': {
-                      borderTop: '1px solid #e5e7eb' 
-                  }
-                }}
-              />
-            </div>
-          </motion.div>
-
-          {/* Repair Approval List */}
-          <motion.div 
-            className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 h-auto"
-            variants={itemVariants}
-            whileHover={{ scale: 1.01 }}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-700 flex items-center">
-                <BuildIcon className="mr-2 text-orange-500" />
-                คำขอซ่อมรออนุมัติ ({pendingRepairRequests.length})
-              </h2>
-              <Link 
-                to="/Repair"
-                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
-              >
-                ดูทั้งหมด
-              </Link>
-            </div>
-            <div className="h-[300px] w-full">
-              <DataGrid
-                rows={pendingRepairRequests}
-                columns={repairApprovalColumns}
-                pageSize={4}
-                rowsPerPageOptions={[4]}
-                disableSelectionOnClick
-                autoHeight={false}
-                className="border-none rounded-lg"
-                sx={{
-                  fontSize: '0.875rem',
-                  border: 'none',
-                  '& .MuiDataGrid-columnHeaders': {
-                    backgroundColor: '#f9fafb',
-                    color: '#374151',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase',
-                    fontSize: '0.75rem',
-                    borderBottom: 'none' 
-                  },
-                  '& .MuiDataGrid-cell': {
-                    borderBottom: 'none', 
-                    padding: '8px 16px',
-                  },
-                  '& .MuiDataGrid-row:hover': {
-                    backgroundColor: '#f3f4f6',
-                  },
-                  '& .MuiDataGrid-footerContainer': {
-                      borderTop: 'none' 
-                  },
-                  '& .MuiDataGrid-virtualScroller': {
-                      borderTop: '1px solid #e5e7eb' 
-                  }
-                }}
-              />
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Main Content Area - Two Column Layout */}
-        <motion.div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8" variants={containerVariants}>
-          {/* Left Column (Span 2) - Equipment Status & My Requests */}
-          <motion.div className="lg:col-span-2 space-y-6" variants={itemVariants}>
-            {/* Equipment Status Chart */}
-            <motion.div 
-                className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 h-[420px]"
-                variants={itemVariants} 
-                whileHover={{ scale: 1.01 }}
-            >
-              <h2 className="text-xl font-semibold mb-5 text-gray-700 pb-3 flex items-center">
-                <PieChartOutlineIcon className="mr-2 text-indigo-500" />
-                สถานะครุภัณฑ์โดยรวม
-              </h2>
-              <ResponsiveContainer width="100%" height="85%">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={equipmentStatusData}
+                    data={data.returnStatus || []}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
                     outerRadius={100}
-                    innerRadius={40} // Donut chart
-                    fill="#8884d8"
+                    innerRadius={50}
                     dataKey="value"
-                    label={({ name, percent, value }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
-                    {equipmentStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    {(data.returnStatus || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color || colorPalette[index % colorPalette.length]} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)', 
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                    }} 
-                  />
-                  <Legend verticalAlign="bottom" height={36} iconSize={14}/>
+                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
+                  <Legend verticalAlign="bottom" height={36} iconSize={12} />
                 </PieChart>
               </ResponsiveContainer>
-            </motion.div>
-
-            {/* Reports and Analytics Section */}
-            <motion.div 
-                className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
-                variants={itemVariants} 
-                whileHover={{ scale: 1.01 }}
-            >
-              <h2 className="text-xl font-semibold mb-5 text-gray-700 pb-3 flex items-center">
-                <BarChartIcon className="mr-2 text-indigo-600" />
-                รายงานและวิเคราะห์การใช้งาน
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Monthly Trends Chart */}
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                  <h3 className="text-sm font-semibold mb-3 text-gray-700 flex items-center">
-                    <TrendingUpIcon className="mr-1 text-blue-500 h-4 w-4" />
-                    แนวโน้มการยืมและซ่อมรายเดือน
-                  </h3>
-                  <div className="h-[240px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={monthlyTrendsData}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="borrowCount" name="จำนวนการยืม" stroke="#3B82F6" strokeWidth={2} activeDot={{ r: 8 }} />
-                        <Line type="monotone" dataKey="repairCount" name="จำนวนการซ่อม" stroke="#F97316" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Department Borrowing Chart */}
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                  <h3 className="text-sm font-semibold mb-3 text-gray-700 flex items-center">
-                    <BusinessCenterIcon className="mr-1 text-purple-500 h-4 w-4" />
-                    สถิติการยืมตามแผนก
-                  </h3>
-                  <div className="h-[240px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={departmentBorrowData}
-                        layout="vertical"
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" width={100} />
-                        <Tooltip />
-                        <Bar dataKey="count" name="จำนวนการยืม" fill="#8884d8" radius={[0, 4, 4, 0]}>
-                          {departmentBorrowData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-
-              {/* Second row of charts */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                {/* Equipment Categories Chart */}
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                  <h3 className="text-sm font-semibold mb-3 text-gray-700 flex items-center">
-                    <CategoryIcon className="mr-1 text-green-500 h-4 w-4" />
-                    หมวดหมู่อุปกรณ์ที่ถูกยืมมากที่สุด
-                  </h3>
-                  <div className="h-[240px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={equipmentCategoryData}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" name="จำนวนการยืม" radius={[4, 4, 0, 0]}>
-                          {equipmentCategoryData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Equipment Repair Frequency */}
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                  <h3 className="text-sm font-semibold mb-3 text-gray-700 flex items-center">
-                    <BuildIcon className="mr-1 text-orange-500 h-4 w-4" />
-                    อุปกรณ์ที่มีการซ่อมบำรุงบ่อยที่สุด
-                  </h3>
-                  <div className="h-[240px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={equipmentRepairData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="count"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {equipmentRepairData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+            </div>
           </motion.div>
 
-          {/* Right Column (Span 1) - Upcoming Returns & Recent Activities */}
-          <motion.div className="lg:col-span-1 space-y-6" variants={itemVariants}>
-            {/* Recent Activities - New Section */}
-            <motion.div 
-                className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 h-auto min-h-[420px]"
-                variants={itemVariants} 
-                whileHover={{ scale: 1.01 }}
-            >
-              <h2 className="text-xl font-semibold mb-5 text-gray-700 pb-3 flex items-center">
-                <HistoryIcon className="mr-2 text-purple-500" />
-                กิจกรรมล่าสุดในระบบ
-              </h2>
-              <div className="space-y-1 max-h-[320px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                {recentActivitiesData.map((activity) => (
-                  <motion.div 
-                      key={activity.id} 
-                      className="flex items-start p-3 last:border-b-0 hover:bg-gray-50 rounded-md transition-colors duration-200"
-                      variants={itemVariants}
-                      whileHover={{ x: 3 }}
-                  >
-                    <div className="flex-shrink-0 mt-0.5 mr-3 p-2 bg-gray-100 rounded-full">
-                      {getActivityIcon(activity.type)}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-800 text-sm leading-tight">{activity.description} {activity.item && <span className="font-normal text-gray-600">({activity.item})</span>}</p>
-                      {activity.user && <p className="text-xs text-gray-500">โดย: {activity.user}</p>}
-                      <p className="text-xs text-gray-400 mt-0.5">{activity.timestamp}</p>
-                    </div>
-                  </motion.div>
-                ))}
-                {recentActivitiesData.length === 0 && 
-                  <motion.p className="text-gray-500 text-center py-4" variants={itemVariants}>
-                    ไม่มีกิจกรรมล่าสุด
-                  </motion.p>
-                }
-              </div>
-            </motion.div>
+          {/* Monthly Borrow Trend */}
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-slate-800">แนวโน้มการยืม-คืน</h2>
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={Array.isArray(data.monthlyBorrow) ? data.monthlyBorrow.map(row => ({
+                    ...row,
+                    month: row.month_th || row.month || row.label || '',
+                    การยืม: row.borrow_count || row["การยืม"] || row.borrow || 0,
+                    การคืน: row.return_count || row["การคืน"] || row.return || 0
+                  })) : []}
+                  margin={{ top: 5, right: 0, left: -20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="month" fontSize={12} />
+                  <YAxis fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }} 
+                  />
+                  <Legend verticalAlign="bottom" height={36} iconSize={12} />
+                  <Bar dataKey="การยืม" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={15} />
+                  <Bar dataKey="การคืน" fill="#10b981" radius={[4, 4, 0, 0]} barSize={15} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+
+          {/* Top Borrowed Equipment */}
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-slate-800">อุปกรณ์ยอดนิยม</h2>
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.topBorrowedEquipment || []} layout="vertical" margin={{ top: 5, right: 20, left: 80, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                  <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fill: '#64748b' }} />
+                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
+                  <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={20}>
+                    {(data.topBorrowedEquipment || []).map((entry, idx) => (
+                      <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </motion.div>
         </motion.div>
-      </div>
-    </motion.div>
+
+        {/* Secondary Analytics Grid */}
+        <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-10 mb-14" variants={containerVariants}>
+          {/* Repair Status (PieChart) */}
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-slate-800">สถานะการซ่อมแซม</h2>
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data.repairStatus || []}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={100}
+                    innerRadius={50}
+                    dataKey="count"
+                    nameKey="status"
+                    label={({ status, percent }) => `${status}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {(data.repairStatus || []).map((entry, idx) => (
+                      <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
+                  <Legend verticalAlign="bottom" height={36} iconSize={12} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+
+        </motion.div>
+
+
+        {/* Additional Analytics Grid */}
+        <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-10 mb-14" variants={containerVariants}>
+          {/* Top Fine Categories */}
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-slate-800">หมวดหมู่ค่าปรับสูงสุด</h2>
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={
+                    Array.isArray(data.topFineCategories)
+                      ? data.topFineCategories.map(cat => ({
+                          ...cat,
+                          total_fine: Number(typeof cat.total_fine === 'string' ? parseFloat(cat.total_fine) : (cat.total_fine ?? 0)),
+                        }))
+                      : []
+                  }
+                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="category" tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <Tooltip 
+                    formatter={(value, name, props) => [`${value.toLocaleString()} บาท`, `หมวดหมู่: ${props.payload.category}`]}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} 
+                    labelFormatter={(label) => `หมวดหมู่: ${label}`}
+                  />
+                  <Bar dataKey="total_fine" radius={[8, 8, 0, 0]} barSize={40}>
+                    {(Array.isArray(data.topFineCategories) ? data.topFineCategories : []).map((entry, idx) => (
+                      <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              {Array.isArray(data.topFineCategories) && data.topFineCategories.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-slate-400">
+                    <div className="text-3xl mb-2">📊</div>
+                    <p>ไม่มีข้อมูล</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Final Analytics Grid */}
+        <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-10 mb-14" variants={containerVariants}>
+          {/* Top Damaged Equipment */}
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-slate-800">อุปกรณ์เสียหายซ้ำ</h2>
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.topDamagedEquipment || []} layout="vertical" margin={{ top: 5, right: 20, left: 100, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                  <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: '#64748b' }} />
+                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
+                  <Bar dataKey="damage_count" radius={[0, 8, 8, 0]} barSize={20}>
+                    {(data.topDamagedEquipment || []).map((entry, idx) => (
+                      <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+
+          {/* Branch Summary (PieChart) */}
+          <motion.div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-8" variants={itemVariants}>
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-slate-800">สรุปการยืมตามสาขา</h2>
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data.branchBorrowSummary || []}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={100}
+                    innerRadius={50}
+                    dataKey="borrow_count"
+                    nameKey="branch_name"
+                    label={({ branch_name, percent }) => `${branch_name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {(data.branchBorrowSummary || []).map((entry, idx) => (
+                      <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
+                  <Legend verticalAlign="bottom" height={36} iconSize={12} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Advanced Analytics Grid */}
+        <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-10" variants={containerVariants}>
+          {/* Depreciation Trend (ปรับให้เข้าใจง่าย) */}
+          <motion.div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-8" variants={itemVariants}>
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-teal-500 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-slate-800">ค่าเสื่อมราคาทรัพย์สินรายปี (บาท)</h2>
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data.depreciation || []} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ef" />
+                  <XAxis dataKey="year" tick={{ fontSize: 13, fill: '#334155' }} label={{ value: 'ปี', position: 'insideBottom', offset: -5, fontSize: 14, fill: '#334155' }} />
+                  <YAxis tick={{ fontSize: 13, fill: '#334155' }} tickFormatter={v => v.toLocaleString()} label={{ value: 'ค่าเสื่อมราคา (บาท)', angle: -90, position: 'insideLeft', fontSize: 14, fill: '#334155' }} />
+                  <Tooltip 
+                    formatter={v => `${Number(v).toLocaleString()} บาท`}
+                    labelFormatter={label => `ปี ${label}`}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="depreciation" 
+                    stroke="#0ea5e9" 
+                    strokeWidth={4} 
+                    dot={{ fill: '#0ea5e9', stroke: '#fff', strokeWidth: 2, r: 7 }}
+                    activeDot={{ r: 10, fill: '#0ea5e9', stroke: '#fff', strokeWidth: 3 }}
+                    label={({ x, y, value }) => (
+                      <text x={x} y={y - 10} textAnchor="middle" fontSize={13} fill="#0ea5e9">{Number(value).toLocaleString()}</text>
+                    )}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+
+        </motion.div>
+
+        {/* Footer */}
+        
+      </motion.div>
+    </div>
   );
 };
 
