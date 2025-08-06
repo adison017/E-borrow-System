@@ -55,8 +55,20 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const [showPin, setShowPin] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    // Get current user from localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+
     const fetchData = async () => {
       try {
         const [positionsResponse, branchesResponse, rolesResponse, provincesResponse] = await Promise.all([
@@ -135,6 +147,13 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
   const getAvatarUrl = (path) => {
     if (!path) return 'logo_it.png';
+
+    // ถ้าเป็น Cloudinary URL ใช้เลย
+    if (path.includes('cloudinary.com')) {
+      return path;
+    }
+
+    // ถ้าเป็น local path ให้แปลงเป็น filename
     let filename = path;
     filename = filename.replace(/^http:\/\/localhost:5000\//, '')
       .replace(/^[\\/]+/, '')
@@ -241,7 +260,12 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         postal_no: userData.postal_no || '',
         password: ''
       });
-      setPreviewImage(avatarPath ? `http://localhost:5000/uploads/user/${avatarPath}` : "/profile.png");
+      // ตั้งค่า preview image - ถ้าเป็น Cloudinary URL ใช้เลย ถ้าเป็น local path ให้สร้าง URL
+      if (avatarPath && avatarPath.includes('cloudinary.com')) {
+        setPreviewImage(avatarPath);
+      } else {
+        setPreviewImage(avatarPath ? `http://localhost:5000/uploads/user/${avatarPath}` : "/profile.png");
+      }
     }
   }, [userData, provinces]);
 
@@ -298,10 +322,11 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         return;
       }
 
-      setFormData(prev => ({ ...prev, pic: file }));
+      // แสดง preview รูปภาพทันที แต่ยังไม่อัพโหลด
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
+      reader.onload = (e) => {
+        setPreviewImage(e.target.result);
+        setFormData(prev => ({ ...prev, pic: file })); // เก็บไฟล์ไว้ใน formData
       };
       reader.readAsDataURL(file);
     }
@@ -331,26 +356,77 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     return errors;
   };
 
-  const handlePinSubmit = (e) => {
+  const handlePinSubmit = async (e) => {
     e.preventDefault();
-    if (pin === "1234") {
-      setShowPin(false);
-      setPin("");
-      setPinError("");
-      handleSubmit(); // call the real submit
-    } else {
-      setPinError("PIN ไม่ถูกต้อง");
+    console.log('handlePinSubmit called with pin:', pin);
+
+    if (!currentUser) {
+      console.log('No currentUser found');
+      setPinError("ไม่พบข้อมูลผู้ใช้ปัจจุบัน");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token:', token ? 'exists' : 'missing');
+      console.log('Sending request to verify password...');
+
+      const response = await axios.post('http://localhost:5000/api/users/verify-password',
+        { password: pin },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      console.log('Response:', response.data);
+
+      if (response.data.success) {
+        console.log('Password verified successfully, calling handleSubmit');
+        setShowPin(false);
+        setPin("");
+        setPinError("");
+        handleSubmit(); // call the real submit
+      } else {
+        console.log('Password verification failed');
+        setPinError("รหัสผ่านไม่ถูกต้อง");
+      }
+    } catch (error) {
+      console.error('Error in handlePinSubmit:', error);
+      console.error('Error response:', error.response?.data);
+      setPinError(error.response?.data?.message || "รหัสผ่านไม่ถูกต้อง");
     }
   };
 
   // ปรับ handleSubmit ให้ไม่รับ event ถ้ามาจาก PIN
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
+    console.log('handleSubmit called');
     setIsLoading(true);
     setError(null);
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('ไม่พบ token กรุณา login ใหม่');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      let avatarFilename = typeof formData.pic === 'string' ? formData.pic.replace(/^.*[\\/]/, '') : formData.user_code + '.jpg';
-      if (formData.pic && typeof formData.pic !== 'string') {
+      // ตรวจสอบรูปภาพ - ถ้าเป็น Cloudinary URL ใช้เลย ถ้าเป็น File ให้อัปโหลดก่อน
+      let avatarUrl = formData.pic;
+      console.log('formData.pic type:', typeof formData.pic);
+      console.log('formData.pic:', formData.pic);
+
+      if (formData.pic && typeof formData.pic === 'string' && formData.pic.includes('cloudinary.com')) {
+        // ถ้าเป็น Cloudinary URL ใช้เลย
+        console.log('Using existing Cloudinary URL');
+        avatarUrl = formData.pic;
+      } else if (formData.pic instanceof File) {
+        // ถ้าเป็น File ให้อัปโหลดก่อน
+        console.log('Uploading file to Cloudinary...');
         const formDataImage = new FormData();
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
@@ -362,14 +438,18 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
               'Authorization': `Bearer ${token}`
             }
           });
-          if (uploadResponse.data && uploadResponse.data.filename) {
-            avatarFilename = uploadResponse.data.filename;
+          if (uploadResponse.data && uploadResponse.data.url) {
+            console.log('File uploaded successfully:', uploadResponse.data.url);
+            avatarUrl = uploadResponse.data.url;
           }
         } catch (uploadError) {
+          console.error('Upload error:', uploadError);
           setError(uploadError.response?.data?.message || 'เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ');
           setIsLoading(false);
           return;
         }
+      } else {
+        console.log('Using existing avatar URL or default');
       }
       const updateData = {
         user_id: formData.user_id,
@@ -386,17 +466,24 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         district: formData.district,
         parish: formData.parish,
         postal_no: formData.postal_no,
-        avatar: avatarFilename
+        avatar: avatarUrl
       };
       if (formData.password) {
         updateData.password = formData.password;
       }
+
+      console.log('Update data:', updateData);
+
       const validationErrors = validateForm(updateData);
+      console.log('Validation errors:', validationErrors);
+
       if (Object.keys(validationErrors).length > 0) {
+        console.log('Validation failed');
         setError('กรุณากรอกข้อมูลให้ครบถ้วน');
         setIsLoading(false);
         return;
       }
+      console.log('Sending PATCH request to update user...');
       const response = await axios.patch(
         `http://localhost:5000/api/users/id/${formData.user_id}`,
         updateData,
@@ -407,11 +494,19 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
           }
         }
       );
+
+      console.log('PATCH response:', response.data);
+
       if (response.data?.user) {
+        console.log('Update successful, calling onSave and onClose');
         onSave(response.data.user);
         onClose();
+      } else {
+        console.log('No user data in response');
       }
     } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      console.error('Error response:', error.response?.data);
       setError(error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัพเดทข้อมูล');
     } finally {
       setIsLoading(false);
@@ -451,7 +546,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
             </div>
             <div className="w-36 h-36 rounded-full bg-white shadow-lg flex items-center justify-center relative group overflow-hidden border-4 border-white hover:border-blue-200 transition-all duration-300">
               <img
-                src={previewImage || "/profile.png"}
+                src={previewImage && previewImage.includes('cloudinary.com') ? previewImage : previewImage || "/profile.png"}
                 alt="Profile"
                 className="w-full h-full object-cover rounded-full"
                 onError={e => {

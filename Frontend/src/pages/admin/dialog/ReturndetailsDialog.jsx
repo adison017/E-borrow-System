@@ -7,6 +7,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { MdClose } from "react-icons/md";
 import { useState, useEffect } from "react";
+import DocumentViewer from '../../../components/DocumentViewer';
 
 const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) => {
   const [imageModal, setImageModal] = useState({
@@ -35,6 +36,15 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
   }, [imageModal.isOpen]);
 
   if (!isOpen || !returnItem) return null;
+
+  // Debug: Check important_documents data
+  console.log('ReturndetailsDialog - returnItem:', {
+    borrow_id: returnItem.borrow_id,
+    borrow_code: returnItem.borrow_code,
+    important_documents: returnItem.important_documents ? 'EXISTS' : 'NULL/EMPTY',
+    important_documents_value: returnItem.important_documents,
+    important_documents_type: typeof returnItem.important_documents
+  });
 
 
 
@@ -155,125 +165,127 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                 </div>
               </div>
 
-              {/* Fine and Notes Box - Moved to left column */}
-              {(returnItem.fine_amount > 0 || returnItem.notes) && (
-                <div className={`rounded-xl p-5 space-y-3 ${returnItem.fine_amount > 0 ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200' : 'bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200'}`}>
-                  <div className="flex items-center gap-2">
-                    {returnItem.fine_amount > 0 ? (
-                      <ExclamationTriangleIcon className="h-6 w-6 text-amber-500" />
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                      </svg>
-                    )}
-                    <h3 className={`font-semibold ${returnItem.fine_amount > 0 ? 'text-amber-800' : 'text-gray-800'}`}>
-                      {returnItem.fine_amount > 0 ? 'รายละเอียดค่าปรับ' : 'หมายเหตุ'}
-                    </h3>
-                  </div>
-
-                  {returnItem.fine_amount > 0 && (
-                    <div className="flex items-center justify-between px-4 py-2 bg-white rounded-full border border-amber-100">
-                      <span className="font-medium text-amber-800">จำนวนค่าปรับ</span>
-                      <span className="text-amber-800 font-semibold">{returnItem.fine_amount} บาท</span>
-                    </div>
-                  )}
-
-                  {returnItem.notes && (
-                    <div className="p-3 bg-white rounded-full border border-gray-200">
-                      <p className="text-gray-700 whitespace-pre-line">{returnItem.notes}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* รูปภาพการยืม - ย้ายมาด้านล่างข้อมูลผู้ยืม */}
-              {(returnItem?.signature_image || returnItem?.handover_photo) && (
-                <div className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-xl p-4 shadow-lg border border-emerald-200/50 relative overflow-hidden">
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/20 to-transparent"></div>
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-200/30 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
-
-                  <div className="relative z-10">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg shadow-lg">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-800">รูปภาพการยืม</h3>
-                          <p className="text-xs text-emerald-600 font-medium">หลักฐานการยืมครุภัณฑ์</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
-                        หลักฐาน
-                      </span>
-                    </div>
-
-                    {/* Images Grid - Show directly */}
-                    {(
-                      <div className="relative">
-                        <div className="bg-white rounded-xl p-4 shadow-md border border-emerald-100 hover:shadow-lg transition-all duration-300">
 
 
-                                                      <div className="space-y-3">
-                              {/* ลายเซ็นการยืม */}
-                              {returnItem?.signature_image && (
-                                <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200">
-                                  <div className="flex items-center gap-3">
-                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg shadow-sm">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                      </svg>
-                                    </div>
-                                    <h4 className="font-semibold text-gray-800 text-sm">ลายเซ็นการยืม</h4>
-                                  </div>
-                                  <button
-                                    onClick={() => handleViewImage(returnItem.signature_image, 'ลายเซ็นการยืม')}
-                                    className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
-                                    title="ดูภาพ"
-                                  >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                    </svg>
-                                    ดูภาพ
-                                  </button>
-                                </div>
-                              )}
+               {/* Fine and Notes Box - Moved to left column */}
+               {(returnItem.fine_amount > 0 || returnItem.notes) && (
+                 <div className={`rounded-xl p-5 space-y-3 ${returnItem.fine_amount > 0 ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200' : 'bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200'}`}>
+                   <div className="flex items-center gap-2">
+                     {returnItem.fine_amount > 0 ? (
+                       <ExclamationTriangleIcon className="h-6 w-6 text-amber-500" />
+                     ) : (
+                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                       </svg>
+                     )}
+                     <h3 className={`font-semibold ${returnItem.fine_amount > 0 ? 'text-amber-800' : 'text-gray-800'}`}>
+                       {returnItem.fine_amount > 0 ? 'รายละเอียดค่าปรับ' : 'หมายเหตุ'}
+                     </h3>
+                   </div>
 
-                              {/* รูปถ่ายส่งมอบครุภัณฑ์ */}
-                              {returnItem?.handover_photo && (
-                                <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200">
-                                  <div className="flex items-center gap-3">
-                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg shadow-sm">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      </svg>
-                                    </div>
-                                    <h4 className="font-semibold text-gray-800 text-sm">รูปถ่ายส่งมอบครุภัณฑ์</h4>
-                                  </div>
-                                  <button
-                                    onClick={() => handleViewImage(returnItem.handover_photo, 'รูปถ่ายส่งมอบครุภัณฑ์')}
-                                    className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
-                                    title="ดูภาพ"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                    </svg>
-                                    ดูภาพ
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                   {returnItem.fine_amount > 0 && (
+                     <div className="flex items-center justify-between px-4 py-2 bg-white rounded-full border border-amber-100">
+                       <span className="font-medium text-amber-800">จำนวนค่าปรับ</span>
+                       <span className="text-amber-800 font-semibold">{returnItem.fine_amount} บาท</span>
+                     </div>
+                   )}
+
+                   {returnItem.notes && (
+                     <div className="p-3 bg-white rounded-full border border-gray-200">
+                       <p className="text-gray-700 whitespace-pre-line">{returnItem.notes}</p>
+                     </div>
+                   )}
+                 </div>
+               )}
+
+               {/* รูปภาพการยืม - ย้ายมาด้านล่างข้อมูลผู้ยืม */}
+               {(returnItem?.signature_image || returnItem?.handover_photo) && (
+                 <div className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-xl p-4 shadow-lg border border-emerald-200/50 relative overflow-hidden">
+                   {/* Background Pattern */}
+                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/20 to-transparent"></div>
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-200/30 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
+
+                   <div className="relative z-10">
+                     {/* Header */}
+                     <div className="flex items-center justify-between mb-4">
+                       <div className="flex items-center gap-3">
+                         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg shadow-lg">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                           </svg>
+                         </div>
+                         <div>
+                           <h3 className="text-lg font-bold text-gray-800">รูปภาพการยืม</h3>
+                           <p className="text-xs text-emerald-600 font-medium">หลักฐานการยืมครุภัณฑ์</p>
+                         </div>
+                       </div>
+                       <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                         หลักฐาน
+                       </span>
+                     </div>
+
+                     {/* Images Grid - Show directly */}
+                     {(
+                       <div className="relative">
+                         <div className="bg-white rounded-xl p-4 shadow-md border border-emerald-100 hover:shadow-lg transition-all duration-300">
+
+
+                                                       <div className="space-y-3">
+                               {/* ลายเซ็นการยืม */}
+                               {returnItem?.signature_image && (
+                                 <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200">
+                                   <div className="flex items-center gap-3">
+                                     <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg shadow-sm">
+                                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                       </svg>
+                                     </div>
+                                     <h4 className="font-semibold text-gray-800 text-sm">ลายเซ็นการยืม</h4>
+                                   </div>
+                                   <button
+                                     onClick={() => handleViewImage(returnItem.signature_image, 'ลายเซ็นการยืม')}
+                                     className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
+                                     title="ดูภาพ"
+                                   >
+                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                     </svg>
+                                     ดูภาพ
+                                   </button>
+                                 </div>
+                               )}
+
+                               {/* รูปถ่ายส่งมอบครุภัณฑ์ */}
+                               {returnItem?.handover_photo && (
+                                 <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200">
+                                   <div className="flex items-center gap-3">
+                                     <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg shadow-sm">
+                                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                       </svg>
+                                     </div>
+                                     <h4 className="font-semibold text-gray-800 text-sm">รูปถ่ายส่งมอบครุภัณฑ์</h4>
+                                   </div>
+                                   <button
+                                     onClick={() => handleViewImage(returnItem.handover_photo, 'รูปถ่ายส่งมอบครุภัณฑ์')}
+                                     className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
+                                     title="ดูภาพ"
+                                   >
+                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                     </svg>
+                                     ดูภาพ
+                                   </button>
+                                 </div>
+                               )}
+                             </div>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
             </div>
 
             {/* Left/Main Info (2/3) */}
@@ -357,28 +369,36 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                     <h3 className="font-semibold text-gray-700">ข้อมูลการยืม-คืน</h3>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">วันที่ยืม:</span>
-                      <span className="font-mono text-gray-800 font-medium">
-                        {returnItem.borrow_date ? new Date(returnItem.borrow_date).toLocaleDateString('th-TH') :
-                         returnItem.borrowDate ? new Date(returnItem.borrowDate).toLocaleDateString('th-TH') : '-'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">กำหนดคืน:</span>
-                      <span className="font-mono text-gray-800 font-medium">
-                        {returnItem.due_date ? new Date(returnItem.due_date).toLocaleDateString('th-TH') :
-                         returnItem.dueDate ? new Date(returnItem.dueDate).toLocaleDateString('th-TH') : '-'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">วันที่คืนจริง</span>
-                      <span className="font-medium text-gray-800">
-                        {returnItem.return_date ? new Date(returnItem.return_date).toLocaleString('th-TH') : '-'}
-                      </span>
-                    </div>
-                  </div>
+                                     <div className="space-y-3">
+                     <div className="flex items-center gap-2">
+                       <span className="text-gray-500">วันที่ยืม:</span>
+                       <span className="font-mono text-gray-800 font-medium">
+                         {returnItem.borrow_date ? new Date(returnItem.borrow_date).toLocaleDateString('th-TH') :
+                          returnItem.borrowDate ? new Date(returnItem.borrowDate).toLocaleDateString('th-TH') : '-'}
+                       </span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <span className="text-gray-500">กำหนดคืน:</span>
+                       <span className="font-mono text-gray-800 font-medium">
+                         {returnItem.due_date ? new Date(returnItem.due_date).toLocaleDateString('th-TH') :
+                          returnItem.dueDate ? new Date(returnItem.dueDate).toLocaleDateString('th-TH') : '-'}
+                       </span>
+                     </div>
+                     <div className="flex justify-between items-center">
+                       <span className="text-sm text-gray-600">วันที่คืนจริง</span>
+                       <span className="font-medium text-gray-800">
+                         {returnItem.return_date ? new Date(returnItem.return_date).toLocaleString('th-TH') : '-'}
+                       </span>
+                     </div>
+                   </div>
+
+                   {/* เอกสารสำคัญที่แนบ */}
+                   <div className="mt-4 pt-3 border-t border-gray-200">
+                     <DocumentViewer
+                       documents={returnItem.important_documents || []}
+                       title="เอกสารสำคัญที่แนบ"
+                     />
+                   </div>
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-4 shadow-sm">
@@ -471,6 +491,8 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                     </div>
                   </div>
                 )}
+
+
               </div>
             </div>
           </div>

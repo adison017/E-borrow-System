@@ -41,6 +41,7 @@ export const createReturn = async (req, res) => {
   // DEBUG LOG
   console.log('==== [API] POST /api/returns ====');
   console.log('createReturn req.body:', req.body);
+  console.log('createReturn item_conditions:', req.body.item_conditions);
   const {
     borrow_id,
     return_date,
@@ -98,13 +99,50 @@ export const createReturn = async (req, res) => {
       console.log(`[RETURN] Set borrow_id=${borrow_id} status=completed (pay_status=${pay_status}, paymentMethod=${paymentMethod})`);
       await BorrowModel.updateBorrowStatus(borrow_id, 'completed');
       newStatus = 'completed';
-      // อัปเดตสถานะอุปกรณ์ที่นี่เท่านั้น
+
+      // === เพิ่ม logic ใหม่: ตรวจสอบสภาพครุภัณฑ์และอัปเดตสถานะ ===
       const borrow = await BorrowModel.getBorrowById(borrow_id);
       const equipmentList = borrow && borrow.equipment ? borrow.equipment : [];
-      // ไม่ต้องเช็ค selectedDamage หรือ isMajorDamage อีกต่อไป
-      for (const eq of equipmentList) {
-        await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
-      }
+
+             // ตรวจสอบสภาพครุภัณฑ์แต่ละชิ้น
+       console.log(`[RETURN] Equipment list:`, equipmentList.map(eq => ({ item_id: eq.item_id, item_code: eq.item_code })));
+       console.log(`[RETURN] Item conditions:`, item_conditions);
+
+       for (const eq of equipmentList) {
+         console.log(`[RETURN] Processing equipment: ${eq.item_code} (item_id: ${eq.item_id})`);
+         const itemCondition = item_conditions && item_conditions[eq.item_id];
+         console.log(`[RETURN] Item condition for ${eq.item_code}:`, itemCondition);
+
+         if (itemCondition && itemCondition.damageLevelId) {
+           console.log(`[RETURN] Found damageLevelId: ${itemCondition.damageLevelId} for equipment ${eq.item_code}`);
+           // หา damage level เพื่อดู fine_percent
+           const damageLevel = await DamageLevelModel.getDamageLevelById(itemCondition.damageLevelId);
+
+           if (damageLevel && damageLevel.fine_percent !== null && damageLevel.fine_percent !== undefined) {
+             const conditionPercent = Number(damageLevel.fine_percent);
+             console.log(`[RETURN] Equipment ${eq.item_code} condition percent: ${conditionPercent}%`);
+
+             // หากสภาพครุภัณฑ์มากกว่าหรือเท่ากับ 70% ให้อัปเดตสถานะเป็น 'ชำรุด'
+             if (conditionPercent >= 70) {
+               console.log(`[RETURN] Equipment ${eq.item_code} condition >= 70% (${conditionPercent}%), updating status to 'ชำรุด'`);
+               await EquipmentModel.updateEquipmentStatus(eq.item_code, 'ชำรุด');
+             } else {
+               // สภาพปกติ ให้อัปเดตเป็น 'พร้อมใช้งาน'
+               console.log(`[RETURN] Equipment ${eq.item_code} condition < 70% (${conditionPercent}%), updating status to 'พร้อมใช้งาน'`);
+               await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
+             }
+           } else {
+             // ไม่มีข้อมูล fine_percent ให้ใช้ค่าเริ่มต้น
+             console.log(`[RETURN] Equipment ${eq.item_code} no damage level info, updating status to 'พร้อมใช้งาน'`);
+             await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
+           }
+         } else {
+           // ไม่มีข้อมูลสภาพ ให้ใช้ค่าเริ่มต้น
+           console.log(`[RETURN] Equipment ${eq.item_code} no condition info, updating status to 'พร้อมใช้งาน'`);
+           await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
+         }
+       }
+      // === จบ logic ใหม่ ===
     }
 
     // หลังอัปเดตสถานะ borrow ให้ query count ใหม่แล้ว broadcast
@@ -336,12 +374,74 @@ export const updatePayStatus = async (req, res) => {
     if (ret && ret.borrow_id) {
       console.log(`[PAY] Set borrow_id=${ret.borrow_id} status=completed (pay_status=paid)`);
       await BorrowModel.updateBorrowStatus(ret.borrow_id, 'completed');
-      // 4. อัปเดตสถานะอุปกรณ์ที่นี่ (เหมือนใน createReturn)
+
+      // === เพิ่ม logic ใหม่: ตรวจสอบสภาพครุภัณฑ์และอัปเดตสถานะ ===
       const borrow = await BorrowModel.getBorrowById(ret.borrow_id);
       const equipmentList = borrow && borrow.equipment ? borrow.equipment : [];
-      for (const eq of equipmentList) {
-        await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
+
+      // หา return items เพื่อดูสภาพครุภัณฑ์
+      console.log(`[PAY] Getting return items for return_id: ${return_id}`);
+      const returnItems = await ReturnModel.getReturnItemsByReturnId(return_id);
+      console.log(`[PAY] Return items found:`, returnItems);
+
+      const itemConditionsMap = {};
+
+      // สร้าง map ของ item_id กับ damage level
+      for (const item of returnItems) {
+                 console.log(`[PAY] Processing return item:`, {
+           item_id: item.item_id,
+           damage_level_id: item.damage_level_id,
+           damage_note: item.damage_note,
+           fine_amount: item.fine_amount
+         });
+         itemConditionsMap[item.item_id] = {
+           damageLevelId: item.damage_level_id,
+           note: item.damage_note,
+           fine_amount: item.fine_amount
+         };
       }
+      console.log(`[PAY] Final itemConditionsMap:`, itemConditionsMap);
+
+             // ตรวจสอบสภาพครุภัณฑ์แต่ละชิ้น
+       console.log(`[PAY] Equipment list:`, equipmentList.map(eq => ({ item_id: eq.item_id, item_code: eq.item_code })));
+       console.log(`[PAY] Item conditions map:`, itemConditionsMap);
+
+       for (const eq of equipmentList) {
+         console.log(`[PAY] Processing equipment: ${eq.item_code} (item_id: ${eq.item_id})`);
+         const itemCondition = itemConditionsMap[eq.item_id];
+         console.log(`[PAY] Item condition for ${eq.item_code}:`, itemCondition);
+
+         if (itemCondition && itemCondition.damageLevelId) {
+           console.log(`[PAY] Found damageLevelId: ${itemCondition.damageLevelId} for equipment ${eq.item_code}`);
+           // หา damage level เพื่อดู fine_percent
+           const damageLevel = await DamageLevelModel.getDamageLevelById(itemCondition.damageLevelId);
+
+           if (damageLevel && damageLevel.fine_percent !== null && damageLevel.fine_percent !== undefined) {
+             const conditionPercent = Number(damageLevel.fine_percent);
+             console.log(`[PAY] Equipment ${eq.item_code} condition percent: ${conditionPercent}%`);
+
+             // หากสภาพครุภัณฑ์มากกว่าหรือเท่ากับ 70% ให้อัปเดตสถานะเป็น 'ชำรุด'
+             if (conditionPercent >= 70) {
+               console.log(`[PAY] Equipment ${eq.item_code} condition >= 70% (${conditionPercent}%), updating status to 'ชำรุด'`);
+               await EquipmentModel.updateEquipmentStatus(eq.item_code, 'ชำรุด');
+             } else {
+               // สภาพปกติ ให้อัปเดตเป็น 'พร้อมใช้งาน'
+               console.log(`[PAY] Equipment ${eq.item_code} condition < 70% (${conditionPercent}%), updating status to 'พร้อมใช้งาน'`);
+               await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
+             }
+           } else {
+             // ไม่มีข้อมูล fine_percent ให้ใช้ค่าเริ่มต้น
+             console.log(`[PAY] Equipment ${eq.item_code} no damage level info, updating status to 'พร้อมใช้งาน'`);
+             await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
+           }
+         } else {
+           // ไม่มีข้อมูลสภาพ ให้ใช้ค่าเริ่มต้น
+           console.log(`[PAY] Equipment ${eq.item_code} no condition info, updating status to 'พร้อมใช้งาน'`);
+           await EquipmentModel.updateEquipmentStatus(eq.item_code, 'พร้อมใช้งาน');
+         }
+       }
+      // === จบ logic ใหม่ ===
+
       // หลังอัปเดตสถานะ borrow ให้ query count ใหม่แล้ว broadcast
       const [pending, carry, pendingApproval] = await Promise.all([
         BorrowModel.getBorrowsByStatus(['pending']),
@@ -458,6 +558,7 @@ export const updatePayStatus = async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
+    console.error('[updatePayStatus] error:', err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 };

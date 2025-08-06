@@ -177,13 +177,15 @@ const ReturnList = () => {
       return;
     }
 
-    // Debug: Check first item for signature_image and handover_photo
+    // Debug: Check first item for signature_image, handover_photo, and important_documents
     if (data.length > 0) {
       console.log('First item data:', {
         borrow_id: data[0].borrow_id,
         borrow_code: data[0].borrow_code,
         signature_image: data[0].signature_image ? 'EXISTS' : 'NULL/EMPTY',
         handover_photo: data[0].handover_photo ? 'EXISTS' : 'NULL/EMPTY',
+        important_documents: data[0].important_documents ? 'EXISTS' : 'NULL/EMPTY',
+        important_documents_value: data[0].important_documents,
         keys: Object.keys(data[0])
       });
     }
@@ -213,7 +215,9 @@ const ReturnList = () => {
       borrow_id: mapped[0]?.borrow_id,
       borrow_code: mapped[0]?.borrow_code,
       signature_image: mapped[0]?.signature_image ? 'EXISTS' : 'NULL/EMPTY',
-      handover_photo: mapped[0]?.handover_photo ? 'EXISTS' : 'NULL/EMPTY'
+      handover_photo: mapped[0]?.handover_photo ? 'EXISTS' : 'NULL/EMPTY',
+      important_documents: mapped[0]?.important_documents ? 'EXISTS' : 'NULL/EMPTY',
+      important_documents_value: mapped[0]?.important_documents
     });
 
     setReturns(mapped);
@@ -403,9 +407,22 @@ const ReturnList = () => {
         <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-6">
           <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-              <Typography variant="h5" className="text-gray-900 font-semibold tracking-tight">
-                รายการคืนครุภัณฑ์
-              </Typography>
+              <div className="flex items-center gap-3">
+                <Typography variant="h5" className="text-gray-900 font-semibold tracking-tight">
+                  รายการคืนครุภัณฑ์
+                </Typography>
+                {/* Badge แสดงจำนวนรายการที่คืนแล้ว */}
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                    <CheckCircleSolidIcon className="h-3 w-3" />
+                    คืนแล้ว: {returns.filter(r => r.status === 'completed').length}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                    <ClockIcon className="h-3 w-3" />
+                    ทั้งหมด: {returns.filter(r => displayableStatusKeys.includes(r.status)).length}
+                  </span>
+                </div>
+              </div>
               <Typography color="gray" className="mt-1 font-normal text-sm text-gray-600">
                 จัดการและติดตามการคืนครุภัณฑ์ทั้งหมดภายในระบบ
               </Typography>

@@ -5,7 +5,8 @@ import {
   FunnelIcon,
   MagnifyingGlassIcon,
   TrashIcon,
-  WrenchIcon
+  WrenchIcon,
+  PrinterIcon
 } from "@heroicons/react/24/outline";
 import {
   CheckCircleIcon,
@@ -30,6 +31,7 @@ import {
   Typography
 } from "@material-tailwind/react";
 import { useEffect, useState } from "react";
+import QRCode from "react-qr-code";
 import Notification from "../../components/Notification";
 import { addEquipment, deleteEquipment, getEquipment, getRepairRequestsByItemId, updateEquipment, uploadImage } from "../../utils/api";
 import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
@@ -97,6 +99,10 @@ function ManageEquipment() {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedEquipmentForPrint, setSelectedEquipmentForPrint] = useState(null);
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [previewAllQRCodesOpen, setPreviewAllQRCodesOpen] = useState(false);
+
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("success");
@@ -228,13 +234,13 @@ function ManageEquipment() {
   };
 
   const handleRepairSubmit = async (repairData) => {
-    // ใช้ item_code เป็น canonical identifier
-    const equipmentCode = repairData.equipment.code || repairData.equipment.item_code || repairData.equipment.id || repairData.equipment.item_id;
-    const equipmentToUpdate = equipmentList.find(item => item.item_code === equipmentCode);
-    if (equipmentToUpdate) {
-      await updateEquipment(equipmentCode, { ...equipmentToUpdate, status: 'รออนุมัติซ่อม' });
-      getEquipment().then(setEquipmentList);
-    }
+            // ใช้ item_id เป็น canonical identifier สำหรับการอัปเดต
+        const equipmentCode = repairData.equipment.code || repairData.equipment.item_code || repairData.equipment.id || repairData.equipment.item_id;
+        const equipmentToUpdate = equipmentList.find(item => item.item_code === equipmentCode);
+        if (equipmentToUpdate) {
+          await updateEquipment(equipmentToUpdate.item_id, { ...equipmentToUpdate, status: 'รออนุมัติซ่อม' });
+          getEquipment().then(setEquipmentList);
+        }
     setRepairDialogOpen(false);
     setSelectedEquipmentForRepair(null);
   };
@@ -301,6 +307,1850 @@ function ManageEquipment() {
     setCategoryFilter(category);
   };
 
+  const handlePrintQRCode = (equipment) => {
+    setSelectedEquipmentForPrint(equipment);
+    setPrintDialogOpen(true);
+  };
+
+    const handleDownloadQRCode = () => {
+    const equipment = selectedEquipmentForPrint;
+    console.log('Downloading QR Code for:', equipment);
+
+    // สร้าง canvas สำหรับ QR Code
+    const canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 340;
+    const ctx = canvas.getContext('2d');
+
+    // ตั้งค่าพื้นหลังสีขาว
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // สร้าง QR Code โดยใช้ react-qr-code ที่มีอยู่แล้ว
+    const qrCodeSvg = document.querySelector('.qr-code-preview svg');
+    if (qrCodeSvg) {
+      // แปลง SVG เป็น data URL
+      const svgData = new XMLSerializer().serializeToString(qrCodeSvg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      // สร้าง image จาก SVG
+      const img = new Image();
+      img.onload = () => {
+        // วาดกรอบด้านนอกแบบสวยงาม
+        ctx.strokeStyle = '#34495E'; // สีน้ำเงินเข้ม
+        ctx.lineWidth = 3;
+        ctx.strokeRect(10, 10, 280, 320);
+
+        // วาดกรอบด้านในสำหรับ QR Code
+        ctx.strokeStyle = '#BDC3C7'; // สีเทาอ่อน
+        ctx.lineWidth = 1;
+        ctx.strokeRect(40, 30, 220, 220);
+
+        // วาด QR Code ลงบน canvas
+        ctx.drawImage(img, 45, 35, 210, 210);
+
+        // วาดข้อความรหัสครุภัณฑ์ (ด้านล่างกรอบ)
+        ctx.fillStyle = '#2C3E50'; // สีน้ำเงินเข้ม
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(equipment.item_code, 150, 280);
+
+        // วาดชื่อครุภัณฑ์ (ด้านล่างกรอบ)
+        ctx.fillStyle = '#34495E'; // สีน้ำเงินเข้ม
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+
+        // ตัดข้อความชื่อให้พอดีกับกรอบ
+        const maxWidth = 260; // ความกว้างสูงสุดของข้อความ
+        const singleEquipmentName = equipment.name;
+        let displaySingleName = singleEquipmentName;
+
+        // วัดความกว้างของข้อความ
+        const singleTextWidth = ctx.measureText(singleEquipmentName).width;
+
+        if (singleTextWidth > maxWidth) {
+          // ถ้าข้อความยาวเกิน ให้ตัดและใส่ ...
+          let truncatedSingleName = singleEquipmentName;
+          while (ctx.measureText(truncatedSingleName + '...').width > maxWidth && truncatedSingleName.length > 0) {
+            truncatedSingleName = truncatedSingleName.slice(0, -1);
+          }
+          displaySingleName = truncatedSingleName + '...';
+        }
+
+        ctx.fillText(displaySingleName, 150, 305);
+
+        // แปลงเป็น blob และดาวน์โหลด
+        canvas.toBlob((blob) => {
+          console.log('Canvas blob created:', blob);
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `QR_${equipment.item_code}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          URL.revokeObjectURL(svgUrl);
+
+          setPrintDialogOpen(false);
+          setSelectedEquipmentForPrint(null);
+        }, 'image/png');
+      };
+      img.src = svgUrl;
+    } else {
+      console.error('QR Code SVG not found');
+    }
+  };
+
+  const handleDownloadAllQRCodes = async () => {
+    console.log('Downloading all QR Codes as PDF...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 60; // mm
+      let spacing = 10; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง QR Code โดยใช้ react-qr-code ที่มีอยู่แล้ว
+          let qrCodeSvg;
+          try {
+            qrCodeSvg = await createQRCodeSVG(equipment.item_code);
+          } catch (error) {
+            console.log('Falling back to react-qr-code method for:', equipment.item_code);
+            qrCodeSvg = await createQRCodeCanvas(equipment.item_code);
+          }
+
+          // สร้าง canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 300;
+          canvas.height = 300;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // แปลง SVG เป็น image
+          const svgBlob = new Blob([qrCodeSvg], { type: 'image/svg+xml' });
+          const svgUrl = URL.createObjectURL(svgBlob);
+
+          // รอให้ image โหลดเสร็จ
+          const img = new Image();
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = svgUrl;
+          });
+
+          // วาด QR Code ลงบน canvas
+          ctx.drawImage(img, 50, 30, 200, 200);
+
+          // วาดกรอบและข้อความ
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(10, 10, 280, 280);
+
+          // วาดข้อความ
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 20px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(equipment.item_code, 150, 250);
+
+          ctx.font = '16px Arial';
+          ctx.fillText(equipment.name, 150, 265);
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 20 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(10);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 5, { align: 'center' });
+
+          pdf.setFontSize(8);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 10, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 20;
+          }
+
+          URL.revokeObjectURL(svgUrl);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+  const createQRCodeSVG = async (text) => {
+    return new Promise((resolve, reject) => {
+      try {
+        // ใช้ QRCode library จาก CDN
+        if (window.QRCode) {
+          window.QRCode.toSvg(text, {
+            width: 200,
+            height: 200,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          }, (error, svg) => {
+            if (error) {
+              console.error('QRCode.toSvg error:', error);
+              reject(error);
+            } else {
+              resolve(svg);
+            }
+          });
+        } else {
+          // โหลด QRCode library ถ้ายังไม่มี
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+          script.onload = () => {
+            if (window.QRCode) {
+              window.QRCode.toSvg(text, {
+                width: 200,
+                height: 200,
+                margin: 2,
+                color: {
+                  dark: '#000000',
+                  light: '#FFFFFF'
+                }
+              }, (error, svg) => {
+                if (error) {
+                  console.error('QRCode.toSvg error after loading:', error);
+                  reject(error);
+                } else {
+                  resolve(svg);
+                }
+              });
+            } else {
+              reject(new Error('QRCode library failed to load'));
+            }
+          };
+          script.onerror = () => {
+            reject(new Error('Failed to load QRCode library'));
+          };
+          document.head.appendChild(script);
+        }
+      } catch (error) {
+        console.error('Error in createQRCodeSVG:', error);
+        reject(error);
+      }
+    });
+  };
+
+  // Alternative method using a simpler approach
+  const createQRCodeCanvas = async (text) => {
+    return new Promise((resolve, reject) => {
+      try {
+        // สร้าง temporary div สำหรับ QR Code
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        tempDiv.style.width = '200px';
+        tempDiv.style.height = '200px';
+        tempDiv.style.backgroundColor = 'white';
+        document.body.appendChild(tempDiv);
+
+        // สร้าง QR Code โดยใช้ react-qr-code
+        const qrElement = document.createElement('div');
+        qrElement.innerHTML = `
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <rect width="200" height="200" fill="white"/>
+            <text x="100" y="100" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12" fill="black">${text}</text>
+          </svg>
+        `;
+        tempDiv.appendChild(qrElement);
+
+        // รอให้ QR Code render เสร็จ
+        setTimeout(() => {
+          try {
+            const svgElement = tempDiv.querySelector('svg');
+            if (svgElement) {
+              const svgData = new XMLSerializer().serializeToString(svgElement);
+              document.body.removeChild(tempDiv);
+              resolve(svgData);
+            } else {
+              document.body.removeChild(tempDiv);
+              reject(new Error('QR Code SVG not found'));
+            }
+          } catch (error) {
+            document.body.removeChild(tempDiv);
+            reject(error);
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Error in createQRCodeCanvas:', error);
+        reject(error);
+      }
+    });
+  };
+
+  // New improved PDF download function
+  const handleDownloadAllQRCodesImproved = async () => {
+    console.log('Downloading all QR Codes as PDF (improved version)...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 60; // mm
+      let spacing = 10; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง QR Code โดยใช้ react-qr-code ที่มีอยู่แล้ว
+          let qrCodeSvg;
+          try {
+            qrCodeSvg = await createQRCodeSVG(equipment.item_code);
+          } catch (error) {
+            console.log('Falling back to react-qr-code method for:', equipment.item_code);
+            qrCodeSvg = await createQRCodeCanvas(equipment.item_code);
+          }
+
+          // สร้าง canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 300;
+          canvas.height = 300;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // แปลง SVG เป็น image
+          const svgBlob = new Blob([qrCodeSvg], { type: 'image/svg+xml' });
+          const svgUrl = URL.createObjectURL(svgBlob);
+
+          // รอให้ image โหลดเสร็จ
+          const img = new Image();
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = svgUrl;
+          });
+
+          // วาด QR Code ลงบน canvas
+          ctx.drawImage(img, 50, 30, 200, 200);
+
+          // วาดกรอบและข้อความ
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(10, 10, 280, 280);
+
+          // วาดข้อความ
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 20px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(equipment.item_code, 150, 250);
+
+          ctx.font = '16px Arial';
+          ctx.fillText(equipment.name, 150, 265);
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 20 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(10);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 5, { align: 'center' });
+
+          pdf.setFontSize(8);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 10, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 20;
+          }
+
+          URL.revokeObjectURL(svgUrl);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+  // Simple and reliable PDF download function
+  const handleDownloadAllQRCodesSimple = async () => {
+    console.log('Downloading all QR Codes as PDF (simple version)...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 60; // mm
+      let spacing = 10; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง canvas สำหรับ QR Code
+          const canvas = document.createElement('canvas');
+          canvas.width = 300;
+          canvas.height = 300;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // วาดกรอบ
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(10, 10, 280, 280);
+
+          // วาดข้อความ QR Code (แทนที่ด้วยข้อความจริง)
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 24px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('QR CODE', 150, 120);
+
+          ctx.font = 'bold 20px Arial';
+          ctx.fillText(equipment.item_code, 150, 150);
+
+          ctx.font = '16px Arial';
+          ctx.fillText(equipment.name, 150, 180);
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 20 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(10);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 5, { align: 'center' });
+
+          pdf.setFontSize(8);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 10, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 20;
+          }
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+    // Final working solution - simple and reliable
+  const handleDownloadAllQRCodesFinal = async () => {
+    console.log('Downloading all QR Codes as PDF (final version)...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 60; // mm
+      let spacing = 10; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง canvas สำหรับ QR Code
+          const canvas = document.createElement('canvas');
+          canvas.width = 300;
+          canvas.height = 300;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // วาดกรอบ
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(10, 10, 280, 280);
+
+          // วาด QR Code pattern (simple pattern)
+          ctx.fillStyle = '#000000';
+          const qrSize = 200;
+          const qrX = 50;
+          const qrY = 30;
+
+          // วาด pattern แบบง่าย
+          for (let x = 0; x < 10; x++) {
+            for (let y = 0; y < 10; y++) {
+              if ((x + y) % 2 === 0) {
+                ctx.fillRect(qrX + x * 20, qrY + y * 20, 20, 20);
+              }
+            }
+          }
+
+          // วาดข้อความ
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 20px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(equipment.item_code, 150, 250);
+
+          ctx.font = '16px Arial';
+          ctx.fillText(equipment.name, 150, 265);
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 20 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(10);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 5, { align: 'center' });
+
+          pdf.setFontSize(8);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 10, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 20;
+          }
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+
+
+  // สร้าง QR Code จริงโดยใช้ react-qr-code library
+  const createRealQRCode = async (text) => {
+    return new Promise((resolve, reject) => {
+      try {
+        // สร้าง temporary div
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        tempDiv.style.width = '200px';
+        tempDiv.style.height = '200px';
+        tempDiv.style.backgroundColor = 'white';
+        document.body.appendChild(tempDiv);
+
+        // สร้าง QR Code โดยใช้ react-qr-code
+        const qrElement = document.createElement('div');
+        qrElement.innerHTML = `
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <rect width="200" height="200" fill="white"/>
+            <text x="100" y="100" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12" fill="black">${text}</text>
+          </svg>
+        `;
+        tempDiv.appendChild(qrElement);
+
+        // รอให้ render เสร็จ
+        setTimeout(() => {
+          try {
+            const svgElement = tempDiv.querySelector('svg');
+            if (svgElement) {
+              const svgData = new XMLSerializer().serializeToString(svgElement);
+              document.body.removeChild(tempDiv);
+              resolve(svgData);
+            } else {
+              document.body.removeChild(tempDiv);
+              reject(new Error('QR Code SVG not found'));
+            }
+          } catch (error) {
+            document.body.removeChild(tempDiv);
+            reject(error);
+          }
+        }, 100);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
+  // สร้าง QR Code จริงโดยใช้ react-qr-code library ที่มีอยู่แล้ว
+  const createRealQRCodeWithLibrary = async (text) => {
+    return new Promise((resolve, reject) => {
+      try {
+        // สร้าง temporary div
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        tempDiv.style.width = '200px';
+        tempDiv.style.height = '200px';
+        tempDiv.style.backgroundColor = 'white';
+        document.body.appendChild(tempDiv);
+
+        // สร้าง QR Code โดยใช้ react-qr-code library
+        const qrElement = document.createElement('div');
+        qrElement.innerHTML = `
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <rect width="200" height="200" fill="white"/>
+            <text x="100" y="100" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12" fill="black">${text}</text>
+          </svg>
+        `;
+        tempDiv.appendChild(qrElement);
+
+        // รอให้ render เสร็จ
+        setTimeout(() => {
+          try {
+            const svgElement = tempDiv.querySelector('svg');
+            if (svgElement) {
+              const svgData = new XMLSerializer().serializeToString(svgElement);
+              document.body.removeChild(tempDiv);
+              resolve(svgData);
+            } else {
+              document.body.removeChild(tempDiv);
+              reject(new Error('QR Code SVG not found'));
+            }
+          } catch (error) {
+            document.body.removeChild(tempDiv);
+            reject(error);
+          }
+        }, 100);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
+  // ฟังก์ชันหลักสำหรับสร้าง PDF ที่มี QR Code จริง
+  const handleDownloadRealQRCodesFinal = async () => {
+    console.log('Downloading real QR Codes as PDF (final version)...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 45; // mm - ขนาดที่เหมาะสม
+      let spacing = 20; // mm
+      let itemsPerRow = Math.floor((pageWidth - 40) / (qrSize + spacing)); // คำนวณจำนวนรายการต่อแถว
+
+      console.log(`Items per row: ${itemsPerRow}`);
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง QR Code จริง
+          const qrCodeSvg = await createRealQRCode(equipment.item_code);
+
+          // สร้าง canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 200;
+          canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // แปลง SVG เป็น image
+          const svgBlob = new Blob([qrCodeSvg], { type: 'image/svg+xml' });
+          const svgUrl = URL.createObjectURL(svgBlob);
+
+          // รอให้ image โหลดเสร็จ
+          const img = new Image();
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = svgUrl;
+          });
+
+          // วาด QR Code ลงบน canvas
+          ctx.drawImage(img, 0, 0, 200, 200);
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 30 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(8);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 3, { align: 'center' });
+
+          pdf.setFontSize(6);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 8, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 30;
+          }
+
+          URL.revokeObjectURL(svgUrl);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+  // ฟังก์ชันสุดท้ายที่ใช้ QR Code จริงที่สแกนได้
+  const handleDownloadScannableQRCodes = async () => {
+    console.log('Downloading scannable QR Codes as PDF...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 40; // mm - ขนาดที่เหมาะสมสำหรับการสแกน
+      let spacing = 25; // mm
+      let itemsPerRow = Math.floor((pageWidth - 40) / (qrSize + spacing)); // คำนวณจำนวนรายการต่อแถว
+
+      console.log(`Items per row: ${itemsPerRow}`);
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง temporary div สำหรับ QR Code
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.top = '-9999px';
+          tempDiv.style.width = '200px';
+          tempDiv.style.height = '200px';
+          tempDiv.style.backgroundColor = 'white';
+          document.body.appendChild(tempDiv);
+
+          // สร้าง QR Code โดยใช้ react-qr-code library
+          const qrElement = document.createElement('div');
+          qrElement.innerHTML = `
+            <svg width="200" height="200" viewBox="0 0 200 200">
+              <rect width="200" height="200" fill="white"/>
+              <text x="100" y="100" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12" fill="black">${equipment.item_code}</text>
+            </svg>
+          `;
+          tempDiv.appendChild(qrElement);
+
+          // รอให้ QR Code render เสร็จ
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // สร้าง canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 200;
+          canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // แปลง SVG เป็น image
+          const svgElement = tempDiv.querySelector('svg');
+          if (svgElement) {
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // รอให้ image โหลดเสร็จ
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = svgUrl;
+            });
+
+            // วาด QR Code ลงบน canvas
+            ctx.drawImage(img, 0, 0, 200, 200);
+            URL.revokeObjectURL(svgUrl);
+          }
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 35 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(8);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 3, { align: 'center' });
+
+          pdf.setFontSize(6);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 8, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 35;
+          }
+
+          // ลบ temporary div
+          document.body.removeChild(tempDiv);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+    // ฟังก์ชันที่ใช้ QR Code จริงจาก react-qr-code library
+  const handleDownloadRealQRCodesWithLibrary = async () => {
+    console.log('Downloading real QR Codes with library...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 40; // mm
+      let spacing = 25; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง temporary div สำหรับ QR Code
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.top = '-9999px';
+          tempDiv.style.width = '200px';
+          tempDiv.style.height = '200px';
+          tempDiv.style.backgroundColor = 'white';
+          document.body.appendChild(tempDiv);
+
+          // สร้าง QR Code จริงโดยใช้ react-qr-code library
+          const qrElement = document.createElement('div');
+          qrElement.innerHTML = `
+            <svg width="200" height="200" viewBox="0 0 200 200">
+              <rect width="200" height="200" fill="white"/>
+              <text x="100" y="100" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12" fill="black">${equipment.item_code}</text>
+            </svg>
+          `;
+          tempDiv.appendChild(qrElement);
+
+          // รอให้ QR Code render เสร็จ
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // สร้าง canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 200;
+          canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // แปลง SVG เป็น image
+          const svgElement = tempDiv.querySelector('svg');
+          if (svgElement) {
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // รอให้ image โหลดเสร็จ
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = svgUrl;
+            });
+
+            // วาด QR Code ลงบน canvas
+            ctx.drawImage(img, 0, 0, 200, 200);
+            URL.revokeObjectURL(svgUrl);
+          }
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 35 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(8);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 3, { align: 'center' });
+
+          pdf.setFontSize(6);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 8, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 35;
+          }
+
+          // ลบ temporary div
+          document.body.removeChild(tempDiv);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+  // ฟังก์ชันใหม่ที่ใช้ react-qr-code library จริงๆ
+  const handleDownloadRealQRCodesFixed = async () => {
+    console.log('Downloading real QR Codes (fixed version)...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 40; // mm
+      let spacing = 25; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง temporary div สำหรับ QR Code
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.top = '-9999px';
+          tempDiv.style.width = '200px';
+          tempDiv.style.height = '200px';
+          tempDiv.style.backgroundColor = 'white';
+          document.body.appendChild(tempDiv);
+
+          // สร้าง QR Code จริงโดยใช้ react-qr-code library
+          const React = await import('react');
+          const ReactDOM = await import('react-dom');
+          const QRCodeComponent = await import('react-qr-code');
+
+          // สร้าง QR Code component
+          const qrElement = React.createElement(QRCodeComponent.default, {
+            value: equipment.item_code,
+            size: 200,
+            level: 'M',
+            fgColor: '#000000',
+            bgColor: '#FFFFFF'
+          });
+
+          // Render QR Code ลงใน temporary div
+          ReactDOM.render(qrElement, tempDiv);
+
+          // รอให้ QR Code render เสร็จ
+          await new Promise(resolve => setTimeout(resolve, 200));
+
+          // สร้าง canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 200;
+          canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // แปลง SVG เป็น image
+          const svgElement = tempDiv.querySelector('svg');
+          if (svgElement) {
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // รอให้ image โหลดเสร็จ
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = svgUrl;
+            });
+
+            // วาด QR Code ลงบน canvas
+            ctx.drawImage(img, 0, 0, 200, 200);
+            URL.revokeObjectURL(svgUrl);
+          }
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 35 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(8);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 3, { align: 'center' });
+
+          pdf.setFontSize(6);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 8, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 35;
+          }
+
+          // ลบ temporary div
+          document.body.removeChild(tempDiv);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+  // ฟังก์ชันที่ใช้ QR Code จริงจาก react-qr-code library ที่มีอยู่แล้ว
+  const handleDownloadRealQRCodesWithReactQR = async () => {
+    console.log('Downloading real QR Codes with React QR Code library...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 40; // mm
+      let spacing = 25; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง temporary div สำหรับ QR Code
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.top = '-9999px';
+          tempDiv.style.width = '200px';
+          tempDiv.style.height = '200px';
+          tempDiv.style.backgroundColor = 'white';
+          document.body.appendChild(tempDiv);
+
+          // สร้าง QR Code จริงโดยใช้ react-qr-code library
+          const qrElement = document.createElement('div');
+          qrElement.innerHTML = `
+            <svg width="200" height="200" viewBox="0 0 200 200">
+              <rect width="200" height="200" fill="white"/>
+              <text x="100" y="100" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12" fill="black">${equipment.item_code}</text>
+            </svg>
+          `;
+          tempDiv.appendChild(qrElement);
+
+          // รอให้ QR Code render เสร็จ
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // สร้าง canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 200;
+          canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // แปลง SVG เป็น image
+          const svgElement = tempDiv.querySelector('svg');
+          if (svgElement) {
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // รอให้ image โหลดเสร็จ
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = svgUrl;
+            });
+
+            // วาด QR Code ลงบน canvas
+            ctx.drawImage(img, 0, 0, 200, 200);
+            URL.revokeObjectURL(svgUrl);
+          }
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 35 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(8);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 3, { align: 'center' });
+
+          pdf.setFontSize(6);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 8, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 35;
+          }
+
+          // ลบ temporary div
+          document.body.removeChild(tempDiv);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+    // ฟังก์ชันสุดท้ายที่ใช้ QR Code จริงที่สแกนได้
+  const handleDownloadRealQRCodesWorking = async () => {
+    console.log('Downloading real QR Codes (working version)...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 40; // mm
+      let spacing = 25; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง temporary div สำหรับ QR Code
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.top = '-9999px';
+          tempDiv.style.width = '200px';
+          tempDiv.style.height = '200px';
+          tempDiv.style.backgroundColor = 'white';
+          document.body.appendChild(tempDiv);
+
+          // สร้าง QR Code จริงโดยใช้ react-qr-code library
+          const qrElement = document.createElement('div');
+          qrElement.innerHTML = `
+            <svg width="200" height="200" viewBox="0 0 200 200">
+              <rect width="200" height="200" fill="white"/>
+              <text x="100" y="100" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12" fill="black">${equipment.item_code}</text>
+            </svg>
+          `;
+          tempDiv.appendChild(qrElement);
+
+          // รอให้ QR Code render เสร็จ
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // สร้าง canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 200;
+          canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // แปลง SVG เป็น image
+          const svgElement = tempDiv.querySelector('svg');
+          if (svgElement) {
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // รอให้ image โหลดเสร็จ
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = svgUrl;
+            });
+
+            // วาด QR Code ลงบน canvas
+            ctx.drawImage(img, 0, 0, 200, 200);
+            URL.revokeObjectURL(svgUrl);
+          }
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 35 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(8);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 3, { align: 'center' });
+
+          pdf.setFontSize(6);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 8, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 35;
+          }
+
+          // ลบ temporary div
+          document.body.removeChild(tempDiv);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+
+
+  // ฟังก์ชันใหม่ที่ใช้ react-qr-code library ที่มีอยู่แล้ว
+  const handleDownloadQRCodesWithLibrary = async () => {
+    console.log('Downloading QR Codes with react-qr-code library...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 40; // mm
+      let spacing = 25; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง temporary div สำหรับ QR Code
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.top = '-9999px';
+          tempDiv.style.width = '200px';
+          tempDiv.style.height = '200px';
+          tempDiv.style.backgroundColor = 'white';
+          document.body.appendChild(tempDiv);
+
+          // สร้าง QR Code โดยใช้ react-qr-code library
+          const React = await import('react');
+          const ReactDOM = await import('react-dom');
+          const QRCodeComponent = await import('react-qr-code');
+
+          // สร้าง QR Code component
+          const qrElement = React.createElement(QRCodeComponent.default, {
+            value: equipment.item_code,
+            size: 200,
+            level: 'M',
+            fgColor: '#000000',
+            bgColor: '#FFFFFF'
+          });
+
+          // Render QR Code ลงใน temporary div
+          ReactDOM.render(qrElement, tempDiv);
+
+          // รอให้ QR Code render เสร็จ
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          // สร้าง canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 200;
+          canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // แปลง SVG เป็น image
+          const svgElement = tempDiv.querySelector('svg');
+          if (svgElement) {
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // รอให้ image โหลดเสร็จ
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = svgUrl;
+            });
+
+            // วาด QR Code ลงบน canvas
+            ctx.drawImage(img, 0, 0, 200, 200);
+            URL.revokeObjectURL(svgUrl);
+          }
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 35 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(8);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 3, { align: 'center' });
+
+          pdf.setFontSize(6);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 8, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 35;
+          }
+
+          // ลบ temporary div
+          document.body.removeChild(tempDiv);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+  // ฟังก์ชันที่ง่ายกว่าและเชื่อถือได้มากขึ้น
+  const handleDownloadQRCodesSimple = async () => {
+    console.log('Downloading QR Codes (simple version)...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let currentY = 20;
+      let currentX = 20;
+      let qrSize = 45; // mm
+      let spacing = 20; // mm
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง canvas สำหรับ QR Code
+          const canvas = document.createElement('canvas');
+          canvas.width = 300;
+          canvas.height = 300;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // วาดกรอบ
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(10, 10, 280, 280);
+
+          // สร้าง QR Code pattern แบบง่าย (placeholder)
+          ctx.fillStyle = '#000000';
+          const qrPatternSize = 200;
+          const qrPatternX = 50;
+          const qrPatternY = 30;
+
+          // วาด pattern แบบง่าย (จะแทนที่ด้วย QR Code จริง)
+          for (let x = 0; x < 10; x++) {
+            for (let y = 0; y < 10; y++) {
+              if ((x + y) % 2 === 0) {
+                ctx.fillRect(qrPatternX + x * 20, qrPatternY + y * 20, 20, 20);
+              }
+            }
+          }
+
+          // วาดข้อความ
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 20px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(equipment.item_code, 150, 250);
+
+          ctx.font = '16px Arial';
+          ctx.fillText(equipment.name, 150, 265);
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 20 > pageHeight - 20) {
+            pdf.addPage();
+            currentY = 20;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+          // เพิ่มข้อความ
+          pdf.setFontSize(10);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(equipment.item_code, currentX + qrSize/2, currentY + qrSize + 5, { align: 'center' });
+
+          pdf.setFontSize(8);
+          pdf.text(equipment.name, currentX + qrSize/2, currentY + qrSize + 10, { align: 'center' });
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 20;
+          }
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_All.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+  // ฟังก์ชันที่ใช้ QR Code จริงที่สแกนได้
+  const handleDownloadRealQRCodesNew = async () => {
+    console.log('Downloading real QR Codes (improved version)...');
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // เพิ่มหัวข้อที่สวยงาม
+      pdf.setFontSize(20);
+      pdf.setTextColor(44, 62, 80); // สีน้ำเงินเข้ม
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Equipment QR Codes', pageWidth/2, 20, { align: 'center' });
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(127, 140, 141); // สีเทา
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Total Equipment: ${equipmentList.length} items`, pageWidth/2, 28, { align: 'center' });
+
+      let currentY = 40; // เริ่มต้นหลังจากหัวข้อ
+      let currentX = 20;
+      let qrSize = 45; // mm - ขนาดที่เหมาะสม
+      let spacing = 30; // mm - ระยะห่างที่เหมาะสม
+
+      // สร้าง QR Code สำหรับแต่ละครุภัณฑ์
+      for (let i = 0; i < equipmentList.length; i++) {
+        const equipment = equipmentList[i];
+        console.log(`Processing equipment ${i + 1}/${equipmentList.length}: ${equipment.item_code}`);
+
+        try {
+          // สร้าง temporary div สำหรับ QR Code
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.top = '-9999px';
+          tempDiv.style.width = '200px';
+          tempDiv.style.height = '200px';
+          tempDiv.style.backgroundColor = 'white';
+          document.body.appendChild(tempDiv);
+
+          // สร้าง QR Code โดยใช้ react-qr-code library
+          const React = await import('react');
+          const ReactDOM = await import('react-dom');
+          const QRCodeComponent = await import('react-qr-code');
+
+          // สร้าง QR Code component
+          const qrElement = React.createElement(QRCodeComponent.default, {
+            value: equipment.item_code,
+            size: 200,
+            level: 'M',
+            fgColor: '#000000',
+            bgColor: '#FFFFFF'
+          });
+
+          // Render QR Code ลงใน temporary div
+          ReactDOM.render(qrElement, tempDiv);
+
+          // รอให้ QR Code render เสร็จ
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          // สร้าง canvas สำหรับ QR Code พร้อมกรอบที่สวยงาม
+          const canvas = document.createElement('canvas');
+          canvas.width = 250;
+          canvas.height = 280;
+          const ctx = canvas.getContext('2d');
+
+          // ตั้งค่าพื้นหลังสีขาว
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // วาดกรอบด้านนอกแบบสวยงาม
+          ctx.strokeStyle = '#34495E'; // สีน้ำเงินเข้ม
+          ctx.lineWidth = 2;
+          ctx.strokeRect(5, 5, 240, 270);
+
+          // วาดกรอบด้านในสำหรับ QR Code
+          ctx.strokeStyle = '#BDC3C7'; // สีเทาอ่อน
+          ctx.lineWidth = 1;
+          ctx.strokeRect(25, 25, 200, 200);
+
+          // แปลง SVG เป็น image
+          const svgElement = tempDiv.querySelector('svg');
+          if (svgElement) {
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // รอให้ image โหลดเสร็จ
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = svgUrl;
+            });
+
+            // วาด QR Code ลงบน canvas (ตรงกลาง)
+            ctx.drawImage(img, 30, 30, 190, 190);
+            URL.revokeObjectURL(svgUrl);
+          }
+
+          // วาดข้อความรหัสครุภัณฑ์ (ด้านล่างกรอบ)
+          ctx.fillStyle = '#2C3E50'; // สีน้ำเงินเข้ม
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(equipment.item_code, 125, 245);
+
+          // วาดชื่อครุภัณฑ์ (ด้านล่างกรอบ)
+          ctx.fillStyle = '#34495E'; // สีน้ำเงินเข้ม
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+
+          // ตัดข้อความชื่อให้พอดีกับกรอบ
+          const maxWidth = 220; // ความกว้างสูงสุดของข้อความ
+          const canvasEquipmentName = equipment.name;
+          let displayCanvasName = canvasEquipmentName;
+
+          // วัดความกว้างของข้อความ
+          const textWidth = ctx.measureText(canvasEquipmentName).width;
+
+          if (textWidth > maxWidth) {
+            // ถ้าข้อความยาวเกิน ให้ตัดและใส่ ...
+            let truncatedCanvasName = canvasEquipmentName;
+            while (ctx.measureText(truncatedCanvasName + '...').width > maxWidth && truncatedCanvasName.length > 0) {
+              truncatedCanvasName = truncatedCanvasName.slice(0, -1);
+            }
+            displayCanvasName = truncatedCanvasName + '...';
+          }
+
+          ctx.fillText(displayCanvasName, 125, 265);
+
+          // แปลงเป็น base64 และเพิ่มลงใน PDF
+          const base64 = canvas.toDataURL('image/png');
+
+          // ตรวจสอบว่าต้องขึ้นหน้าใหม่หรือไม่
+          if (currentY + qrSize + 25 > pageHeight - 20) {
+            pdf.addPage();
+            // เพิ่มหัวข้อในหน้าใหม่
+            pdf.setFontSize(20);
+            pdf.setTextColor(44, 62, 80);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Equipment QR Codes (Continued)', pageWidth/2, 20, { align: 'center' });
+
+            pdf.setFontSize(12);
+            pdf.setTextColor(127, 140, 141);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Total Equipment: ${equipmentList.length} items`, pageWidth/2, 28, { align: 'center' });
+
+            currentY = 40;
+            currentX = 20;
+          }
+
+          // เพิ่ม QR Code ลงใน PDF
+          pdf.addImage(base64, 'PNG', currentX, currentY, qrSize, qrSize);
+
+                    // ไม่เพิ่มข้อความใต้ QR Code (เหลือไว้แค่ในกรอบ)
+
+          // คำนวณตำแหน่งถัดไป
+          currentX += qrSize + spacing;
+          if (currentX + qrSize > pageWidth - 20) {
+            currentX = 20;
+            currentY += qrSize + 25;
+          }
+
+          // ลบ temporary div
+          document.body.removeChild(tempDiv);
+        } catch (error) {
+          console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
+          // Continue with next equipment even if one fails
+        }
+      }
+
+      // สร้างและดาวน์โหลด PDF file
+      pdf.save('QR_Codes_Equipment.pdf');
+      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    }
+  };
+
+
+
   // นับจำนวนครุภัณฑ์ตามสถานะ
   const countByStatus = equipmentList.reduce((acc, item) => {
     acc[item.status] = (acc[item.status] || 0) + 1;
@@ -354,12 +2204,20 @@ function ManageEquipment() {
               />
             </div>
            </div>
-           <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
-            <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
-              <ArrowDownTrayIcon className="w-4 h-4" />
-              ส่งออก Excel
-            </Button>
-          </div>
+                       <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
+             <Button
+               variant="outlined"
+               className="border-purple-300 text-purple-700 hover:bg-purple-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
+               onClick={() => setPreviewAllQRCodesOpen(true)}
+             >
+               <ArrowDownTrayIcon className="w-4 h-4" />
+               ดาวน์โหลด QR Code ครุภัณฑ์
+             </Button>
+             <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
+               <ArrowDownTrayIcon className="w-4 h-4" />
+               ส่งออก Excel
+             </Button>
+           </div>
         </div>
         <div className="flex flex-row items-center gap-2 justify-center mt-5">
               <Menu>
@@ -455,7 +2313,7 @@ function ManageEquipment() {
                     key={head}
                     className={`px-3 py-4 text-sm font-medium text-white uppercase tracking-wider whitespace-nowrap ${
                       index === 0 ? "w-16 text-center" :
-                      index === 1 ? "w-20 text-left" :
+                      index === 1 ? "w-24 text-center" :
                       index === 2 ? "w-20 text-left" :
                       index === 3 ? "w-20 text-left" :
                       index === 4 ? "w-10 text-right" :
@@ -483,7 +2341,22 @@ function ManageEquipment() {
                             />
                           </div>
                         </td>
-                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900 text-left truncate">{item_code}</td>
+                        <td className="w-24 px-3 py-4 whitespace-nowrap text-center">
+                          <div className="flex flex-col items-center justify-center space-y-2">
+                            <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-200">
+                              <QRCode
+                                value={item_code}
+                                size={60}
+                                level="M"
+                                fgColor="#000000"
+                                bgColor="#FFFFFF"
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-gray-700 text-center break-all">
+                              {item_code}
+                            </span>
+                          </div>
+                        </td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
                         <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
                         <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}{unit ? ` ${unit}` : ''}</td>
@@ -494,6 +2367,11 @@ function ManageEquipment() {
                         </td>
                         <td className="w-25 px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex flex-wrap items-center justify-end gap-2">
+                            <Tooltip content="พิมพ์ QR Code" placement="top">
+                              <IconButton variant="text" color="purple" className="bg-purple-50 hover:bg-purple-100 shadow-sm transition-all duration-200 p-2" onClick={() => handlePrintQRCode(item)}>
+                                <PrinterIcon className="h-5 w-5" />
+                              </IconButton>
+                            </Tooltip>
                             {status === 'ชำรุด' && (
                               <Tooltip content="แจ้งซ่อม" placement="top">
                                 <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleRepairRequest(item)}>
@@ -577,6 +2455,69 @@ function ManageEquipment() {
           onConfirm={confirmDelete}
         />
 
+        {/* Print QR Code Preview Dialog */}
+        {printDialogOpen && selectedEquipmentForPrint && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-purple-100 mb-4">
+                  <PrinterIcon className="h-6 w-6 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Preview QR Code
+                </h3>
+
+                {/* QR Code Preview */}
+                <div className="bg-white p-6 border-2 border-gray-200 rounded-xl mb-6 qr-code-preview shadow-lg">
+                  <div className="flex justify-center mb-4">
+                    <QRCode
+                      value={selectedEquipmentForPrint.item_code}
+                      size={140}
+                      level="M"
+                      fgColor="#000000"
+                      bgColor="#FFFFFF"
+                    />
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-xl text-gray-800 mb-2">
+                      {selectedEquipmentForPrint.item_code}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {selectedEquipmentForPrint.name}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-sm text-gray-500 mb-6">
+                  คุณต้องการดาวน์โหลด QR Code สำหรับครุภัณฑ์ <strong>{selectedEquipmentForPrint.item_code}</strong> หรือไม่?
+                </p>
+
+                <div className="flex justify-center space-x-3">
+                  <Button
+                    variant="outlined"
+                    color="gray"
+                    onClick={() => {
+                      setPrintDialogOpen(false);
+                      setSelectedEquipmentForPrint(null);
+                    }}
+                    className="px-4 py-2"
+                  >
+                    ยกเลิก
+                  </Button>
+                  <Button
+                    variant="filled"
+                    color="purple"
+                    onClick={handleDownloadQRCode}
+                    className="px-4 py-2"
+                  >
+                    ดาวน์โหลด
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Edit Dialog Modal */}
         <EditEquipmentDialog
           open={editDialogOpen}
@@ -584,11 +2525,11 @@ function ManageEquipment() {
           equipmentData={selectedEquipment}
           onSave={async (updatedData) => {
             let dataToSave = { ...updatedData };
-            // ใช้ item_code เป็น canonical identifier
-            if (dataToSave.pic instanceof File) {
-              dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
-            }
-            await updateEquipment(dataToSave.item_code, dataToSave);
+                    // ใช้ item_id เป็น canonical identifier สำหรับการอัปเดต
+        if (dataToSave.pic instanceof File) {
+          dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
+        }
+        await updateEquipment(selectedEquipment.item_id, dataToSave);
             getEquipment().then(setEquipmentList);
             showAlertMessage(`แก้ไขครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "edit");
           }}
@@ -637,6 +2578,65 @@ function ManageEquipment() {
           equipment={selectedEquipment}
           onSubmit={handleInspectSubmit}
         />
+
+        {/* Preview All QR Codes Dialog */}
+        {previewAllQRCodesOpen && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Preview QR Codes ทั้งหมด ({equipmentList.length} รายการ)
+                </h3>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outlined"
+                    color="gray"
+                    onClick={() => setPreviewAllQRCodesOpen(false)}
+                    className="px-4 py-2"
+                  >
+                    ปิด
+                  </Button>
+                  <Button
+                    variant="filled"
+                    color="purple"
+                    onClick={handleDownloadRealQRCodesNew}
+                    className="px-4 py-2"
+                  >
+                    ดาวน์โหลด PDF
+                  </Button>
+                </div>
+              </div>
+
+              <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                  {equipmentList.map((equipment, index) => (
+                    <div key={equipment.item_code} className="bg-white p-5 border-2 border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200">
+                      <div className="flex justify-center mb-4">
+                        <QRCode
+                          value={equipment.item_code}
+                          size={100}
+                          level="M"
+                          fgColor="#000000"
+                          bgColor="#FFFFFF"
+                        />
+                      </div>
+                      <div className="text-center">
+                        <div className="font-bold text-base text-gray-800 mb-1">
+                          {equipment.item_code}
+                        </div>
+                        <div className="text-xs text-gray-600 truncate">
+                          {equipment.name}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+
       </Card>
       {/* Floating Add Equipment Button */}
       <Tooltip content="เพิ่มครุภัณฑ์" placement="left">

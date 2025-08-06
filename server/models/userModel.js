@@ -98,6 +98,7 @@ const User = {
           u.postal_no,
           u.role_id,
           u.line_notify_enabled,
+          u.line_id,
           r.role_name,
           p.position_name,
           b.branch_name,

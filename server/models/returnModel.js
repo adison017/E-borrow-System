@@ -24,6 +24,7 @@ export const getAllReturns = async () => {
   bt.user_id,
   bt.signature_image,
   bt.handover_photo,
+  bt.important_documents,
   ret.pay_status
 FROM borrow_transactions bt
 JOIN users u ON bt.user_id = u.user_id
@@ -62,6 +63,7 @@ LEFT JOIN (
         pay_status: row.pay_status || 'pending',
         signature_image: row.signature_image,
         handover_photo: row.handover_photo,
+        important_documents: row.important_documents ? JSON.parse(row.important_documents) : [],
       };
     }
     grouped[row.borrow_id].equipment.push({
@@ -98,6 +100,9 @@ export const getAllReturns_pay = async (user_id = null) => {
     bt.status,
     bt.purpose,
     bt.user_id,
+    bt.signature_image,
+    bt.handover_photo,
+    bt.important_documents,
     ret.pay_status,
     ret.damage_fine,
     ret.late_fine,
@@ -165,6 +170,9 @@ export const getAllReturns_pay = async (user_id = null) => {
         late_days: row.late_days,
         return_date: row.return_date_real,
         payment_method: row.payment_method,
+        signature_image: row.signature_image,
+        handover_photo: row.handover_photo,
+        important_documents: row.important_documents ? JSON.parse(row.important_documents) : [],
       };
     }
     // เพิ่มข้อมูลสภาพครุภัณฑ์จาก return_items
