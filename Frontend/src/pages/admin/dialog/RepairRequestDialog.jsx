@@ -31,6 +31,8 @@ export default function RepairRequestDialog({
     type: 'success'
   });
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [globalUserData, setGlobalUserData] = useState(null);
+  const [isLoadingUserData, setIsLoadingUserData] = useState(false);
 
   // Function to generate random repair code
   const generateRepairCode = () => {
@@ -38,17 +40,69 @@ export default function RepairRequestDialog({
     return `RP-${randomNum}`;
   };
 
-  // Get requester info from localStorage
-  const userStr = localStorage.getItem('user');
-  let globalUserData = null;
-  if (userStr) {
+  // Function to fetch user data from API
+  const fetchUserData = async () => {
+    setIsLoadingUserData(true);
     try {
-      globalUserData = JSON.parse(userStr);
-    } catch (e) {}
-  }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
+
+      const response = await axios.get('http://localhost:5000/api/users/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('=== Debug: User Data from API ===');
+      console.log('API Response:', response.data);
+      console.log('User data:', response.data.user);
+      console.log('branch_name:', response.data.user?.branch_name);
+      console.log('position_name:', response.data.user?.position_name);
+
+      setGlobalUserData(response.data.user);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      // Fallback to localStorage if API fails
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const userData = JSON.parse(userStr);
+          setGlobalUserData(userData);
+          console.log('Fallback to localStorage data:', userData);
+        } catch (e) {
+          console.error('Error parsing localStorage data:', e);
+        }
+      }
+    } finally {
+      setIsLoadingUserData(false);
+    }
+  };
+
+  // Fetch user data when component mounts or dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchUserData();
+    }
+  }, [open]);
+
+  // Debug log เพื่อตรวจสอบข้อมูลผู้ใช้
+  console.log('=== Debug: User Data State ===');
+  console.log('globalUserData:', globalUserData);
+  console.log('branch_name:', globalUserData?.branch_name);
+  console.log('position_name:', globalUserData?.position_name);
+  console.log('branch_id:', globalUserData?.branch_id);
+  console.log('position_id:', globalUserData?.position_id);
+  console.log('user_id:', globalUserData?.user_id);
+  console.log('username:', globalUserData?.username);
+  console.log('Fullname:', globalUserData?.Fullname);
+
   const requesterInfo = {
     name: globalUserData?.Fullname || 'ไม่ระบุชื่อ',
-    department: globalUserData?.branch_name || 'ไม่ระบุแผนก'
+    department: globalUserData?.branch_name || 'ไม่ระบุแผนก',
+    position: globalUserData?.position_name || 'ไม่ระบุตำแหน่ง'
   };
   const requestDate = new Date().toISOString().split('T')[0];
   const equipmentCategory = 'อุปกรณ์ทั่วไป'; // Hardcoded category
@@ -371,15 +425,21 @@ export default function RepairRequestDialog({
                 <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                   <FaUser className="text-xl" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h4 className="font-medium text-blue-600">ผู้แจ้งซ่อม</h4>
-                  <p className="text-sm font-semibold mt-1">
+                  <p className="text-sm font-semibold mt-1 text-gray-800">
                     {requesterInfo.name}
                   </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {requesterInfo.department}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1 flex items-center">
+                                     <div className="mt-2 flex items-center gap-2">
+                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                       {requesterInfo.department}
+                     </span>
+                     <span className="text-xs text-gray-400">•</span>
+                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                       {requesterInfo.position}
+                     </span>
+                   </div>
+                  <p className="text-xs text-gray-500 mt-2 flex items-center">
                     <BsFillCalendarDateFill className="mr-1 mt-1" /> วันที่แจ้ง: {requestDate}
                   </p>
                 </div>

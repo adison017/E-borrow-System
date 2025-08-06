@@ -64,15 +64,6 @@ const Fine = () => {
     setIsDialogOpen(false);
     setSelectedRequest(null);
     setDialogShouldClose(false);
-    if (shouldShowAlert && selectedRequest && selectedRequest.equipment) {
-      // อัปเดตสถานะครุภัณฑ์หลังชำระเงิน
-      selectedRequest.equipment.forEach(item => {
-        const status = (item.fine_percent >= 70) ? 'ชำรุด' : 'พร้อมใช้งาน';
-        import('../../utils/api').then(api => {
-          api.updateEquipmentStatus(item.item_code, status);
-        });
-      });
-    }
     if (shouldShowAlert) setShowSuccessAlert(true);
     // รีเฟรช fineList ทันที
     const user_id = globalUserData?.user_id;

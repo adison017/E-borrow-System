@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
 import { updateBorrowStatus } from '../../../utils/api';
+import DocumentViewer from '../../../components/DocumentViewer';
 
 const API_BASE = "http://localhost:5000";
 
@@ -185,6 +186,12 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Important Documents Section */}
+                                <DocumentViewer
+                                    documents={borrow.important_documents}
+                                    title="เอกสารสำคัญที่แนบ"
+                                />
 
 
                             </div>

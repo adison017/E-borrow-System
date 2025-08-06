@@ -331,6 +331,13 @@ const AuthSystem = (props) => {
       });
       setIsLoading(false);
       if (response.data && response.data.token) {
+        // Debug log เพื่อตรวจสอบข้อมูลที่ได้รับจาก backend
+        console.log('=== Debug: Login response from backend ===');
+        console.log('Full response data:', response.data);
+        console.log('User data from response:', response.data.user);
+        console.log('branch_name from response:', response.data.user.branch_name);
+        console.log('position_name from response:', response.data.user.position_name);
+
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         setNotification({
@@ -548,7 +555,7 @@ const AuthSystem = (props) => {
       <div className="relative z-10 w-full max-w-8xl mx-auto">
         <div className="bg-black/20 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden border border-blue-100 transform transition-all duration-700 hover:shadow-blue-200/50 hover:shadow-3xl">
           <div className="flex flex-col lg:flex-row min-h-[600px]">
-            
+
             {/* Left Panel - Branding */}
             <div className="w-full lg:w-2/5 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-8 lg:p-12 flex flex-col justify-center items-center relative overflow-hidden">
               {/* Background Pattern */}
@@ -556,7 +563,7 @@ const AuthSystem = (props) => {
                 <div className="absolute top-0 left-0 w-full h-full bg-blue-800 transform rotate-12 scale-150"></div>
                 <div className="absolute top-0 left-0 w-full h-full bg-indigo-800 transform -rotate-12 scale-150"></div>
               </div>
-              
+
               {/* Content */}
               <div className="relative z-10 text-center animate-fade-in-up">
                 {/* Logo */}
@@ -865,10 +872,10 @@ const AuthSystem = (props) => {
                             <div className="text-red-500 text-xs mt-1 animate-shake">รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน</div>
                           )}
                         </div>
-                        
+
                       </div>
                     )}
-                    
+
                     {forgotStep > 0 && (
                       <div className="flex justify-between pt-4">
                         <button
@@ -967,9 +974,9 @@ const AuthSystem = (props) => {
                             required
                           />
                           <FaLock className="absolute left-5 top-1/2 transform -translate-y-1/2 text-blue-500 text-lg group-hover:text-blue-600 transition-colors duration-300" />
-                          <button 
-                            type="button" 
-                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300 p-1" 
+                          <button
+                            type="button"
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300 p-1"
                             onClick={() => setShowLoginPassword(v => !v)}
                           >
                             {showLoginPassword ? <FaEyeSlash className="text-lg" /> : <FaEye className="text-lg" />}
@@ -987,7 +994,7 @@ const AuthSystem = (props) => {
                         >
                           ลืมรหัสผ่าน?
                         </button>
-                      </div> 
+                      </div>
                     </div>
 
                     {/* Login Button */}
@@ -995,8 +1002,8 @@ const AuthSystem = (props) => {
                       type="submit"
                       disabled={isLoading}
                       className={`w-full h-14 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg transition-all duration-300 transform ${
-                        isLoading 
-                          ? 'opacity-70 cursor-not-allowed' 
+                        isLoading
+                          ? 'opacity-70 cursor-not-allowed'
                           : 'hover:bg-blue-800 hover:shadow-xl hover:scale-105 active:scale-95'
                       } flex items-center justify-center relative overflow-hidden`}
                     >
@@ -1066,24 +1073,24 @@ const AuthSystem = (props) => {
                             <p className="text-sm text-white">กรอกข้อมูลส่วนตัวของคุณ</p>
                           </div>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                           {/* Student/Staff ID */}
                           <div className="group">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสนิสิต/บุคลากร</label>
                             <div className="relative">
-                              <input 
-                                type="text" 
-                                name="idNumber" 
-                                value={registerData.idNumber} 
-                                onChange={handleRegisterChange} 
+                              <input
+                                type="text"
+                                name="idNumber"
+                                value={registerData.idNumber}
+                                onChange={handleRegisterChange}
                                 className={`w-full h-12 pl-12 pr-4 bg-gray-50 border-2 rounded-full focus:outline-none transition-all duration-300 text-gray-800 ${
-                                  validation.idNumber === 'duplicate' 
-                                    ? 'border-red-400 focus:border-red-500 bg-red-50' 
+                                  validation.idNumber === 'duplicate'
+                                    ? 'border-red-400 focus:border-red-500 bg-red-50'
                                     : 'border-gray-200 focus:border-blue-500 focus:bg-white group-hover:border-blue-300'
                                 }`}
-                                placeholder="เช่น 65011211033" 
-                                required 
+                                placeholder="เช่น 65011211033"
+                                required
                               />
                               <FaIdCard className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
                               {validation.idNumber === 'duplicate' && (
@@ -1096,14 +1103,14 @@ const AuthSystem = (props) => {
                           <div className="group">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">ชื่อ-นามสกุล</label>
                             <div className="relative">
-                              <input 
-                                type="text" 
-                                name="fullName" 
-                                value={registerData.fullName} 
-                                onChange={handleRegisterChange} 
-                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300" 
-                                placeholder="กรอกชื่อ-นามสกุล" 
-                                required 
+                              <input
+                                type="text"
+                                name="fullName"
+                                value={registerData.fullName}
+                                onChange={handleRegisterChange}
+                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300"
+                                placeholder="กรอกชื่อ-นามสกุล"
+                                required
                               />
                               <FaUserAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
                             </div>
@@ -1113,11 +1120,11 @@ const AuthSystem = (props) => {
                           <div className="group">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">ตำแหน่ง</label>
                             <div className="relative">
-                              <select 
-                                name="position" 
-                                value={registerData.position} 
-                                onChange={handleRegisterChange} 
-                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300" 
+                              <select
+                                name="position"
+                                value={registerData.position}
+                                onChange={handleRegisterChange}
+                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300"
                                 required
                               >
                                 <option value="">เลือกตำแหน่ง</option>
@@ -1136,11 +1143,11 @@ const AuthSystem = (props) => {
                           <div className="group">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">สาขา</label>
                             <div className="relative">
-                              <select 
-                                name="department" 
-                                value={registerData.department} 
-                                onChange={handleRegisterChange} 
-                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300" 
+                              <select
+                                name="department"
+                                value={registerData.department}
+                                onChange={handleRegisterChange}
+                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300"
                                 required
                               >
                                 <option value="">เลือกสาขา</option>
@@ -1157,9 +1164,9 @@ const AuthSystem = (props) => {
                         </div>
 
                         <div className="flex justify-end pt-4">
-                          <button 
-                            type="button" 
-                            className="px-8 py-3 bg-gradient-to-r from-blue-800 to-blue-700 text-white font-semibold rounded-full shadow-lg hover:bg-blue-800 hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center" 
+                          <button
+                            type="button"
+                            className="px-8 py-3 bg-gradient-to-r from-blue-800 to-blue-700 text-white font-semibold rounded-full shadow-lg hover:bg-blue-800 hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center"
                             onClick={() => {
                               if (validateRegisterStep(0)) setRegisterStep(1);
                             }}
@@ -1189,17 +1196,17 @@ const AuthSystem = (props) => {
                           <div className="group">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">ชื่อผู้ใช้งาน</label>
                             <div className="relative">
-                              <input 
-                                type="text" 
-                                name="username" 
-                                value={registerData.username} 
-                                readOnly 
+                              <input
+                                type="text"
+                                name="username"
+                                value={registerData.username}
+                                readOnly
                                 tabIndex={-1}
                                 className={`w-full h-12 pl-12 pr-4 bg-gray-100 border-2 border-gray-300 text-gray-600 rounded-full focus:outline-none cursor-not-allowed select-none ${
                                   validation.username === 'duplicate' ? 'border-red-400' : ''
                                 }`}
-                                placeholder="ชื่อผู้ใช้งานจะตรงกับรหัสนิสิต/บุคลากร" 
-                                required 
+                                placeholder="ชื่อผู้ใช้งานจะตรงกับรหัสนิสิต/บุคลากร"
+                                required
                               />
                               <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
                               {validation.username === 'duplicate' && (
@@ -1213,19 +1220,19 @@ const AuthSystem = (props) => {
                             <div className="group">
                               <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสผ่าน</label>
                               <div className="relative">
-                                <input 
-                                  type={showPassword ? 'text' : 'password'} 
-                                  name="password" 
-                                  value={registerData.password} 
-                                  onChange={handleRegisterChange} 
-                                  className="w-full h-12 pl-12 pr-12 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300" 
-                                  placeholder="กรอกรหัสผ่าน" 
-                                  required 
+                                <input
+                                  type={showPassword ? 'text' : 'password'}
+                                  name="password"
+                                  value={registerData.password}
+                                  onChange={handleRegisterChange}
+                                  className="w-full h-12 pl-12 pr-12 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300"
+                                  placeholder="กรอกรหัสผ่าน"
+                                  required
                                 />
                                 <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
-                                <button 
-                                  type="button" 
-                                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300" 
+                                <button
+                                  type="button"
+                                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300"
                                   onClick={() => setShowPassword(v => !v)}
                                 >
                                   {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -1237,23 +1244,23 @@ const AuthSystem = (props) => {
                             <div className="group">
                               <label className="block text-sm font-semibold text-gray-700 mb-2">ยืนยันรหัสผ่าน</label>
                               <div className="relative">
-                                <input 
-                                  type={showConfirmPassword ? 'text' : 'password'} 
-                                  name="confirmPassword" 
-                                  value={registerData.confirmPassword} 
-                                  onChange={handleRegisterChange} 
+                                <input
+                                  type={showConfirmPassword ? 'text' : 'password'}
+                                  name="confirmPassword"
+                                  value={registerData.confirmPassword}
+                                  onChange={handleRegisterChange}
                                   className={`w-full h-12 pl-12 pr-12 bg-gray-50 border-2 rounded-full focus:outline-none transition-all duration-300 text-gray-800 ${
                                     !passwordMatch && registerData.confirmPassword
                                       ? 'border-red-400 focus:border-red-500 bg-red-50'
                                       : 'border-gray-200 focus:border-blue-500 focus:bg-white group-hover:border-blue-300'
                                   }`}
-                                  placeholder="ยืนยันรหัสผ่าน" 
-                                  required 
+                                  placeholder="ยืนยันรหัสผ่าน"
+                                  required
                                 />
                                 <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
-                                <button 
-                                  type="button" 
-                                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300" 
+                                <button
+                                  type="button"
+                                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors duration-300"
                                   onClick={() => setShowConfirmPassword(v => !v)}
                                 >
                                   {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
@@ -1267,9 +1274,9 @@ const AuthSystem = (props) => {
                         </div>
 
                         <div className="flex justify-between pt-4">
-                          <button 
-                            type="button" 
-                            className="px-6 py-3 bg-gray-400 text-white font-semibold rounded-full shadow-lg hover:bg-gray-500 transform hover:scale-105 transition-all duration-300 flex items-center" 
+                          <button
+                            type="button"
+                            className="px-6 py-3 bg-gray-400 text-white font-semibold rounded-full shadow-lg hover:bg-gray-500 transform hover:scale-105 transition-all duration-300 flex items-center"
                             onClick={() => setRegisterStep(0)}
                           >
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1277,9 +1284,9 @@ const AuthSystem = (props) => {
                             </svg>
                             ย้อนกลับ
                           </button>
-                          <button 
-                            type="button" 
-                            className="px-8 py-3 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg hover:bg-blue-800 hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center" 
+                          <button
+                            type="button"
+                            className="px-8 py-3 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg hover:bg-blue-800 hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center"
                             onClick={() => {
                               if (validateRegisterStep(1)) setRegisterStep(2);
                             }}
@@ -1383,13 +1390,13 @@ const AuthSystem = (props) => {
                           <div className="group">
                             <label className="block text-sm font-semibold text-gray-700 mb-2 ">ที่อยู่ปัจจุบัน</label>
                             <div className="relative">
-                              <textarea 
-                                name="currentAddress" 
-                                value={registerData.currentAddress} 
-                                onChange={handleRegisterChange} 
-                                rows="3" 
-                                className=" w-full px-7 py-3 pl-12 bg-gray-50 border-2 border-gray-200 rounded-4xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 resize-none group-hover:border-blue-300" 
-                                placeholder="บ้านเลขที่, ถนน, ซอย" 
+                              <textarea
+                                name="currentAddress"
+                                value={registerData.currentAddress}
+                                onChange={handleRegisterChange}
+                                rows="3"
+                                className=" w-full px-7 py-3 pl-12 bg-gray-50 border-2 border-gray-200 rounded-4xl focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 resize-none group-hover:border-blue-300"
+                                placeholder="บ้านเลขที่, ถนน, ซอย"
                                 required
                               />
                               <FaMapMarkerAlt className="absolute left-5 top-4 text-red-500" />
@@ -1402,11 +1409,11 @@ const AuthSystem = (props) => {
                             <div className="group">
                               <label className="block text-sm font-semibold text-gray-700 mb-2">จังหวัด</label>
                               <div className="relative">
-                                <select 
-                                  name="province" 
-                                  value={registerData.provinceId} 
-                                  onChange={handleProvinceChange} 
-                                  className="w-full h-12 pl-10 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300" 
+                                <select
+                                  name="province"
+                                  value={registerData.provinceId}
+                                  onChange={handleProvinceChange}
+                                  className="w-full h-12 pl-10 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300"
                                   required
                                 >
                                   <option value="">เลือกจังหวัด</option>
@@ -1425,12 +1432,12 @@ const AuthSystem = (props) => {
                             <div className="group">
                               <label className="block text-sm font-semibold text-gray-700 mb-2">อำเภอ/เขต</label>
                               <div className="relative">
-                                <select 
-                                  name="district" 
-                                  value={registerData.amphureId} 
-                                  onChange={handleDistrictChange} 
-                                  className="w-full h-12 pl-10 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed" 
-                                  required 
+                                <select
+                                  name="district"
+                                  value={registerData.amphureId}
+                                  onChange={handleDistrictChange}
+                                  className="w-full h-12 pl-10 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  required
                                   disabled={!registerData.provinceId}
                                 >
                                   <option value="">เลือกอำเภอ/เขต</option>
@@ -1449,12 +1456,12 @@ const AuthSystem = (props) => {
                             <div className="group">
                               <label className="block text-sm font-semibold text-gray-700 mb-2">ตำบล/แขวง</label>
                               <div className="relative">
-                                <select 
-                                  name="subdistrict" 
-                                  value={registerData.tambonId} 
-                                  onChange={handleSubdistrictChange} 
-                                  className="w-full h-12 pl-10 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed" 
-                                  required 
+                                <select
+                                  name="subdistrict"
+                                  value={registerData.tambonId}
+                                  onChange={handleSubdistrictChange}
+                                  className="w-full h-12 pl-10 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 appearance-none group-hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  required
                                   disabled={!registerData.amphureId}
                                 >
                                   <option value="">เลือกตำบล/แขวง</option>
@@ -1474,15 +1481,15 @@ const AuthSystem = (props) => {
                           <div className="group">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสไปรษณีย์</label>
                             <div className="relative">
-                              <input 
-                                type="text" 
-                                name="postalCode" 
-                                value={registerData.postalCode} 
-                                onChange={handleRegisterChange} 
-                                className="w-full h-12 pl-12 pr-4 bg-gray-100 border-2 border-gray-300 rounded-xl focus:outline-none text-gray-600 cursor-not-allowed select-none" 
-                                placeholder="รหัสไปรษณีย์" 
-                                required 
-                                readOnly 
+                              <input
+                                type="text"
+                                name="postalCode"
+                                value={registerData.postalCode}
+                                onChange={handleRegisterChange}
+                                className="w-full h-12 pl-12 pr-4 bg-gray-100 border-2 border-gray-300 rounded-xl focus:outline-none text-gray-600 cursor-not-allowed select-none"
+                                placeholder="รหัสไปรษณีย์"
+                                required
+                                readOnly
                               />
                               <FaMapMarkerAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-500" />
                             </div>
@@ -1490,9 +1497,9 @@ const AuthSystem = (props) => {
                         </div>
 
                         <div className="flex justify-between pt-4">
-                          <button 
-                            type="button" 
-                            className="px-6 py-3 bg-gray-400 text-white font-semibold rounded-full shadow-lg hover:bg-gray-500 transform hover:scale-105 transition-all duration-300 flex items-center" 
+                          <button
+                            type="button"
+                            className="px-6 py-3 bg-gray-400 text-white font-semibold rounded-full shadow-lg hover:bg-gray-500 transform hover:scale-105 transition-all duration-300 flex items-center"
                             onClick={() => setRegisterStep(2)}
                           >
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1500,9 +1507,9 @@ const AuthSystem = (props) => {
                             </svg>
                             ย้อนกลับ
                           </button>
-                          <button 
-                            type="button" 
-                            disabled={isLoading} 
+                          <button
+                            type="button"
+                            disabled={isLoading}
                             className={`px-8 py-3 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-semibold rounded-full shadow-lg hover:bg-blue-800 hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center ${
                               isLoading ? 'opacity-70 cursor-not-allowed' : ''
                             }`}
@@ -1511,12 +1518,12 @@ const AuthSystem = (props) => {
                                 // ตรวจสอบว่าต้องใช้อีเมล @msu.ac.th เท่านั้นสำหรับ OTP
                                 const isMsuEmail = registerData.email && /@msu\.ac\.th$/.test(registerData.email);
                                 if (!isMsuEmail) {
-                                  setNotification({ 
-                                    show: true, 
-                                    type: 'warning', 
-                                    title: 'ข้อมูลไม่ครบ', 
-                                    message: 'กรุณากรอกอีเมล @msu.ac.th เพื่อรับรหัส OTP', 
-                                    onClose: () => setNotification(n => ({ ...n, show: false })) 
+                                  setNotification({
+                                    show: true,
+                                    type: 'warning',
+                                    title: 'ข้อมูลไม่ครบ',
+                                    message: 'กรุณากรอกอีเมล @msu.ac.th เพื่อรับรหัส OTP',
+                                    onClose: () => setNotification(n => ({ ...n, show: false }))
                                   });
                                   return;
                                 }
@@ -1525,12 +1532,12 @@ const AuthSystem = (props) => {
                                   await axios.post('http://localhost:5000/api/users/request-otp', { contact: registerData.email });
                                   setOtpDialog({ show: true, email: registerData.email, error: '' });
                                 } catch (err) {
-                                  setNotification({ 
-                                    show: true, 
-                                    type: 'error', 
-                                    title: 'ส่ง OTP ไม่สำเร็จ', 
-                                    message: err.response?.data?.message || 'เกิดข้อผิดพลาดในการส่ง OTP', 
-                                    onClose: () => setNotification(n => ({ ...n, show: false })) 
+                                  setNotification({
+                                    show: true,
+                                    type: 'error',
+                                    title: 'ส่ง OTP ไม่สำเร็จ',
+                                    message: err.response?.data?.message || 'เกิดข้อผิดพลาดในการส่ง OTP',
+                                    onClose: () => setNotification(n => ({ ...n, show: false }))
                                   });
                                 }
                                 setIsLoading(false);
@@ -1583,7 +1590,7 @@ const AuthSystem = (props) => {
         actions={notification.actions}
         duration={notification.duration}
       />
-      
+
       {/* Notification แจ้งเตือนเมื่อจะออกจากสมัครสมาชิก */}
       <Notification
         show={showRegisterLeaveDialog}
@@ -1593,12 +1600,12 @@ const AuthSystem = (props) => {
         duration={0}
         onClose={() => setShowRegisterLeaveDialog(false)}
         actions={[
-          { 
-            label: 'ยกเลิก', 
-            onClick: () => setShowRegisterLeaveDialog(false) 
+          {
+            label: 'ยกเลิก',
+            onClick: () => setShowRegisterLeaveDialog(false)
           },
-          { 
-            label: 'ดำเนินการต่อ', 
+          {
+            label: 'ดำเนินการต่อ',
             onClick: () => {
               setShowRegisterLeaveDialog(false);
               setActiveTab('login');

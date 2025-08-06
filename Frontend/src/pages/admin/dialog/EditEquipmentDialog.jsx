@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
-import { getCategories, uploadImage } from "../../../utils/api";
+import { getCategories, uploadImage, getRooms, UPLOAD_BASE } from "../../../utils/api";
 
 // ย้าย normalizeDate ออกมาอยู่นอก useEffect เพื่อให้ทุกฟังก์ชันเข้าถึงได้
 function normalizeDate(val) {
@@ -44,6 +44,9 @@ export default function EditEquipmentDialog({
   const [previewImage, setPreviewImage] = useState(null);
   const [categories, setCategories] = useState([]);
   const [missingFields, setMissingFields] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const statusConfig = {
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
@@ -55,6 +58,7 @@ export default function EditEquipmentDialog({
   useEffect(() => {
     if (open) {
       getCategories().then(data => setCategories(data));
+      getRooms().then(data => setRooms(data));
     }
 
     const defaultData = {
@@ -80,7 +84,7 @@ export default function EditEquipmentDialog({
         pic: equipmentData.pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png",
         purchaseDate: normalizeDate(equipmentData.purchaseDate) || "",
         price: equipmentData.price || "",
-        location: equipmentData.location || ""
+        room_id: equipmentData.room_id || ""
       });
     } else {
       setFormData(defaultData);
@@ -145,33 +149,52 @@ export default function EditEquipmentDialog({
   };
 
   const handleSubmit = async () => {
-    // ตรวจสอบฟิลด์ที่จำเป็น (ยกเว้น description)
-    const requiredFields = [
-      { key: 'name', label: 'ชื่อครุภัณฑ์' },
-      { key: 'quantity', label: 'จำนวน' },
-      { key: 'category', label: 'หมวดหมู่' },
-      { key: 'unit', label: 'หน่วย' },
-      { key: 'status', label: 'สถานะ' },
-      { key: 'purchaseDate', label: 'วันที่จัดซื้อ' },
-      { key: 'price', label: 'ราคา' },
-      { key: 'location', label: 'สถานที่จัดเก็บ' }
-    ];
-    const missing = requiredFields.filter(f => !formData[f.key] || String(formData[f.key]).trim() === '').map(f => f.label);
-    setMissingFields(missing);
-    if (missing.length > 0) {
-      return;
+    try {
+      // ตรวจสอบฟิลด์ที่จำเป็น (ยกเว้น description)
+      const requiredFields = [
+        { key: 'item_code', label: 'รหัสครุภัณฑ์' },
+        { key: 'name', label: 'ชื่อครุภัณฑ์' },
+        { key: 'quantity', label: 'จำนวน' },
+        { key: 'category', label: 'หมวดหมู่' },
+        { key: 'unit', label: 'หน่วย' },
+        { key: 'status', label: 'สถานะ' },
+        { key: 'purchaseDate', label: 'วันที่จัดซื้อ' },
+        { key: 'price', label: 'ราคา' },
+        { key: 'room_id', label: 'สถานที่จัดเก็บ' }
+      ];
+      const missing = requiredFields.filter(f => !formData[f.key] || String(formData[f.key]).trim() === '').map(f => f.label);
+      setMissingFields(missing);
+      if (missing.length > 0) {
+        return;
+      }
+
+      let dataToSave = { ...formData };
+
+      // อัปโหลดรูปภาพไปยัง Cloudinary ถ้ามีไฟล์ใหม่
+      if (dataToSave.pic instanceof File) {
+        setIsUploading(true);
+        try {
+          console.log('[EDIT EQUIPMENT] Uploading image for item_code:', dataToSave.item_code);
+          dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
+          console.log('[EDIT EQUIPMENT] Image uploaded successfully:', dataToSave.pic);
+          setUploadSuccess(true);
+          setTimeout(() => setUploadSuccess(false), 3000); // แสดงข้อความ 3 วินาที
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
+      // Include item_id for updating equipment
+      const payload = { ...dataToSave, item_id: equipmentData.item_id };
+      onSave(payload);
+      onClose();
+    } catch (error) {
+      console.error('[EDIT EQUIPMENT] Error during submit:', error);
+      setMissingFields([`เกิดข้อผิดพลาด: ${error.message}`]);
     }
-    let dataToSave = { ...formData };
-    if (dataToSave.pic instanceof File) {
-      dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
-    }
-    // ไม่ต้อง set item_id แล้ว ให้ใช้ item_code เป็น canonical
-    const payload = { ...dataToSave, item_code: dataToSave.item_code };
-    onSave(payload);
-    onClose();
   };
 
-  const isFormValid = formData.name && formData.quantity && formData.category && formData.unit;
+  const isFormValid = formData.item_code && formData.name && formData.quantity && formData.category && formData.unit;
 
   const StatusDisplay = ({ status }) => {
     const config = statusConfig[status] || {
@@ -225,6 +248,8 @@ export default function EditEquipmentDialog({
                     (typeof formData.pic === 'string'
                       ? (formData.pic.startsWith('http') || formData.pic.startsWith('/uploads'))
                         ? formData.pic
+                        : formData.pic.startsWith('https://res.cloudinary.com')
+                        ? formData.pic
                         : `/uploads/${formData.pic}`
                       : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png")
                   }
@@ -252,18 +277,29 @@ export default function EditEquipmentDialog({
             {formData.pic?.name && (
               <p className="text-sm mt-1 text-gray-600 truncate max-w-[300px]">{formData.pic.name}</p>
             )}
+            {uploadSuccess && (
+              <div className="text-emerald-600 text-sm font-semibold mt-2 text-center flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                อัปโหลดรูปภาพสำเร็จแล้ว
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">รหัสครุภัณฑ์</label>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+                รหัสครุภัณฑ์ <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="text"
                 name="item_code"
                 value={formData.item_code}
                 onChange={handleChange}
-                disabled
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
+                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 transition-shadow"
+                placeholder="ระบุรหัสครุภัณฑ์"
+                required
               />
             </div>
             <div>
@@ -368,8 +404,8 @@ export default function EditEquipmentDialog({
                   placeholder="เลือกวันที่"
                   onClick={() => document.querySelector('input[name=\"purchaseDate\"]').showPicker()}
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
                   onClick={() => document.querySelector('input[name=\"purchaseDate\"]').showPicker()}
                 >
@@ -395,16 +431,46 @@ export default function EditEquipmentDialog({
               />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">สถานที่จัดเก็บ <span className="text-rose-500">*</span></label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location || ''}
+          <div className="group">
+            <label className="block text-sm font-semibold text-gray-800 mb-2">สถานที่จัดเก็บ <span className="text-rose-500">*</span></label>
+            <select
+              name="room_id"
+              value={formData.room_id || ''}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 transition-shadow"
-              placeholder="ระบุสถานที่จัดเก็บ"
-            />
+              className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
+              required
+            >
+              <option value="" disabled>เลือกสถานที่จัดเก็บ</option>
+              {rooms.map(room => (
+                <option key={room.room_id} value={room.room_id}>
+                  {room.room_name} ({room.room_code})
+                </option>
+              ))}
+            </select>
+            {/* แสดง preview ห้องที่เลือก */}
+            {formData.room_id && rooms.length > 0 && (
+              <div className="flex items-center gap-3 mt-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                <img
+                  src={(() => {
+                    const r = rooms.find(r => String(r.room_id) === String(formData.room_id));
+                    if (!r) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+                    try {
+                      const urls = JSON.parse(r.image_url);
+                      return Array.isArray(urls) && urls[0] ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`) : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+                    } catch {
+                      return r.image_url && r.image_url.startsWith('http') ? r.image_url : `${UPLOAD_BASE}${r.image_url}`;
+                    }
+                  })()}
+                  alt="room preview"
+                  className="w-12 h-12 object-cover rounded-lg border border-gray-200"
+                  onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
+                />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-gray-800">{rooms.find(r => String(r.room_id) === String(formData.room_id))?.room_name}</span>
+                  <span className="text-xs text-gray-500">{rooms.find(r => String(r.room_id) === String(formData.room_id))?.room_code}</span>
+                </div>
+              </div>
+            )}
           </div>
           {missingFields.length > 0 && (
           <div className="mt-2 mb-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm flex items-center gap-2">
@@ -426,15 +492,22 @@ export default function EditEquipmentDialog({
           </button>
           <button
             className={`px-5 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm ${
-              isFormValid
-                ? "bg-blue-600 hover:bg-blue-700"
-                : "bg-blue-300 cursor-not-allowed"
+              !isFormValid || isUploading
+                ? "bg-blue-300 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
             }`}
             onClick={handleSubmit}
-            disabled={!isFormValid}
+            disabled={!isFormValid || isUploading}
             type="button"
           >
-            บันทึกการเปลี่ยนแปลง
+            {isUploading ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                กำลังอัปโหลด...
+              </div>
+            ) : (
+              'บันทึกการเปลี่ยนแปลง'
+            )}
           </button>
         </div>
       </div>

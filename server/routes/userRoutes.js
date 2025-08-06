@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import userController from '../controllers/userController.js';
 import db from '../db.js';
 import authMiddleware from '../middleware/authMiddleware.js';
+import { uploadUserAvatar } from '../utils/cloudinaryUploadUtils.js';
 
 const router = express.Router();
 // ส่ง OTP ไปอีเมล (สมัครสมาชิก)
@@ -107,17 +108,61 @@ const upload = multer({
   }
 }).single('avatar');
 
-// Image upload route
-router.post('/upload-image', authMiddleware, (req, res, next) => {
-  upload(req, res, function (err) {
-    if (err) {
-      return res.status(400).json({ message: err.message });
-    }
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-    res.json({ filename: req.file.filename, url: `/uploads/user/${req.file.filename}` });
-  });
+// Image upload route using Cloudinary
+router.post('/upload-image', authMiddleware, async (req, res, next) => {
+  try {
+    // Use multer to parse the file
+    const parseMulter = multer().single('avatar');
+
+    parseMulter(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ message: err.message });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      // Get user_code from request body
+      const { user_code } = req.body;
+      if (!user_code) {
+        return res.status(400).json({ message: 'user_code is required' });
+      }
+
+      try {
+        // Convert file buffer to base64
+        const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+        // Upload to Cloudinary
+        const result = await uploadUserAvatar(dataUri, user_code);
+
+        if (result.success) {
+          res.json({
+            filename: result.public_id,
+            url: result.url,
+            public_id: result.public_id
+          });
+        } else {
+          res.status(400).json({
+            message: 'Failed to upload to Cloudinary',
+            error: result.error
+          });
+        }
+      } catch (uploadError) {
+        console.error('Cloudinary upload error:', uploadError);
+        res.status(500).json({
+          message: 'Error uploading to Cloudinary',
+          error: uploadError.message
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Upload route error:', error);
+    res.status(500).json({
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
 });
 
 // Get all positions
@@ -176,15 +221,32 @@ router.delete('/id/:id', authMiddleware, async (req, res) => {
     // Get user info first
     const [userRows] = await db.query('SELECT avatar, user_code FROM users WHERE user_id = ?', [req.params.id]);
     const user = userRows[0];
+
     // Delete user from DB
     await userController.deleteUser(req, res);
+
     // Remove avatar file if exists
     if (user && user.avatar) {
-      const avatarFilename = user.avatar.split('/').pop();
-      const avatarPath = path.join(__dirname, '../uploads/user', avatarFilename);
-      if (fs.existsSync(avatarPath)) {
-        fs.unlinkSync(avatarPath);
-        console.log('Deleted user avatar:', avatarPath);
+      if (user.avatar.includes('cloudinary.com')) {
+        // ถ้าเป็น Cloudinary URL ให้ลบจาก Cloudinary
+        try {
+          const { deleteImageFromCloudinary, extractPublicIdFromUrl } = await import('../utils/cloudinaryUploadUtils.js');
+          const publicId = extractPublicIdFromUrl(user.avatar);
+          if (publicId) {
+            await deleteImageFromCloudinary(publicId);
+            console.log('Deleted user avatar from Cloudinary:', publicId);
+          }
+        } catch (cloudinaryError) {
+          console.error('Error deleting from Cloudinary:', cloudinaryError);
+        }
+      } else {
+        // ถ้าเป็น local file ให้ลบจาก local storage
+        const avatarFilename = user.avatar.split('/').pop();
+        const avatarPath = path.join(__dirname, '../uploads/user', avatarFilename);
+        if (fs.existsSync(avatarPath)) {
+          fs.unlinkSync(avatarPath);
+          console.log('Deleted user avatar from local storage:', avatarPath);
+        }
       }
     }
   } catch (error) {
@@ -201,6 +263,12 @@ router.post('/login', userController.login);
 router.get('/verify-token', authMiddleware, (req, res) => {
   res.json({ user: req.user });
 });
+
+// เพิ่ม endpoint สำหรับ verify password
+router.post('/verify-password', authMiddleware, userController.verifyPassword);
+
+// เพิ่ม endpoint สำหรับดึงข้อมูลผู้ใช้จาก token
+router.get('/profile', authMiddleware, userController.getProfile);
 
 // Debug route to test server
 router.get('/test', (req, res) => {

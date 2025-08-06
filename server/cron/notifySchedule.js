@@ -5,20 +5,32 @@ import { getActiveBorrows } from '../models/borrowModel.js';
 import { formatDate, getDaysBetween, getDaysRemaining } from '../utils/dateHelper.js';
 dotenv.config();
 
+// ตรวจสอบ environment variables สำหรับ LINE Bot
+const token = process.env.token;
+const secretcode = process.env.secretcode;
 
-// Check for required LINE credentials
-if (!process.env.token || !process.env.secretcode) {
-  console.error('ERROR: LINE channel access token or secret is missing. Please set "token" and "secretcode" in your .env file.');
-  process.exit(1);
+let client = null;
+
+// ถ้ามี LINE Bot configuration ให้สร้าง client
+if (token && secretcode) {
+  client = new Client({
+    channelAccessToken: token,
+    channelSecret: secretcode
+  });
+  console.log('✅ LINE Bot configured for scheduled notifications');
+} else {
+  console.warn('⚠️ LINE Bot configuration is missing. Scheduled notifications will be disabled.');
+  console.warn('Please set "token" and "secretcode" in your .env file to enable LINE notifications.');
 }
-
-const client = new Client({
-  channelAccessToken: process.env.token,
-  channelSecret: process.env.secretcode
-});
 
 // รันทุกวันเวลา 20:35 น.
 cron.schedule('00 12 * * *', async () => {
+  // ถ้าไม่มี LINE Bot configuration ให้ข้ามการทำงาน
+  if (!client) {
+    console.log('Scheduled notification job skipped: LINE Bot not configured');
+    return;
+  }
+
   try {
     const borrows = await getActiveBorrows();
     console.log(`Found ${borrows.length} active borrows to notify`);

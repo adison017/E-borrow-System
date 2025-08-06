@@ -1,9 +1,9 @@
 import db from '../db.js';
 
-export const createBorrowTransaction = async (user_id, borrow_date, return_date, borrow_code, purpose) => {
+export const createBorrowTransaction = async (user_id, borrow_date, return_date, borrow_code, purpose, important_documents = null) => {
   const [result] = await db.query(
-    'INSERT INTO borrow_transactions (user_id, borrow_date, return_date, borrow_code, purpose, signature_image, handover_photo) VALUES (?, ?, ?, ?, ?, NULL, NULL)',
-    [user_id, borrow_date, return_date, borrow_code, purpose]
+    'INSERT INTO borrow_transactions (user_id, borrow_date, return_date, borrow_code, purpose, signature_image, handover_photo, important_documents) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)',
+    [user_id, borrow_date, return_date, borrow_code, purpose, important_documents || null]
   );
   return result.insertId;
 };
@@ -30,6 +30,10 @@ export const getAllBorrows = async () => {
   e.item_id,
   e.item_code,
   e.pic,
+  e.room_id,
+  rm.room_name,
+  rm.room_code,
+  rm.image_url,
   bi.quantity,
   bt.borrow_date,
   bt.return_date,
@@ -37,14 +41,16 @@ export const getAllBorrows = async () => {
   bt.purpose,
   bt.rejection_reason,
   bt.signature_image,
-  bt.handover_photo
+  bt.handover_photo,
+  bt.important_documents
 FROM borrow_transactions bt
 JOIN users u ON bt.user_id = u.user_id
 JOIN borrow_items bi ON bt.borrow_id = bi.borrow_id
 JOIN equipment e ON bi.item_id = e.item_id
 LEFT JOIN branches b ON u.branch_id = b.branch_id
 LEFT JOIN positions p ON u.position_id = p.position_id
-LEFT JOIN roles r ON u.role_id = r.role_id;`
+LEFT JOIN roles r ON u.role_id = r.role_id
+LEFT JOIN room rm ON e.room_id = rm.room_id;`
   );
 
   // Group by borrow_id
@@ -64,12 +70,13 @@ LEFT JOIN roles r ON u.role_id = r.role_id;`
         },
         equipment: [],
         borrow_date: row.borrow_date ? row.borrow_date.toISOString ? row.borrow_date.toISOString().split('T')[0] : String(row.borrow_date).split('T')[0] : null,
-        due_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
+        return_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
         status: row.status,
         purpose: row.purpose,
         rejection_reason: row.rejection_reason,
         signature_image: row.signature_image,
         handover_photo: row.handover_photo,
+        important_documents: row.important_documents ? JSON.parse(row.important_documents) : [],
       };
     }
     grouped[row.borrow_id].equipment.push({
@@ -78,6 +85,10 @@ LEFT JOIN roles r ON u.role_id = r.role_id;`
       name: row.name,
       quantity: row.quantity,
       pic:row.pic,
+      room_id: row.room_id,
+      room_name: row.room_name,
+      room_code: row.room_code,
+      image_url: row.image_url,
     });
   });
   return Object.values(grouped);
@@ -99,7 +110,10 @@ export const getBorrowById = async (borrow_id) => {
       e.item_id,
       e.item_code,
       e.pic,
-      e.location,
+      e.room_id,
+      rm.room_name,
+      rm.room_code,
+      rm.image_url,
       bi.quantity,
       bt.borrow_date,
       bt.return_date,
@@ -107,7 +121,8 @@ export const getBorrowById = async (borrow_id) => {
       bt.purpose,
       bt.rejection_reason,
       bt.signature_image,
-      bt.handover_photo
+      bt.handover_photo,
+      bt.important_documents
     FROM borrow_transactions bt
     JOIN users u ON bt.user_id = u.user_id
     JOIN borrow_items bi ON bt.borrow_id = bi.borrow_id
@@ -115,6 +130,7 @@ export const getBorrowById = async (borrow_id) => {
     LEFT JOIN branches b ON u.branch_id = b.branch_id
     LEFT JOIN positions p ON u.position_id = p.position_id
     LEFT JOIN roles r ON u.role_id = r.role_id
+    LEFT JOIN room rm ON e.room_id = rm.room_id
     WHERE bt.borrow_id = ?`,
     [borrow_id]
   );
@@ -138,7 +154,10 @@ export const getBorrowById = async (borrow_id) => {
       name: r.name,
       quantity: r.quantity,
       pic: r.pic,
-      location: r.location,
+      room_id: r.room_id,
+      room_name: r.room_name,
+      room_code: r.room_code,
+      image_url: r.image_url,
     })),
     borrow_date: row.borrow_date ? row.borrow_date.toISOString ? row.borrow_date.toISOString().split('T')[0] : String(row.borrow_date).split('T')[0] : null,
     due_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
@@ -147,6 +166,7 @@ export const getBorrowById = async (borrow_id) => {
     rejection_reason: row.rejection_reason,
     signature_image: row.signature_image,
     handover_photo: row.handover_photo,
+    important_documents: row.important_documents ? JSON.parse(row.important_documents) : [],
   };
   return borrow;
 };
@@ -298,6 +318,7 @@ export const getBorrowsByStatus = async (statusArray) => {
       name: row.name,
       quantity: row.quantity,
       pic: row.pic,
+      room_id: row.room_id,
     });
   });
 

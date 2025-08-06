@@ -5,29 +5,42 @@ import { getPicUrl } from '../utils/imageUtils.js';
 
 export const getAllEquipment = async (req, res) => {
   try {
+    console.log('Getting all equipment...');
     const results = await Equipment.getAllEquipmentWithDueDate();
+    console.log('Total equipment found:', results.length);
+    console.log('Equipment codes:', results.map(item => item.item_code));
     const mapped = results.map(item => ({
       ...item,
       pic: getPicUrl(item.pic)
     }));
     res.json(mapped);
   } catch (err) {
+    console.error('Error in getAllEquipment:', err);
     res.status(500).json({ error: err.message });
   }
 };
 
+
+
 // Use item_code as canonical identifier for all CRUD
 export const getEquipmentByCode = async (req, res) => {
   try {
+    console.log('Getting equipment by code:', req.params.item_code);
     const results = await Equipment.getEquipmentByCode(req.params.item_code);
-    if (results.length === 0) return res.status(404).json({ error: 'Not found' });
+    console.log('Database results:', results);
+    if (results.length === 0) {
+      console.log('Equipment not found for code:', req.params.item_code);
+      return res.status(404).json({ error: 'Equipment not found', item_code: req.params.item_code });
+    }
     const item = results[0];
     const mapped = {
       ...item,
       pic: getPicUrl(item.pic)
     };
+    console.log('Returning equipment:', mapped);
     res.json(mapped);
   } catch (err) {
+    console.error('Error in getEquipmentByCode:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -58,7 +71,7 @@ export const addEquipment = async (req, res) => {
     }
     data.purchaseDate = data.purchaseDate || null;
     data.price = data.price || null;
-    data.location = data.location || null;
+    data.room_id = data.room_id || null;
     await Equipment.addEquipment(data);
     res.status(201).json({ message: 'Equipment added', item_code: data.item_code });
   } catch (err) {
@@ -68,41 +81,73 @@ export const addEquipment = async (req, res) => {
 
 export const updateEquipment = async (req, res) => {
   try {
+    console.log('updateEquipment - Request params:', req.params);
+    console.log('updateEquipment - Request body:', req.body);
+
     const data = req.body;
-    // Ensure item_code is always present and used
-    const item_code = req.params.item_code || data.item_code || data.id || data.item_id;
-    if (!item_code) return res.status(400).json({ error: 'item_code is required' });
-    if (data.pic && typeof data.pic === 'string') {
-      if (!data.pic.startsWith('http')) {
-        data.pic = `http://localhost:5000/uploads/${data.pic.replace(/^\/?uploads\//, '')}`;
-      }
+    const equipmentItemId = req.params.item_id;
+    console.log('updateEquipment - Equipment Item ID:', equipmentItemId);
+
+    if (!equipmentItemId) {
+      console.log('updateEquipment - No item_id provided in params');
+      return res.status(400).json({ error: 'item_id is required in URL params' });
     }
+
+    if (!data.item_code) {
+      console.log('updateEquipment - No item_code in request body');
+      return res.status(400).json({ error: 'item_code is required in request body' });
+    }
+
+    console.log('updateEquipment - New item code:', data.item_code);
+
+    // Handle image upload if provided
+    if (data.pic && data.pic.startsWith('data:image')) {
+      const imagePath = await saveBase64Image(data.pic, data.item_code);
+      data.pic = imagePath;
+    }
+
+    // Set default values for null fields
+    data.name = data.name || '';
+    data.category = data.category || '';
+    data.description = data.description || '';
+    data.quantity = data.quantity || 0;
+    data.unit = data.unit || '';
+    data.status = data.status || 'available';
     data.purchaseDate = data.purchaseDate || null;
-    data.price = data.price || null;
-    data.location = data.location || null;
-    // ดึงข้อมูลเดิมก่อนอัปเดต
-    const results = await Equipment.getEquipmentByCode(item_code);
-    if (results.length === 0) return res.status(404).json({ error: 'Not found' });
-    const oldPic = results[0].pic;
-    // ถ้าเปลี่ยนรูปใหม่ และรูปเดิมไม่ใช่ default ให้ลบไฟล์เก่า
-    if (
-      oldPic &&
-      oldPic !== data.pic &&
-      oldPic !== 'https://cdn-icons-png.flaticon.com/512/3474/3474360.png'
-    ) {
-      let filename = oldPic;
-      if (filename.startsWith('http')) {
-        filename = filename.replace(/^https?:\/\/[^/]+\/uploads\//, '');
-      } else if (filename.startsWith('/uploads/')) {
-        filename = filename.replace(/^\/uploads\//, '');
-      }
-      const filePath = path.join(process.cwd(), 'server', 'uploads', filename);
-      fs.unlink(filePath, (err) => {});
+    data.price = data.price || 0;
+    data.room_id = data.room_id || '';
+
+    console.log('updateEquipment - Looking for equipment with item_id:', equipmentItemId);
+    const results = await Equipment.getEquipmentByItemId(equipmentItemId);
+    console.log('updateEquipment - Found equipment:', results.length > 0 ? 'Yes' : 'No');
+
+    if (results.length === 0) {
+      console.log('updateEquipment - Equipment not found');
+      return res.status(404).json({ error: 'Equipment not found', item_id: equipmentItemId });
     }
-    // อัปเดตข้อมูล
-    await Equipment.updateEquipment(item_code, data);
+
+    const oldPic = results[0].pic;
+    // Delete old image if new image is provided and old image exists
+    if (data.pic && oldPic && oldPic !== data.pic) {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const oldImagePath = path.join(process.cwd(), 'uploads', 'equipment', oldPic);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+          console.log('Old image deleted:', oldImagePath);
+        }
+      } catch (error) {
+        console.error('Error deleting old image:', error);
+      }
+    }
+
+    console.log('updateEquipment - Updating equipment...');
+    await Equipment.updateEquipmentByItemId(equipmentItemId, data);
+    console.log('updateEquipment - Equipment updated successfully');
     res.json({ message: 'Equipment updated' });
   } catch (err) {
+    console.error('updateEquipment - Error:', err);
     res.status(500).json({ error: err.message });
   }
 };

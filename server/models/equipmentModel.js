@@ -2,9 +2,13 @@ import connection from '../db.js';
 
 export const getAllEquipment = async () => {
   try {
+    console.log('getAllEquipment - Fetching all equipment...');
     const [rows] = await connection.query('SELECT * FROM equipment');
+    console.log('getAllEquipment - Total equipment found:', rows.length);
+    console.log('getAllEquipment - Item codes:', rows.map(item => item.item_code));
     return rows;
   } catch (error) {
+    console.error('getAllEquipment - Error:', error);
     throw error;
   }
 };
@@ -12,9 +16,15 @@ export const getAllEquipment = async () => {
 // Use item_code as canonical identifier
 export const getEquipmentByCode = async (item_code) => {
   try {
+    console.log('getEquipmentByCode - Searching for item_code:', item_code);
     const [rows] = await connection.query('SELECT * FROM equipment WHERE item_code = ?', [item_code]);
+    console.log('getEquipmentByCode - Found rows:', rows.length);
+    if (rows.length > 0) {
+      console.log('getEquipmentByCode - First row item_code:', rows[0].item_code);
+    }
     return rows;
   } catch (error) {
+    console.error('getEquipmentByCode - Error:', error);
     throw error;
   }
 };
@@ -23,10 +33,10 @@ export const addEquipment = async (equipment) => {
   try {
     // Always use item_code as canonical code
     const item_code = equipment.item_code || equipment.id || equipment.item_id;
-    const { name, category, description, quantity, unit, status, pic, price, purchaseDate, location } = equipment;
+    const { name, category, description, quantity, unit, status, pic, price, purchaseDate, room_id } = equipment;
     const [result] = await connection.query(
-      'INSERT INTO equipment (item_code, name, category, description, quantity, unit, status, pic, created_at, price, purchaseDate, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), ?, ?, ?)',
-      [item_code, name, category, description, quantity, unit, status, pic, price, purchaseDate, location]
+      'INSERT INTO equipment (item_code, name, category, description, quantity, unit, status, pic, created_at, price, purchaseDate, room_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), ?, ?, ?)',
+      [item_code, name, category, description, quantity, unit, status, pic, price, purchaseDate, room_id]
     );
     return result;
   } catch (error) {
@@ -34,16 +44,51 @@ export const addEquipment = async (equipment) => {
   }
 };
 
-export const updateEquipment = async (item_code, equipment) => {
+
+
+export const getEquipmentByItemId = async (item_id) => {
   try {
-    // Always use item_code as canonical code
-    const { name, category, description, quantity, unit, status, pic, purchaseDate, price, location } = equipment;
+    console.log('getEquipmentByItemId - Searching for item_id:', item_id);
+    const [rows] = await connection.query('SELECT * FROM equipment WHERE item_id = ?', [item_id]);
+    console.log('getEquipmentByItemId - Found rows:', rows.length);
+    if (rows.length > 0) {
+      console.log('getEquipmentByItemId - First row item_id:', rows[0].item_id);
+    }
+    return rows;
+  } catch (error) {
+    console.error('getEquipmentByItemId - Error:', error);
+    throw error;
+  }
+};
+
+export const updateEquipmentByItemId = async (item_id, equipment) => {
+  try {
+    console.log('updateEquipmentByItemId Model - Equipment item_id:', item_id);
+    console.log('updateEquipmentByItemId Model - Equipment data:', equipment);
+
+    const { item_code, name, category, description, quantity, unit, status, pic, purchaseDate, price, room_id } = equipment;
+
+    console.log('updateEquipmentByItemId Model - New item code:', item_code);
+
+    // ถ้า item_code เปลี่ยน ให้ตรวจสอบว่าซ้ำหรือไม่
+    if (item_code) {
+      console.log('updateEquipmentByItemId Model - Checking for duplicate item_code:', item_code);
+      const [existing] = await connection.query('SELECT item_code FROM equipment WHERE item_code = ? AND item_id != ?', [item_code, item_id]);
+      console.log('updateEquipmentByItemId Model - Duplicate check result:', existing.length);
+      if (existing.length > 0) {
+        throw new Error('item_code ซ้ำในระบบ');
+      }
+    }
+
+    console.log('updateEquipmentByItemId Model - Executing UPDATE query...');
     const [result] = await connection.query(
-      'UPDATE equipment SET name=?, category=?, description=?, quantity=?, unit=?, status=?, pic=?, purchaseDate=?, price=?, location=? WHERE item_code=?',
-      [name, category, description, quantity, unit, status, pic, purchaseDate, price, location, item_code]
+      'UPDATE equipment SET item_code=?, name=?, category=?, description=?, quantity=?, unit=?, status=?, pic=?, purchaseDate=?, price=?, room_id=? WHERE item_id=?',
+      [item_code, name, category, description, quantity, unit, status, pic, purchaseDate, price, room_id, item_id]
     );
+    console.log('updateEquipmentByItemId Model - Update result:', result);
     return result;
   } catch (error) {
+    console.error('updateEquipmentByItemId Model - Error:', error);
     throw error;
   }
 };
@@ -61,12 +106,16 @@ export const deleteEquipment = async (item_code) => {
 
 export const updateEquipmentStatus = async (item_code, status) => {
   try {
+    console.log(`[updateEquipmentStatus] Updating equipment ${item_code} status to: "${status}"`);
     const [result] = await connection.query(
       'UPDATE equipment SET status=? WHERE item_code=?',
       [status, item_code]
     );
+    console.log(`[updateEquipmentStatus] Update result:`, result);
+    console.log(`[updateEquipmentStatus] Affected rows:`, result.affectedRows);
     return result;
   } catch (error) {
+    console.error(`[updateEquipmentStatus] Error updating equipment ${item_code} status to ${status}:`, error);
     throw error;
   }
 };

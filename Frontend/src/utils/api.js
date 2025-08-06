@@ -11,24 +11,57 @@ export function authFetch(url, options = {}) {
   const headers = options.headers ? { ...options.headers } : {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+    console.log('API Request - URL:', url);
+    console.log('API Request - Token present:', !!token);
+  } else {
+    console.log('API Request - No token found in localStorage');
   }
   return fetch(url, { ...options, headers });
 }
 
 // Equipment
-export const getEquipment = () => authFetch(`${API_BASE}/equipment`).then(res => res.json());
+export const getEquipment = () => authFetch(`${API_BASE}/equipment`).then(res => {
+  console.log('getEquipment response status:', res.status);
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
+  return res.json();
+}).catch(error => {
+  console.error('getEquipment error:', error);
+  throw error;
+});
 
-// Upload image and return filename only
+// Upload image to Cloudinary and return URL
 export const uploadImage = async (file, item_code) => {
-  const formData = new FormData();
-  formData.append("image", file);
-  if (item_code) formData.append("item_code", item_code); // ส่ง item_code ไปด้วย
-  const res = await authFetch("http://localhost:5000/api/equipment/upload", {
-    method: "POST",
-    body: formData,
-  });
-  const data = await res.json();
-  return data.url;
+  try {
+    console.log('[UPLOAD] Starting upload for item_code:', item_code);
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    // ใช้ query parameter สำหรับ item_code
+    const url = item_code
+      ? `${API_BASE}/equipment/upload?item_code=${encodeURIComponent(item_code)}`
+      : `${API_BASE}/equipment/upload`;
+
+    const res = await authFetch(url, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error('[UPLOAD] Upload failed:', errorData);
+      throw new Error(errorData.error || 'Upload failed');
+    }
+
+    const data = await res.json();
+    console.log('[UPLOAD] Upload successful:', data);
+    return data.url;
+  } catch (error) {
+    console.error('[UPLOAD] Upload error:', error);
+    throw error;
+  }
 };
 
 export const addEquipment = (data) => {
@@ -39,7 +72,7 @@ export const addEquipment = (data) => {
   if (typeof payload.price === 'string') payload.price = Number(payload.price);
   if (payload.price === '' || payload.price === null || isNaN(payload.price)) delete payload.price;
   if (!payload.purchaseDate) delete payload.purchaseDate;
-  if (!payload.location) delete payload.location;
+  if (!payload.room_id) delete payload.room_id;
   return authFetch(`${API_BASE}/equipment`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -47,14 +80,28 @@ export const addEquipment = (data) => {
   }).then(res => res.json());
 };
 
-export const updateEquipment = (item_code, data) => {
-  // Always use item_code as canonical identifier
-  const payload = { ...data, item_code };
-  return authFetch(`${API_BASE}/equipment/${item_code}`, {
+export const updateEquipment = (item_id, data) => {
+  const payload = { ...data };
+  console.log('updateEquipment - URL:', `${API_BASE}/equipment/${item_id}`);
+  console.log('updateEquipment - Payload:', payload);
+
+  return authFetch(`${API_BASE}/equipment/${item_id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-  }).then(res => res.json());
+  }).then(res => {
+    console.log('updateEquipment - Response status:', res.status);
+    if (!res.ok) {
+      return res.json().then(errorData => {
+        console.error('updateEquipment - Error response:', errorData);
+        throw new Error(`HTTP error! status: ${res.status}, message: ${errorData.error || errorData.message || 'Unknown error'}`);
+      });
+    }
+    return res.json();
+  }).catch(error => {
+    console.error('updateEquipment - Error:', error);
+    throw error;
+  });
 };
 
 export const deleteEquipment = (item_code) => authFetch(`${API_BASE}/equipment/${item_code}`, { method: "DELETE" }).then(res => res.json());
@@ -128,3 +175,6 @@ export const getNews = async () => {
   if (!res.ok) throw new Error('Network response was not ok');
   return res.json();
 };
+
+// Room
+export const getRooms = () => authFetch(`${API_BASE}/rooms`).then(res => res.json());

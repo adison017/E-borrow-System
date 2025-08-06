@@ -45,7 +45,7 @@ const DashboardAdmin = () => {
     pendingDelivery: 8,
     pendingReturn: 15,
   });
-  
+
 
   const equipmentStatusData = [
     { name: 'พร้อมใช้งาน', value: stats.availableEquipment, color: '#4CAF50' },
@@ -88,7 +88,7 @@ const DashboardAdmin = () => {
       count: stats.pendingRequests,
       status: '3 รายการด่วน',
       statusColor: 'text-yellow-500',
-      path: '/borrow-list' 
+      path: '/borrow-list'
     },
     {
       id: 4,
@@ -168,14 +168,14 @@ const DashboardAdmin = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="p-6 md:p-8 flex-grow bg-gray-50 text-gray-800 min-h-screen"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
     >
       <div className="max-w-7xl mx-auto">
-        <motion.h1 
+        <motion.h1
           className="text-3xl font-bold mb-10 text-gray-800 pl-2"
           variants={itemVariants}
         >
@@ -183,7 +183,7 @@ const DashboardAdmin = () => {
         </motion.h1>
 
         {/* Summary Table - Now with integrated navigation */}
-        <motion.div 
+        <motion.div
           className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 mb-8"
           variants={itemVariants}
         >
@@ -191,7 +191,7 @@ const DashboardAdmin = () => {
             <ListAltIcon className="mr-2 text-blue-600" />
             ภาพรวมและทางลัด
           </h2>
-          
+
           <div className="grid grid-cols-1 gap-3">
             {summaryTableData.map((item) => (
               <motion.div
@@ -225,11 +225,11 @@ const DashboardAdmin = () => {
             ))}
           </div>
         </motion.div>
-        
+
         {/* Main Dashboard Content */}
         <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12" variants={containerVariants}>
           {/* Equipment Status Chart */}
-          <motion.div 
+          <motion.div
             className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 h-[370px]"
             variants={itemVariants}
           >
@@ -254,13 +254,13 @@ const DashboardAdmin = () => {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
                     border: '1px solid #e0e0e0',
                     borderRadius: '8px',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  }} 
+                  }}
                 />
                 <Legend verticalAlign="bottom" height={36} iconSize={12} />
               </PieChart>
@@ -268,7 +268,7 @@ const DashboardAdmin = () => {
           </motion.div>
 
           {/* Borrow/Return Trends */}
-          <motion.div 
+          <motion.div
             className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 h-[370px]"
             variants={itemVariants}
           >
@@ -281,13 +281,13 @@ const DashboardAdmin = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" fontSize={12} />
                 <YAxis fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
                     border: '1px solid #e0e0e0',
                     borderRadius: '8px',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  }} 
+                  }}
                 />
                 <Legend verticalAlign="bottom" height={36} iconSize={12} />
                 <Bar dataKey="การยืม" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={15} />
@@ -297,7 +297,7 @@ const DashboardAdmin = () => {
           </motion.div>
 
           {/* Recent Activities */}
-          <motion.div 
+          <motion.div
             className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 h-[370px]"
             variants={itemVariants}
           >
@@ -307,8 +307,8 @@ const DashboardAdmin = () => {
             </h2>
             <div className="space-y-3">
               {recentActivitiesData.map((activity) => (
-                <motion.div 
-                  key={activity.id} 
+                <motion.div
+                  key={activity.id}
                   className="flex items-start p-3 hover:bg-gray-50 rounded-lg transition-colors duration-200"
                   variants={itemVariants}
                   whileHover={{ x: 3 }}
@@ -333,7 +333,7 @@ const DashboardAdmin = () => {
         </motion.div>
 
         {/* Second Row: Top Borrowed Items */}
-        <motion.div 
+        <motion.div
           className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 mb-12"
           variants={itemVariants}
         >
@@ -351,22 +351,22 @@ const DashboardAdmin = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
                 <XAxis type="number" fontSize={12} />
                 <YAxis dataKey="name" type="category" width={120} fontSize={12} tick={{ textAnchor: 'end' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
                     border: '1px solid #e0e0e0',
                     borderRadius: '8px',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  }} 
+                  }}
                 />
                 <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={15} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
-        
+
         {/* Additional Management Options */}
-        <motion.div 
+        <motion.div
           className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 mb-8"
           variants={itemVariants}
         >

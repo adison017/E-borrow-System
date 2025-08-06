@@ -14,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
 import { getBorrowById } from "../../../utils/api";
+import DocumentViewer from '../../../components/DocumentViewer';
 
 export default function BorrowDetailsDialog({
   open,
@@ -312,6 +313,16 @@ export default function BorrowDetailsDialog({
                       <p className="text-sm leading-relaxed text-gray-700">{data.purpose}</p>
                     </div>
                   </div>
+
+                  {/* Important Documents Section */}
+                  {data.important_documents && data.important_documents.length > 0 && (
+                    <div className="mt-5">
+                      <DocumentViewer
+                        documents={data.important_documents}
+                        title="เอกสารสำคัญที่แนบ"
+                      />
+                    </div>
+                  )}
                 </div>
                 {/* ข้อมูลอุปกรณ์ */}
                 <div>

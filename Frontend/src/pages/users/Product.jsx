@@ -223,7 +223,7 @@ const Home = () => {
   };
 
   // Handle form submission
-  const handleSubmitBorrow = async (e) => {
+  const handleSubmitBorrow = async (e, selectedFiles = []) => {
     e.preventDefault();
 
     if (!globalUserData?.user_id) {
@@ -248,15 +248,27 @@ const Home = () => {
       return;
     }
 
-    const payload = {
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('user_id', globalUserData.user_id);
+    formData.append('purpose', borrowData.reason);
+    formData.append('borrow_date', borrowData.borrowDate);
+    formData.append('return_date', borrowData.returnDate);
+    formData.append('items', JSON.stringify(items));
+
+    // Add files to FormData
+    selectedFiles.forEach((file, index) => {
+      formData.append('important_documents', file);
+    });
+
+    console.log('FormData payload:', {
       user_id: globalUserData.user_id,
-      purpose: borrowData.reason, // ใช้ reason เป็น purpose
+      purpose: borrowData.reason,
       borrow_date: borrowData.borrowDate,
       return_date: borrowData.returnDate,
-      items
-    };
-
-    console.log('payload', payload);
+      items: items,
+      files_count: selectedFiles.length
+    });
 
     // แสดง loading state พร้อม progress bar
     setNotification({
@@ -270,8 +282,8 @@ const Home = () => {
     try {
       const response = await authFetch('http://localhost:5000/api/borrows', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        // Don't set Content-Type header for FormData - let browser set it with boundary
+        body: formData
       });
             const data = await response.json();
       if (response.ok) {
