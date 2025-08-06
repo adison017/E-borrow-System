@@ -1,29 +1,29 @@
-import 'dotenv/config';
 import cors from 'cors';
+import 'dotenv/config';
 
-import userRoutes from './routes/userRoutes.js';
-import newsRoutes from './routes/newsRoutes.js';
-import positionRoutes from './routes/positionRoutes.js';
-import branchRoutes from './routes/branchRoutes.js';
-import roleRoutes from './routes/roleRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import branchRoutes from './routes/branchRoutes.js';
+import newsRoutes from './routes/newsRoutes.js';
+import positionRoutes from './routes/positionRoutes.js';
+import roleRoutes from './routes/roleRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 import express from 'express';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 
 
-import categoryRoutes from './routes/categoryRoutes.js';
-import equipmentRoutes from './routes/equipmentRoutes.js';
-import repairRequestRoutes from './routes/repairRequestRoutes.js';
-import borrowRoutes from './routes/borrowRoutes.js';
-import returnRoutes from './routes/returnRoutes.js';
-import damageLevelRoutes from './routes/damageLevelRoutes.js';
-import lineRoutes from './routes/lineRoutes.js';
 import './cron/notifySchedule.js';
 import * as BorrowModel from './models/borrowModel.js';
 import * as RepairRequest from './models/repairRequestModel.js';
+import borrowRoutes from './routes/borrowRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import damageLevelRoutes from './routes/damageLevelRoutes.js';
+import equipmentRoutes from './routes/equipmentRoutes.js';
+import lineRoutes from './routes/lineRoutes.js';
+import repairRequestRoutes from './routes/repairRequestRoutes.js';
+import returnRoutes from './routes/returnRoutes.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -113,6 +113,10 @@ app.use('/api/category', categoryRoutes);
 app.use('/api/repair-requests', repairRequestRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/damage-levels', damageLevelRoutes);
+
+// Executive dashboard analytics endpoints
+import dashboardRoutes from './routes/dashboardRoutes.js';
+app.use('/api/dashboard', dashboardRoutes);
 
 // Root route
 app.get('/', (req, res) => {
