@@ -5,18 +5,34 @@ import { sendLineNotify } from '../utils/lineNotify.js';
 import * as EquipmentModel from '../models/equipmentModel.js'; // เพิ่ม import นี้
 import { broadcastBadgeCounts } from '../index.js';
 import * as RepairRequest from '../models/repairRequestModel.js';
+import * as ContactInfoModel from '../models/contactInfoModel.js';
+import path from 'path';
+import fs from 'fs';
 
 // สร้างรายการยืมใหม่
 export const createBorrow = async (req, res) => {
   console.log('==== [API] POST /api/borrows ====');
   console.log('payload:', req.body);
+  console.log('files:', req.files);
   const { user_id, borrow_date, return_date, items, purpose } = req.body;
+
+  // Parse items if it's a JSON string
+  let parsedItems = items;
+  if (typeof items === 'string') {
+    try {
+      parsedItems = JSON.parse(items);
+    } catch (error) {
+      console.error('Error parsing items JSON:', error);
+      return res.status(400).json({ message: 'รูปแบบข้อมูล items ไม่ถูกต้อง' });
+    }
+  }
+
   // items = [{ item_id, quantity, note }]
-  if (!user_id || !borrow_date || !return_date || !Array.isArray(items) || items.length === 0) {
+  if (!user_id || !borrow_date || !return_date || !Array.isArray(parsedItems) || parsedItems.length === 0) {
     return res.status(400).json({ message: 'ข้อมูลไม่ครบถ้วน' });
   }
   // ตรวจสอบ item_id ใน items ว่าต้องไม่เป็น null หรือ undefined
-  const invalidItem = items.find(item => !item.item_id);
+  const invalidItem = parsedItems.find(item => !item.item_id);
   if (invalidItem) {
     return res.status(400).json({ message: 'item_id ของอุปกรณ์ต้องไม่เป็น null หรือว่าง' });
   }
@@ -28,8 +44,47 @@ export const createBorrow = async (req, res) => {
   const borrow_code = generateBorrowCode();
   // ลบ logic ตรวจสอบรหัสซ้ำ (findByBorrowCode)
   try {
-    const borrow_id = await BorrowModel.createBorrowTransaction(user_id, borrow_date, return_date, borrow_code, purpose);
-    for (const item of items) {
+    // Handle important documents if any
+    let importantDocumentsJson = null;
+    if (req.files && req.files.length > 0) {
+      console.log(`Processing ${req.files.length} important documents for borrow_code: ${borrow_code}`);
+
+      // Process uploaded files (Cloudinary or memory storage)
+      const documents = [];
+      for (const file of req.files) {
+        const documentInfo = {
+          filename: file.filename || `${borrow_code}_important_documents_${Date.now()}`,
+          original_name: file.originalname,
+          file_size: file.size,
+          mime_type: file.mimetype
+        };
+
+        // Check if file was uploaded to Cloudinary or stored in memory
+        if (file.path && file.secure_url) {
+          // Cloudinary upload
+          documentInfo.file_path = file.path;
+          documentInfo.cloudinary_public_id = file.public_id;
+          documentInfo.cloudinary_url = file.secure_url;
+        } else {
+          // Memory storage (fallback when Cloudinary is not configured)
+          console.warn('⚠️ File stored in memory - Cloudinary not configured');
+          documentInfo.file_path = null;
+          documentInfo.cloudinary_public_id = null;
+          documentInfo.cloudinary_url = null;
+          documentInfo.stored_in_memory = true;
+        }
+
+        documents.push(documentInfo);
+      }
+
+      importantDocumentsJson = JSON.stringify(documents);
+      console.log('Important documents JSON:', importantDocumentsJson);
+    } else {
+      importantDocumentsJson = null;
+    }
+
+    const borrow_id = await BorrowModel.createBorrowTransaction(user_id, borrow_date, return_date, borrow_code, purpose, importantDocumentsJson);
+    for (const item of parsedItems) {
       await BorrowModel.addBorrowItem(borrow_id, item.item_id, item.quantity || 1, item.note || null);
     }
     // แจ้งเตือน LINE ไปยัง admin ทุกคน
@@ -599,15 +654,54 @@ export const updateBorrowStatus = async (req, res) => {
     }
     // === แจ้ง user เมื่อสถานะเป็น carry (อนุมัติแล้ว) ===
     if (status === 'carry') {
+      console.log('[DEBUG] === เริ่มส่ง LINE Notify สำหรับ carry ===');
       const borrow = await BorrowModel.getBorrowById(id);
+      console.log('[DEBUG] borrow data:', JSON.stringify(borrow, null, 2));
+
       const equipmentList = borrow.equipment.map(eq =>
         `• ${eq.name} (${eq.item_code}) x${eq.quantity}`
       ).join('\n');
       const user = await User.findById(borrow.user_id);
-      if (user?.line_id && (user.line_notify_enabled === 1 || user.line_notify_enabled === true || user.line_notify_enabled === '1')) {
-        // รวม location ของอุปกรณ์ทุกชิ้น (ไม่ซ้ำ)
-        const locations = Array.from(new Set(borrow.equipment.map(eq => eq.location).filter(Boolean)));
-        const locationText = locations.length > 0 ? locations.join(', ') : 'ห้องพัสดุ อาคาร 1 ชั้น 2';
+      console.log('[DEBUG] user data:', {
+        user_id: user?.user_id,
+        line_id: user?.line_id,
+        line_notify_enabled: user?.line_notify_enabled,
+        type: typeof user?.line_notify_enabled
+      });
+
+             if (user?.line_id && (user.line_notify_enabled === 1 || user.line_notify_enabled === true || user.line_notify_enabled === '1')) {
+         console.log('[DEBUG] เงื่อนไขผ่าน - จะส่ง LINE Notify');
+
+         // ดึงข้อมูลติดต่อเจ้าหน้าที่จาก Database
+         let contactText = '• ห้องพัสดุ อาคาร 1 ชั้น 2\n• โทร: 02-123-4567\n• เวลา: 8:30-16:30 น.';
+         try {
+           const contactInfoResult = await ContactInfoModel.getContactInfo();
+           console.log('[DEBUG] Contact info result:', contactInfoResult);
+
+           if (contactInfoResult && contactInfoResult.success && contactInfoResult.data) {
+             const contactInfo = contactInfoResult.data;
+             contactText = `• ${contactInfo.location}\n• โทร: ${contactInfo.phone}\n• เวลา: ${contactInfo.hours}`;
+             console.log('[DEBUG] Contact text generated:', contactText);
+           } else {
+             console.log('[DEBUG] No contact info found, using default');
+           }
+         } catch (error) {
+           console.error('Error getting contact info:', error);
+         }
+
+         // สร้างข้อความแยกแต่ละชิ้นพร้อมสถานที่รับและรูปห้อง
+         const equipmentWithRoom = borrow.equipment.map(eq => {
+          const roomText = eq.room_name
+            ? `${eq.room_name}${eq.room_code ? ' (' + eq.room_code + ')' : ''}`
+            : 'ไม่ระบุห้อง';
+          return {
+            type: 'text',
+            text: `• ${eq.name} (${eq.item_code}) x${eq.quantity} รับที่: ${roomText}`,
+            size: 'sm',
+            color: '#222222',
+            wrap: true
+          };
+        });
         const flexMessageUser = {
           type: 'flex',
           altText: '📢 แจ้งสถานะคำขอยืมของคุณ',
@@ -677,7 +771,7 @@ export const updateBorrowStatus = async (req, res) => {
                 { type: 'separator', margin: 'md' },
                 {
                   type: 'text',
-                  text: 'สถานที่รับครุภัณฑ์: ' + locationText,
+                  text: 'สถานที่รับครุภัณฑ์:',
                   size: 'sm',
                   color: '#388e3c',
                   weight: 'bold',
@@ -685,19 +779,29 @@ export const updateBorrowStatus = async (req, res) => {
                 },
                 {
                   type: 'text',
-                  text: 'รายการอุปกรณ์ที่ขอยืม:',
+                  text: 'รายการอุปกรณ์และสถานที่รับ:',
                   size: 'sm',
                   color: '#388e3c',
                   weight: 'bold',
                   margin: 'md',
                 },
+                ...equipmentWithRoom,
+                { type: 'separator', margin: 'md' },
                 {
                   type: 'text',
-                  text: equipmentList,
+                  text: '📞 ติดต่อเจ้าหน้าที่:',
                   size: 'sm',
-                  color: '#222222',
-                  wrap: true
-                }
+                  color: '#388e3c',
+                  weight: 'bold',
+                  margin: 'md',
+                },
+                                 {
+                   type: 'text',
+                   text: contactText,
+                   size: 'sm',
+                   color: '#222222',
+                   wrap: true
+                 }
               ]
             },
             footer: {
@@ -726,6 +830,15 @@ export const updateBorrowStatus = async (req, res) => {
         } catch (err) {
           console.error('[DEBUG] ส่ง LINE Notify ถึง user (carry) ไม่สำเร็จ:', err);
         }
+      } else {
+        console.log('[DEBUG] เงื่อนไขไม่ผ่าน - ไม่ส่ง LINE Notify');
+        console.log('[DEBUG] เหตุผล:');
+        console.log('  - line_id exists:', !!user?.line_id);
+        console.log('  - line_notify_enabled value:', user?.line_notify_enabled);
+        console.log('  - line_notify_enabled type:', typeof user?.line_notify_enabled);
+        console.log('  - line_notify_enabled === 1:', user?.line_notify_enabled === 1);
+        console.log('  - line_notify_enabled === true:', user?.line_notify_enabled === true);
+        console.log('  - line_notify_enabled === "1":', user?.line_notify_enabled === '1');
       }
     }
     // === แจ้ง user เมื่อสถานะเป็น rejected (ไม่อนุมัติ) ===

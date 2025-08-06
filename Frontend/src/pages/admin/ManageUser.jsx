@@ -349,10 +349,10 @@ function ManageUser() {
         setUserList(prevList => prevList.map(u =>
           u.user_id === userId ? { ...u, line_notify_enabled: checked ? 1 : 0 } : u
         ));
-        toast.success(checked ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
+                 toast.success(checked ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
       })
       .catch(err => {
-        toast.error('เกิดข้อผิดพลาดในการอัปเดตแจ้งเตือน LINE');
+                 toast.error('เกิดข้อผิดพลาดในการอัปเดตแจ้งเตือน LINE');
       });
   };
 
@@ -379,6 +379,18 @@ function ManageUser() {
 
   return (
     <ThemeProvider value={theme}>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
         <CardHeader floated={false} shadow={false} className="rounded-t-2xl bg-white px-8 py-2">
           <div className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -595,8 +607,8 @@ function ManageUser() {
                         <td className="px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900">{user_code}</td>
                         <td className="px-3 py-4 w-15 h-full whitespace-nowrap">
                           <div className="flex items-center justify-center object-cover">
-                            <Avatar
-                              src={avatar ? `http://localhost:5000/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
+                                            <Avatar
+                  src={avatar && avatar.includes('cloudinary.com') ? avatar : avatar ? `http://localhost:5000/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
                               alt={Fullname}
                               size="md"
                               className="rounded-full w-13 h-13 object-cover"
@@ -624,7 +636,7 @@ function ManageUser() {
                                   setUserList(prevList => prevList.map(u =>
                                     u.user_id === user_id ? { ...u, line_notify_enabled: newValue } : u
                                   ));
-                                  toast.success(newValue ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
+                                                                     toast.success(newValue ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
                                 }}
                               >
                                 <span

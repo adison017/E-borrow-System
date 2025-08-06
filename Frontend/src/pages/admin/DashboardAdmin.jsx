@@ -42,6 +42,8 @@ const DashboardAdmin = () => {
     pendingDelivery: 0,
     pendingReturn: 0,
   });
+
+
   const [equipmentStatusData, setEquipmentStatusData] = useState([]);
   const [borrowReturnData, setBorrowReturnData] = useState([]);
   const [topBorrowedItems, setTopBorrowedItems] = useState([]);
@@ -49,6 +51,7 @@ const DashboardAdmin = () => {
   const [frequentDamageUsers, setFrequentDamageUsers] = useState([]);
   const [topRiskUsers, setTopRiskUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -103,7 +106,7 @@ const DashboardAdmin = () => {
       count: stats.pendingRequests,
       status: '',
       statusColor: 'text-yellow-500',
-      path: '/borrow-list' 
+      path: '/borrow-list'
     },
     {
       id: 4,
@@ -198,14 +201,14 @@ const DashboardAdmin = () => {
     { field: 'damage_count', headerName: 'จำนวนคืนของเสีย', width: 120 },
   ];
   return (
-    <motion.div 
+    <motion.div
       className="p-6 md:p-8 flex-grow bg-gray-50 text-gray-800 min-h-screen"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
     >
       <div className="max-w-7xl mx-auto">
-        <motion.h1 
+        <motion.h1
           className="text-3xl font-bold mb-10 text-gray-800 pl-2"
           variants={itemVariants}
         >
@@ -213,7 +216,7 @@ const DashboardAdmin = () => {
         </motion.h1>
 
         {/* Summary Table - Now with integrated navigation */}
-        <motion.div 
+        <motion.div
           className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 mb-8"
           variants={itemVariants}
         >
@@ -221,7 +224,7 @@ const DashboardAdmin = () => {
             <ListAltIcon className="mr-2 text-blue-600" />
             ภาพรวมและทางลัด
           </h2>
-          
+
           <div className="grid grid-cols-1 gap-3">
             {summaryTableData.map((item) => (
               <motion.div
@@ -256,8 +259,10 @@ const DashboardAdmin = () => {
           </div>
         </motion.div>
 
+
+
         {/* Additional Management Options */}
-        <motion.div 
+        <motion.div
           className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 mb-8"
           variants={itemVariants}
         >

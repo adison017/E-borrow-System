@@ -17,6 +17,7 @@ import { MdClose, MdCloudUpload } from "react-icons/md";
 import Swal from 'sweetalert2';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import PinDialog from "../../../components/dialog/PinDialog";
 
 export default function AddUserDialog({
   open,
@@ -60,8 +61,23 @@ export default function AddUserDialog({
   const [previewImage, setPreviewImage] = useState(DEFAULT_PROFILE_URL);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false); // เพิ่ม state สำหรับแสดงรหัสผ่าน
+  const [showPin, setShowPin] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    // Get current user from localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+
     const fetchData = async () => {
       try {
         const [positionsResponse, branchesResponse, rolesResponse, provincesResponse] = await Promise.all([
@@ -199,10 +215,11 @@ export default function AddUserDialog({
         return;
       }
 
-      setFormData(prev => ({ ...prev, pic: file }));
+      // แสดง preview รูปภาพทันที แต่ยังไม่อัพโหลด
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
+      reader.onload = (e) => {
+        setPreviewImage(e.target.result);
+        setFormData(prev => ({ ...prev, pic: file })); // เก็บไฟล์ไว้ใน formData
       };
       reader.readAsDataURL(file);
     }
@@ -262,8 +279,53 @@ export default function AddUserDialog({
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handlePinSubmit = async (e) => {
     e.preventDefault();
+    console.log('handlePinSubmit called with pin:', pin);
+
+    if (!currentUser) {
+      console.log('No currentUser found');
+      setPinError("ไม่พบข้อมูลผู้ใช้ปัจจุบัน");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token:', token ? 'exists' : 'missing');
+      console.log('Sending request to verify password...');
+
+      const response = await axios.post('http://localhost:5000/api/users/verify-password',
+        { password: pin },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      console.log('Response:', response.data);
+
+      if (response.data.success) {
+        console.log('Password verified successfully, calling handleSubmit');
+        setShowPin(false);
+        setPin("");
+        setPinError("");
+        handleSubmit(); // call the real submit
+      } else {
+        console.log('Password verification failed');
+        setPinError("รหัสผ่านไม่ถูกต้อง");
+      }
+    } catch (error) {
+      console.error('Error in handlePinSubmit:', error);
+      console.error('Error response:', error.response?.data);
+      setPinError(error.response?.data?.message || "รหัสผ่านไม่ถูกต้อง");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    console.log('handleSubmit called');
     if (isLoading) return; // ป้องกัน double submit
     setIsLoading(true);
     try {
@@ -278,9 +340,18 @@ export default function AddUserDialog({
         return;
       }
 
-      // 1. อัปโหลดรูปภาพก่อน (ถ้ามี) เพื่อให้ได้ชื่อไฟล์จริง
-      let avatarFilename = DEFAULT_PROFILE_URL;
-      if (formData.pic instanceof File) {
+      // 1. ตรวจสอบรูปภาพ - ถ้าเป็น Cloudinary URL ใช้เลย ถ้าเป็น File ให้อัปโหลดก่อน
+      let avatarUrl = DEFAULT_PROFILE_URL;
+      console.log('formData.pic type:', typeof formData.pic);
+      console.log('formData.pic:', formData.pic);
+
+      if (formData.pic && typeof formData.pic === 'string' && formData.pic.includes('cloudinary.com')) {
+        // ถ้าเป็น Cloudinary URL ใช้เลย
+        console.log('Using existing Cloudinary URL');
+        avatarUrl = formData.pic;
+      } else if (formData.pic instanceof File) {
+        // ถ้าเป็น File ให้อัปโหลดก่อน
+        console.log('Uploading file to Cloudinary...');
         const formDataImage = new FormData();
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
@@ -291,8 +362,10 @@ export default function AddUserDialog({
               'Authorization': `Bearer ${token}`
             }
           });
-          avatarFilename = uploadResponse.data.filename;
+          console.log('File uploaded successfully:', uploadResponse.data.url);
+          avatarUrl = uploadResponse.data.url;
         } catch (uploadError) {
+          console.error('Upload error:', uploadError);
           if (uploadError.response && uploadError.response.status === 401) {
             toast.error('Session หมดอายุ กรุณา login ใหม่');
             setIsLoading(false);
@@ -301,6 +374,8 @@ export default function AddUserDialog({
             toast.warn('อัพโหลดรูปภาพไม่สำเร็จ แต่ข้อมูลผู้ใช้ถูกบันทึกแล้ว');
           }
         }
+      } else {
+        console.log('Using default avatar URL');
       }
 
       // 2. สร้าง user โดยใช้ชื่อไฟล์จริง
@@ -318,7 +393,7 @@ export default function AddUserDialog({
         district: formData.district || '',
         province: formData.province || '',
         postal_no: formData.postal_no || '',
-        avatar: avatarFilename,
+        avatar: avatarUrl,
         password: formData.password || undefined
       };
 
@@ -373,7 +448,7 @@ export default function AddUserDialog({
             </div>
             <div className="w-36 h-36 rounded-full bg-white shadow-lg flex items-center justify-center relative group overflow-hidden border-4 border-white hover:border-blue-200 transition-all duration-300">
               <img
-                src={previewImage || DEFAULT_PROFILE_URL}
+                src={previewImage && previewImage.includes('cloudinary.com') ? previewImage : previewImage || DEFAULT_PROFILE_URL}
                 alt="Profile"
                 className="w-full h-full object-cover rounded-full"
                 onError={e => {
@@ -426,7 +501,10 @@ export default function AddUserDialog({
               </h2>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form onSubmit={e => {
+              e.preventDefault();
+              setShowPin(true);
+            }} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-5 bg-white p-1 rounded-2xl transition-all duration-300 border border-gray-50">
                   <div className="flex items-center space-x-2 pb-3 mb-1 border-b border-gray-100">
@@ -767,6 +845,19 @@ export default function AddUserDialog({
                 </button>
               </div>
             </form>
+            {/* PIN Dialog */}
+            <PinDialog
+              open={showPin}
+              pin={pin}
+              setPin={setPin}
+              pinError={pinError}
+              onCancel={() => {
+                setShowPin(false);
+                setPin("");
+                setPinError("");
+              }}
+              onSubmit={handlePinSubmit}
+            />
           </div>
         </div>
       </div>

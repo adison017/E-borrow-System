@@ -9,8 +9,8 @@ export default function PinDialog({ open, pin, setPin, pinError, onCancel, onSub
               <path d="M12 17a2 2 0 0 0 2-2v-2a2 2 0 1 0-4 0v2a2 2 0 0 0 2 2zm6-6V9a6 6 0 1 0-12 0v2a6 6 0 0 0 12 0zm-2 0a4 4 0 1 1-8 0V9a4 4 0 1 1 8 0v2z" fill="#2563eb"/>
             </svg>
           </div>
-          <h3 className="text-xl font-extrabold mb-2 text-blue-700 text-center">กรุณากรอกรหัส PIN เพื่อยืนยัน</h3>
-          <p className="text-gray-500 text-sm mb-4 text-center">เพื่อความปลอดภัย กรุณากรอกรหัส PIN ของคุณ</p>
+          <h3 className="text-xl font-extrabold mb-2 text-blue-700 text-center">กรุณากรอกรหัสผ่านเพื่อยืนยัน</h3>
+          <p className="text-gray-500 text-sm mb-4 text-center">เพื่อความปลอดภัย กรุณากรอกรหัสผ่านของคุณ</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
           <input
@@ -19,9 +19,7 @@ export default function PinDialog({ open, pin, setPin, pinError, onCancel, onSub
             value={pin}
             onChange={e => setPin(e.target.value)}
             autoFocus
-            maxLength={8}
-            inputMode="numeric"
-            pattern="[0-9]*"
+            maxLength={50}
           />
           {pinError && <div className="text-red-500 text-sm text-center">{pinError}</div>}
           <div className="flex justify-between gap-3 mt-2">

@@ -7,7 +7,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { Button } from "@material-tailwind/react";
 import { API_BASE, authFetch } from '../../../utils/api';
-import { updateEquipmentStatus } from '../../../utils/api';
+import DocumentViewer from '../../../components/DocumentViewer';
 // import { globalUserData } from '../../../components/Header.jsx';
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -59,11 +59,18 @@ const ReturnFormDialog = ({
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    console.log('[FRONTEND] Fetching damage levels...');
     fetch("http://localhost:5000/api/damage-levels", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
-      .then(data => setDamageLevels(data));
+      .then(data => {
+        console.log('[FRONTEND] Received damage levels:', data);
+        setDamageLevels(data);
+      })
+      .catch(err => {
+        console.error('[FRONTEND] Error fetching damage levels:', err);
+      });
   }, []);
 
   useEffect(() => {
@@ -145,6 +152,15 @@ const ReturnFormDialog = ({
   }, [isOpen]);
 
   if (!isOpen || !borrowedItem) return null;
+
+  // Debug: Check important_documents data
+  console.log('ReturnFormDialog - borrowedItem:', {
+    borrow_id: borrowedItem.borrow_id,
+    borrow_code: borrowedItem.borrow_code,
+    important_documents: borrowedItem.important_documents ? 'EXISTS' : 'NULL/EMPTY',
+    important_documents_value: borrowedItem.important_documents,
+    important_documents_type: typeof borrowedItem.important_documents
+  });
 
   const handleConfirm = () => {
     setIsSubmitting(true);
@@ -242,21 +258,31 @@ const ReturnFormDialog = ({
     const proofImage = null;
 
     // === เพิ่ม logic คำนวณ fine_amount ของแต่ละชิ้น ===
+    console.log('[FRONTEND] Original itemConditions:', itemConditions);
+    console.log('[FRONTEND] Equipment items:', equipmentItems);
+    console.log('[FRONTEND] Damage levels:', damageLevels);
+
     const itemConditionsWithFine = {};
     equipmentItems.forEach(eq => {
       const cond = itemConditions[eq.item_id] || {};
+      console.log(`[FRONTEND] Processing equipment ${eq.item_code} (item_id: ${eq.item_id}):`, cond);
+
       const level = damageLevels.find(dl => String(dl.damage_id) === String(cond.damageLevelId));
+      console.log(`[FRONTEND] Found damage level for ${eq.item_code}:`, level);
+
       let fine = 0;
       if (level && level.fine_percent) {
         const price = Number(eq.price || 0);
         const percent = Number(level.fine_percent) / 100;
         fine = Math.round(price * percent * (eq.quantity || 1));
+        console.log(`[FRONTEND] Calculated fine for ${eq.item_code}: price=${price}, percent=${percent}, fine=${fine}`);
       }
       itemConditionsWithFine[eq.item_id] = {
         ...cond,
         fine_amount: fine
       };
     });
+    console.log('[FRONTEND] Final itemConditionsWithFine:', itemConditionsWithFine);
     // === จบ logic ===
 
     const payload = {
@@ -291,18 +317,8 @@ const ReturnFormDialog = ({
         alert('เกิดข้อผิดพลาดในการบันทึกการคืน: ' + errText);
         throw new Error('เกิดข้อผิดพลาดในการบันทึกการคืน: ' + errText);
       }
-      // === อัปเดตสถานะครุภัณฑ์เป็น "ชำรุด" ถ้าสภาพเสียหาย > 70% ===
-      for (const eq of equipmentItems) {
-        const cond = itemConditions[eq.item_id];
-        const level = damageLevels.find(dl => String(dl.damage_id) === String(cond?.damageLevelId));
-        if (level && Number(level.fine_percent) >= 70) {
-          try {
-            await updateEquipmentStatus(eq.item_code, 'ชำรุด');
-          } catch (err) {
-            console.error('Error updating equipment status to ชำรุด:', err);
-          }
-        }
-      }
+      // === Logic การอัปเดตสถานะครุภัณฑ์ถูกย้ายไปจัดการใน backend แล้ว ===
+      // Backend จะตรวจสอบสภาพครุภัณฑ์และอัปเดตสถานะเป็น 'complete' หรือ 'พร้อมใช้งาน' ตามเงื่อนไข
       // === จบ logic ===
       notify(
         'บันทึกข้อมูลการคืนสำเร็จ' + ((paymentMethod === 'online' || paymentMethod === 'transfer') ? '\nผู้ใช้ต้องไปชำระเงินในหน้า "ชำระค่าปรับ"' : ''),
@@ -569,6 +585,12 @@ const ReturnFormDialog = ({
                   )}
                 </div>
               </div>
+
+              {/* เอกสารสำคัญที่แนบ */}
+              <DocumentViewer
+                documents={borrowedItem.important_documents || []}
+                title="เอกสารสำคัญที่แนบ"
+              />
             </div>
 
             {/* Equipment List and Form */}
@@ -655,13 +677,20 @@ const ReturnFormDialog = ({
                           id={`condition-select-${eq.item_id}`}
                           className="w-full p-2.5 border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-gray-800 bg-white transition-all duration-150 appearance-none pr-10 shadow-sm hover:border-blue-400"
                           value={itemConditions[eq.item_id]?.damageLevelId || ''}
-                          onChange={e => setItemConditions(prev => ({
-                            ...prev,
-                            [eq.item_id]: {
-                              ...prev[eq.item_id],
-                              damageLevelId: e.target.value
-                            }
-                          }))}
+                          onChange={e => {
+                            console.log(`[FRONTEND] User selected damage level for ${eq.item_code} (item_id: ${eq.item_id}):`, e.target.value);
+                            setItemConditions(prev => {
+                              const newState = {
+                                ...prev,
+                                [eq.item_id]: {
+                                  ...prev[eq.item_id],
+                                  damageLevelId: e.target.value
+                                }
+                              };
+                              console.log(`[FRONTEND] Updated itemConditions state:`, newState);
+                              return newState;
+                            });
+                          }}
                         >
                           <option value="">เลือกสภาพ</option>
                           {damageLevels.map(dl => {

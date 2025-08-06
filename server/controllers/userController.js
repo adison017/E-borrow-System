@@ -271,6 +271,15 @@ const userController = {
       if (!user) {
         return res.status(401).json({ message: 'ไม่พบผู้ใช้งานนี้' });
       }
+
+      // Debug log เพื่อตรวจสอบข้อมูลที่ได้จาก database
+      console.log('=== Debug: User data from database ===');
+      console.log('Full user object:', user);
+      console.log('branch_name from DB:', user.branch_name);
+      console.log('position_name from DB:', user.position_name);
+      console.log('branch_id from DB:', user.branch_id);
+      console.log('position_id from DB:', user.position_id);
+
       // ตรวจสอบรหัสผ่าน (hash)
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
@@ -283,7 +292,7 @@ const userController = {
       // สร้าง JWT token
       const token = jwt.sign({ user_id: user.user_id, username: user.username, role }, JWT_SECRET, { expiresIn: '7d' });
       // ส่งข้อมูล user (ไม่รวม password) + token + เฉพาะ field ที่จำเป็น
-      const { user_id, user_code, username: userUsername, Fullname, email, phone, avatar, street, parish, district, province, postal_no } = user;
+      const { user_id, user_code, username: userUsername, Fullname, email, phone, avatar, street, parish, district, province, postal_no, branch_name, position_name } = user;
       console.log('LOGIN RESPONSE:', {
         message: 'เข้าสู่ระบบสำเร็จ',
         token,
@@ -300,6 +309,8 @@ const userController = {
           district,
           province,
           postal_no,
+          branch_name,
+          position_name,
           role
         }
       });
@@ -319,12 +330,110 @@ const userController = {
           district,
           province,
           postal_no,
+          branch_name,
+          position_name,
           role
         }
       });
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', error: error.message });
+    }
+  },
+
+  // POST /api/users/verify-password
+  verifyPassword: async (req, res) => {
+    try {
+      const { password } = req.body;
+      const user_id = req.user.user_id; // จาก JWT token
+
+      if (!password) {
+        return res.status(400).json({ message: 'กรุณากรอกรหัสผ่าน' });
+      }
+
+      const user = await User.findById(user_id);
+      if (!user) {
+        return res.status(404).json({ message: 'ไม่พบผู้ใช้งานนี้' });
+      }
+
+      // ตรวจสอบรหัสผ่าน
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
+      }
+
+      res.json({
+        success: true,
+        message: 'รหัสผ่านถูกต้อง'
+      });
+    } catch (error) {
+      console.error('Password verification error:', error);
+      res.status(500).json({ message: 'เกิดข้อผิดพลาดในการตรวจสอบรหัสผ่าน', error: error.message });
+    }
+  },
+
+  // GET /api/users/profile
+  getProfile: async (req, res) => {
+    try {
+      const user_id = req.user.user_id; // จาก JWT token
+
+      console.log('=== Debug: Getting profile for user_id ===');
+      console.log('user_id from token:', user_id);
+
+      const user = await User.findById(user_id);
+      if (!user) {
+        return res.status(404).json({ message: 'ไม่พบผู้ใช้งานนี้' });
+      }
+
+      console.log('=== Debug: User data from database ===');
+      console.log('Full user object:', user);
+      console.log('branch_name from DB:', user.branch_name);
+      console.log('position_name from DB:', user.position_name);
+
+      // ส่งข้อมูล user (ไม่รวม password)
+      const { user_id: userId, user_code, username, Fullname, email, phone, avatar, street, parish, district, province, postal_no, branch_name, position_name, role_name, line_notify_enabled, line_id, branch_id, position_id, role_id, created_at, updated_at } = user;
+
+      // กำหนด role string สำหรับ frontend
+      let role = 'user';
+      if (role_name && role_name.toLowerCase().includes('admin')) role = 'admin';
+      else if (role_name && role_name.toLowerCase().includes('executive')) role = 'executive';
+
+      const userProfile = {
+        user_id: userId,
+        user_code,
+        username,
+        Fullname,
+        email,
+        phone,
+        avatar,
+        street,
+        parish,
+        district,
+        province,
+        postal_no,
+        branch_name,
+        position_name,
+        role_name,
+        line_notify_enabled,
+        line_id,
+        branch_id,
+        position_id,
+        role_id,
+        created_at,
+        updated_at,
+        role
+      };
+
+      console.log('=== Debug: Profile response ===');
+      console.log('User profile being sent:', userProfile);
+
+      res.json({
+        message: 'ดึงข้อมูลผู้ใช้สำเร็จ',
+        user: userProfile
+      });
+    } catch (error) {
+      console.error('Get profile error:', error);
+      res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้', error: error.message });
     }
   },
 

@@ -6,7 +6,7 @@ import { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
-import { getCategories, uploadImage } from "../../../utils/api";
+import { getCategories, uploadImage, getRooms, UPLOAD_BASE } from "../../../utils/api";
 
 registerLocale('th', th);
 dayjs.locale('th');
@@ -34,6 +34,9 @@ export default function AddEquipmentDialog({
   const [categories, setCategories] = useState([]);
   const [missingFields, setMissingFields] = useState([]);
   const [imageError, setImageError] = useState("");
+  const [rooms, setRooms] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const statusConfig = {
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
@@ -45,6 +48,7 @@ export default function AddEquipmentDialog({
   useEffect(() => {
     if (open) {
       getCategories().then(data => setCategories(data));
+      getRooms().then(data => setRooms(data));
     }
     setFormData(equipmentData || initialFormData || {
       item_code: "",
@@ -118,37 +122,57 @@ export default function AddEquipmentDialog({
   };
 
   const handleSubmit = async () => {
-    // ตรวจสอบฟิลด์ที่จำเป็น (ยกเว้น description)
-    const requiredFields = [
-      { key: 'name', label: 'ชื่อครุภัณฑ์' },
-      { key: 'quantity', label: 'จำนวน' },
-      { key: 'category', label: 'หมวดหมู่' },
-      { key: 'unit', label: 'หน่วย' },
-      { key: 'status', label: 'สถานะ' },
-      { key: 'purchaseDate', label: 'วันที่จัดซื้อ' },
-      { key: 'price', label: 'ราคา' },
-      { key: 'location', label: 'สถานที่จัดเก็บ' }
-    ];
-    const missing = requiredFields.filter(f => !formData[f.key] || String(formData[f.key]).trim() === '').map(f => f.label);
-    setMissingFields(missing);
-    if (missing.length > 0) {
-      return;
+    try {
+      // ตรวจสอบฟิลด์ที่จำเป็น (ยกเว้น description)
+      const requiredFields = [
+        { key: 'name', label: 'ชื่อครุภัณฑ์' },
+        { key: 'quantity', label: 'จำนวน' },
+        { key: 'category', label: 'หมวดหมู่' },
+        { key: 'unit', label: 'หน่วย' },
+        { key: 'status', label: 'สถานะ' },
+        { key: 'purchaseDate', label: 'วันที่จัดซื้อ' },
+        { key: 'price', label: 'ราคา' },
+        { key: 'room_id', label: 'สถานที่จัดเก็บ' }
+      ];
+      const missing = requiredFields.filter(f => !formData[f.key] || String(formData[f.key]).trim() === '').map(f => f.label);
+      setMissingFields(missing);
+      if (missing.length > 0) {
+        return;
+      }
+
+      // ตรวจสอบชื่อครุภัณฑ์ห้ามมีอักขระพิเศษ (อนุญาต a-zA-Z0-9 ก-ฮ ะ-์ เว้นวรรค)
+      const namePattern = /^[a-zA-Z0-9ก-๙ะ-์\s]+$/;
+      if (!namePattern.test(formData.name)) {
+        setMissingFields(['ชื่อครุภัณฑ์ไม่ถูกต้อง']);
+        return;
+      }
+
+      let dataToSave = { ...formData };
+
+      // อัปโหลดรูปภาพไปยัง Cloudinary ถ้ามีไฟล์ใหม่
+      if (dataToSave.pic instanceof File) {
+        setIsUploading(true);
+        try {
+          console.log('[ADD EQUIPMENT] Uploading image for item_code:', dataToSave.item_code);
+          dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
+          console.log('[ADD EQUIPMENT] Image uploaded successfully:', dataToSave.pic);
+          setUploadSuccess(true);
+          setTimeout(() => setUploadSuccess(false), 3000); // แสดงข้อความ 3 วินาที
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
+      // Use item_id for updating equipment instead of item_code
+      const payload = { ...dataToSave, item_id: formData.item_id };
+      await onSave(payload);
+
+      setFormData(prev => ({ ...prev, item_code: "" }));
+      onClose();
+    } catch (error) {
+      console.error('[ADD EQUIPMENT] Error during submit:', error);
+      setMissingFields([`เกิดข้อผิดพลาด: ${error.message}`]);
     }
-    // ตรวจสอบชื่อครุภัณฑ์ห้ามมีอักขระพิเศษ (อนุญาต a-zA-Z0-9 ก-ฮ ะ-์ เว้นวรรค)
-    const namePattern = /^[a-zA-Z0-9ก-๙ะ-์\s]+$/;
-    if (!namePattern.test(formData.name)) {
-      setMissingFields(['ชื่อครุภัณฑ์ไม่ถูกต้อง']);
-      return;
-    }
-    let dataToSave = { ...formData };
-    if (dataToSave.pic instanceof File) {
-      dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.id);
-    }
-    dataToSave.item_id = dataToSave.id;
-    const payload = { ...formData, item_code: formData.item_code };
-    await onSave(payload);
-    setFormData(prev => ({ ...prev, item_code: "" }));
-    onClose();
   };
 
   const isFormValid = formData.name && formData.quantity && formData.category && formData.unit;
@@ -200,7 +224,16 @@ export default function AddEquipmentDialog({
               onClick={() => fileInputRef.current.click()}
             >
               <img
-                src={previewImage || formData.pic}
+                src={
+                  previewImage ||
+                  (typeof formData.pic === 'string'
+                    ? (formData.pic.startsWith('http') || formData.pic.startsWith('/uploads'))
+                      ? formData.pic
+                      : formData.pic.startsWith('https://res.cloudinary.com')
+                      ? formData.pic
+                      : `/uploads/${formData.pic}`
+                    : formData.pic)
+                }
                 alt={formData.name}
                 className="max-h-40 max-w-40 object-contain z-10 transform group-hover:scale-105 transition-transform duration-300"
                 onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
@@ -229,6 +262,14 @@ export default function AddEquipmentDialog({
           {/* แสดง error ถ้าอัปโหลดไฟล์ผิดประเภท */}
           {imageError && (
             <div className="text-red-600 text-sm font-semibold mt-2 text-center">{imageError}</div>
+          )}
+          {uploadSuccess && (
+            <div className="text-emerald-600 text-sm font-semibold mt-2 text-center flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              อัปโหลดรูปภาพสำเร็จแล้ว
+            </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -383,14 +424,44 @@ export default function AddEquipmentDialog({
 
           <div className="group">
             <label className="block text-sm font-semibold text-gray-800 mb-2">สถานที่จัดเก็บ <span className="text-rose-500">*</span></label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location || ''}
+            <select
+              name="room_id"
+              value={formData.room_id || ''}
               onChange={handleChange}
               className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
-              placeholder="ระบุสถานที่จัดเก็บ"
-            />
+              required
+            >
+              <option value="" disabled>เลือกสถานที่จัดเก็บ</option>
+              {rooms.map(room => (
+                <option key={room.room_id} value={room.room_id}>
+                  {room.room_name} ({room.room_code})
+                </option>
+              ))}
+            </select>
+            {/* แสดง preview ห้องที่เลือก */}
+            {formData.room_id && rooms.length > 0 && (
+              <div className="flex items-center gap-3 mt-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                <img
+                  src={(() => {
+                    const r = rooms.find(r => String(r.room_id) === String(formData.room_id));
+                    if (!r) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+                    try {
+                      const urls = JSON.parse(r.image_url);
+                      return Array.isArray(urls) && urls[0] ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`) : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+                    } catch {
+                      return r.image_url && r.image_url.startsWith('http') ? r.image_url : `${UPLOAD_BASE}${r.image_url}`;
+                    }
+                  })()}
+                  alt="room preview"
+                  className="w-12 h-12 object-cover rounded-lg border border-gray-200"
+                  onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
+                />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-gray-800">{rooms.find(r => String(r.room_id) === String(formData.room_id))?.room_name}</span>
+                  <span className="text-xs text-gray-500">{rooms.find(r => String(r.room_id) === String(formData.room_id))?.room_code}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {missingFields.length > 0 && (
@@ -413,11 +484,23 @@ export default function AddEquipmentDialog({
             ยกเลิก
           </button>
           <button
-            className={`px-6 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 bg-emerald-600 hover:bg-emerald-700`}
+            className={`px-6 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
+              isUploading
+                ? 'bg-emerald-400 cursor-not-allowed'
+                : 'bg-emerald-600 hover:bg-emerald-700'
+            }`}
             onClick={handleSubmit}
+            disabled={isUploading}
             type="button"
           >
-            เพิ่มครุภัณฑ์
+            {isUploading ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                กำลังอัปโหลด...
+              </div>
+            ) : (
+              'เพิ่มครุภัณฑ์'
+            )}
           </button>
         </div>
       </div>

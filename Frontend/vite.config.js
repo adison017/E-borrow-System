@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     allowedHosts: [
       'localhost',
-      '7e565d5fdc4b.ngrok-free.app', // เพิ่ม host นี้เพื่อให้ ngrok เข้าถึงได้
+      '9661019a77ca.ngrok-free.app', // เพิ่ม host นี้เพื่อให้ ngrok เข้าถึงได้
     ],
     proxy: {
       '/api': 'http://localhost:5000',

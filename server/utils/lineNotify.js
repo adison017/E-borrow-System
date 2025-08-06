@@ -2,22 +2,32 @@ import * as line from '@line/bot-sdk';
 import dotenv from 'dotenv';
 dotenv.config();
 
+// ตรวจสอบ environment variables สำหรับ LINE Bot
+const token = process.env.token;
+const secretcode = process.env.secretcode;
 
-// Check for required LINE credentials
-if (!process.env.token || !process.env.secretcode) {
-  console.error('ERROR: LINE channel access token or secret is missing. Please set "token" and "secretcode" in your .env file.');
-  process.exit(1);
+let client = null;
+
+// ถ้ามี LINE Bot configuration ให้สร้าง client
+if (token && secretcode) {
+  client = new line.Client({
+    channelAccessToken: token,
+    channelSecret: secretcode,
+  });
+} else {
+  console.warn('⚠️ LINE Bot configuration is missing. LINE notifications will be disabled.');
+  console.warn('Please set "token" and "secretcode" in your .env file to enable LINE notifications.');
 }
 
-const client = new line.Client({
-  channelAccessToken: process.env.token,
-  channelSecret: process.env.secretcode,
-});
-
 export async function sendLineNotify(lineId, message) {
-  if (!lineId) return;
+  if (!lineId || !client) {
+    console.log('LINE notification skipped: No lineId or LINE Bot not configured');
+    return;
+  }
+
   try {
     await client.pushMessage(lineId, message);
+    console.log(`LINE notification sent to ${lineId}`);
   } catch (err) {
     console.error('Error sending LINE message:', err);
   }

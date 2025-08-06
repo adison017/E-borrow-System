@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MdClose } from "react-icons/md";
+import axios from 'axios';
 import PinDialog from "../../../components/dialog/PinDialog";
 
 export default function DeleteUserDialog({
@@ -11,21 +12,67 @@ export default function DeleteUserDialog({
   const [pinOpen, setPinOpen] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    // Get current user from localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   const handleDeleteClick = () => {
     setPinOpen(true);
   };
 
-  const handlePinSubmit = (e) => {
+  const handlePinSubmit = async (e) => {
     e.preventDefault();
-    if (pin.length < 4) {
-      setPinError("รหัส PIN ต้องมีความยาวอย่างน้อย 4 หลัก");
+    console.log('handlePinSubmit called with pin:', pin);
+
+    if (!currentUser) {
+      console.log('No currentUser found');
+      setPinError("ไม่พบข้อมูลผู้ใช้ปัจจุบัน");
       return;
     }
-    setPinOpen(false);
-    onConfirm();
-    setPin("");
-    setPinError("");
+
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token:', token ? 'exists' : 'missing');
+      console.log('Sending request to verify password...');
+
+      const response = await axios.post('http://localhost:5000/api/users/verify-password',
+        { password: pin },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      console.log('Response:', response.data);
+
+      if (response.data.success) {
+        console.log('Password verified successfully, calling onConfirm');
+        setPinOpen(false);
+        setPin("");
+        setPinError("");
+        onConfirm();
+      } else {
+        console.log('Password verification failed');
+        setPinError("รหัสผ่านไม่ถูกต้อง");
+      }
+    } catch (error) {
+      console.error('Error in handlePinSubmit:', error);
+      console.error('Error response:', error.response?.data);
+      setPinError(error.response?.data?.message || "รหัสผ่านไม่ถูกต้อง");
+    }
   };
 
   const handlePinCancel = () => {

@@ -12,6 +12,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { MdClose } from "react-icons/md";
 import WebcamSignatureDialog from "./WebcamSignatureDialog";
+import DocumentViewer from '../../../components/DocumentViewer';
 
 const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -246,6 +247,12 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Important Documents Section */}
+                            <DocumentViewer
+                                documents={borrow.important_documents}
+                                title="เอกสารสำคัญที่แนบ"
+                            />
                         </div>
 
                         <div className="lg:col-span-2 space-y-6 lg:order-2">

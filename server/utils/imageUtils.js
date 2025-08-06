@@ -1,6 +1,10 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configure multer for single file upload
 const storage = multer.diskStorage({
@@ -58,6 +62,38 @@ const repairImageStorage = multer.diskStorage({
   }
 });
 
+// Configure multer for important borrowing documents
+const importantDocumentStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    console.log('[MULTER] Current working directory:', process.cwd());
+    console.log('[MULTER] __dirname:', __dirname);
+    const uploadDir = path.join(__dirname, '..', 'uploads', 'important_documents');
+    console.log('[MULTER] Important Documents UploadDir:', uploadDir);
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+      console.log('[MULTER] Created important_documents directory:', uploadDir);
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const fileExtension = path.extname(file.originalname);
+    const timestamp = Date.now();
+    const randomSuffix = Math.round(Math.random() * 1E9);
+
+    // Use timestamp-based naming that can be renamed later
+    // Format: temp_important_documents_TIMESTAMP_RANDOM.ext
+    const filename = `temp_important_documents_${timestamp}_${randomSuffix}${fileExtension}`;
+    console.log('[MULTER] Saving important document with temp name:', filename, 'original:', file.originalname);
+    cb(null, filename);
+  }
+});
+
+// File filter for important documents - accept all file types
+const importantDocumentFileFilter = (req, file, cb) => {
+  // Accept all file types for important documents
+  cb(null, true);
+};
+
 const fileFilter = (req, file, cb) => {
   // Accept images only
   if (file.mimetype.startsWith('image/')) {
@@ -82,6 +118,15 @@ export const uploadRepairImages = multer({
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit per file
     files: 10 // Maximum 10 files
+  }
+});
+
+export const uploadImportantDocuments = multer({
+  storage: importantDocumentStorage,
+  fileFilter: importantDocumentFileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit per file
+    files: 5 // Maximum 5 files
   }
 });
 
