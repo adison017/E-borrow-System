@@ -33,23 +33,113 @@ const createCloudinaryStorage = (folder, allowedFormats = ['jpg', 'jpeg', 'png',
 
     const resourceType = hasDocuments ? 'auto' : 'image';
 
+    // สร้าง params สำหรับ CloudinaryStorage
+    const params = {
+      folder: folder,
+      transformation: [
+        { quality: 'auto:good' },
+        { fetch_format: 'auto' }
+      ],
+      public_id: customPublicId ? () => customPublicId : undefined,
+      resource_type: resourceType
+    };
+
+    // เพิ่ม allowed_formats เฉพาะเมื่อเป็นรูปภาพ
+    if (resourceType === 'image') {
+      params.allowed_formats = allowedFormats;
+    }
+
     return new CloudinaryStorage({
       cloudinary: cloudinary,
-      params: {
-        folder: folder,
-        allowed_formats: allowedFormats,
-        transformation: [
-          { quality: 'auto:good' },
-          { fetch_format: 'auto' }
-        ],
-        public_id: customPublicId ? () => customPublicId : undefined,
-        resource_type: resourceType // ใช้ auto สำหรับไฟล์หลายประเภท
-      }
+      params: params
     });
   } catch (error) {
     console.warn('⚠️ Error creating Cloudinary storage, using fallback storage:', error.message);
     return multer.memoryStorage();
   }
+};
+
+// Create Cloudinary storage configuration with custom filename
+const createCloudinaryStorageWithCustomName = (folder, allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp'], borrowCode = null) => {
+  // Check if Cloudinary is configured
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.warn('⚠️ Cloudinary is not configured. Using fallback storage.');
+    return multer.memoryStorage();
+  }
+
+  try {
+    // ตรวจสอบประเภทไฟล์เพื่อกำหนด resource_type
+    const hasDocuments = allowedFormats.some(format =>
+      ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'html', 'zip', 'rar', '7z', 'rtf', 'xml', 'json'].includes(format)
+    );
+
+    const resourceType = hasDocuments ? 'auto' : 'image';
+
+    // สร้าง params สำหรับ CloudinaryStorage
+    const params = {
+      folder: folder,
+      transformation: [
+        { quality: 'auto:good' },
+        { fetch_format: 'auto' }
+      ],
+      resource_type: resourceType
+    };
+
+    // เพิ่ม custom public_id สำหรับ important documents หรือ pay slip
+    if (borrowCode) {
+      params.public_id = (req, file) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const extension = path.extname(file.originalname);
+        const name = path.basename(file.originalname, extension);
+
+        // ตรวจสอบว่าเป็น pay slip หรือ important documents
+        const isPaySlip = req.file && req.file.fieldname === 'slip';
+        const prefix = isPaySlip ? 'slip' : 'important_documents';
+
+        return `${borrowCode}_${prefix}_${name}_${uniqueSuffix}`;
+      };
+    }
+
+    // เพิ่ม allowed_formats เฉพาะเมื่อเป็นรูปภาพ
+    if (resourceType === 'image') {
+      params.allowed_formats = allowedFormats;
+    }
+
+    return new CloudinaryStorage({
+      cloudinary: cloudinary,
+      params: params
+    });
+  } catch (error) {
+    console.warn('⚠️ Error creating Cloudinary storage, using fallback storage:', error.message);
+    return multer.memoryStorage();
+  }
+};
+
+// Create local storage with custom filename
+const createLocalStorageWithCustomName = (folder, borrowCode) => {
+  return multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadPath = path.join(process.cwd(), 'uploads', folder);
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+      cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+      // สร้างชื่อไฟล์ตาม borrow code
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const extension = path.extname(file.originalname);
+      const name = path.basename(file.originalname, extension);
+
+      // ตรวจสอบว่าเป็น pay slip หรือ important documents
+      const isPaySlip = file.fieldname === 'slip';
+      const prefix = isPaySlip ? 'slip' : 'important_documents';
+
+      // ใช้รูปแบบ: BORROW_CODE_prefix_originalname_timestamp
+      const customFilename = `${borrowCode}_${prefix}_${name}_${uniqueSuffix}${extension}`;
+      cb(null, customFilename);
+    }
+  });
 };
 
 // File filter for different file types
@@ -179,10 +269,125 @@ const createLocalStorage = (folder) => {
   });
 };
 
+// Function to create upload middleware with borrow code
+export const createImportantDocumentsUpload = (borrowCode) => {
+  return multer({
+    storage: (() => {
+      try {
+        // สร้าง Cloudinary storage สำหรับ important documents
+        const cloudinaryStorage = createCloudinaryStorageWithCustomName(
+          'e-borrow/important_documents',
+          ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'rar', '7z', 'rtf', 'xml', 'json'],
+          borrowCode
+        );
+
+        // ตรวจสอบว่าเป็น CloudinaryStorage หรือไม่
+        if (cloudinaryStorage.constructor.name === 'CloudinaryStorage') {
+          console.log(`☁️ Using Cloudinary storage for important documents (borrow_code: ${borrowCode})`);
+          return cloudinaryStorage;
+        } else {
+          console.log(`📁 Using local storage for important documents (borrow_code: ${borrowCode})`);
+          return createLocalStorageWithCustomName('important_documents', borrowCode);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error creating Cloudinary storage, using local storage:', error.message);
+        return createLocalStorageWithCustomName('important_documents', borrowCode);
+      }
+    })(),
+    fileFilter: createFileFilter([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'text/csv',
+      'text/html',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed',
+      'application/rtf',
+      'application/xml',
+      'text/xml',
+      'application/json',
+      // เพิ่มนามสกุลไฟล์เพื่อรองรับกรณีที่ MIME type ไม่ถูกต้อง
+      'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'html', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'rar', '7z', 'rtf', 'xml', 'json'
+    ]),
+    limits: { fileSize: 10 * 1024 * 1024, files: 5 } // 10MB per file, max 5 files
+  }).array('important_documents', 5);
+};
+
+// Function to create upload middleware with custom name for important documents
+export const uploadImportantDocumentsWithCustomName = (req, res, next) => {
+  // Generate borrow code first
+  function generateBorrowCode() {
+    const random = Math.floor(1000 + Math.random() * 9000);
+    return `BR-${random}`;
+  }
+
+  const borrowCode = generateBorrowCode();
+  console.log(`Generated borrow_code for upload: ${borrowCode}`);
+
+  // Store the borrow code in request for later use
+  req.generatedBorrowCode = borrowCode;
+
+  // Create upload middleware with the generated borrow code
+  const uploadMiddleware = createImportantDocumentsUpload(borrowCode);
+
+  // Use the upload middleware
+  uploadMiddleware(req, res, next);
+};
+
+// Function to create pay slip upload middleware with borrow code
+export const createPaySlipUploadWithBorrowCode = (borrowCode) => {
+  return multer({
+    storage: (() => {
+      try {
+        // สร้าง Cloudinary storage สำหรับ pay slip
+        const cloudinaryStorage = createCloudinaryStorageWithCustomName(
+          'e-borrow/pay_slip',
+          ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+          borrowCode
+        );
+
+        // ตรวจสอบว่าเป็น CloudinaryStorage หรือไม่
+        if (cloudinaryStorage.constructor.name === 'CloudinaryStorage') {
+          console.log(`☁️ Using Cloudinary storage for pay slip (borrow_code: ${borrowCode})`);
+          return cloudinaryStorage;
+        } else {
+          console.log(`📁 Using local storage for pay slip (borrow_code: ${borrowCode})`);
+          return createLocalStorageWithCustomName('pay_slip', borrowCode);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error creating Cloudinary storage, using local storage:', error.message);
+        return createLocalStorageWithCustomName('pay_slip', borrowCode);
+      }
+    })(),
+    fileFilter: createFileFilter([
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      // เพิ่มนามสกุลไฟล์เพื่อรองรับกรณีที่ MIME type ไม่ถูกต้อง
+      'jpg', 'jpeg', 'png', 'gif', 'webp'
+    ]),
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB per file
+  }).single('slip');
+};
+
+// Legacy uploadImportantDocuments (for backward compatibility)
 export const uploadImportantDocuments = multer({
   storage: (() => {
     try {
-      // ลองสร้าง Cloudinary storage สำหรับ important documents
+      // สร้าง Cloudinary storage สำหรับ important documents โดยไม่ระบุ allowed_formats
       const cloudinaryStorage = createCloudinaryStorage('e-borrow/important_documents', ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'rar', '7z', 'rtf', 'xml', 'json']);
 
       // ตรวจสอบว่าเป็น CloudinaryStorage หรือไม่
@@ -229,6 +434,33 @@ export const uploadImportantDocuments = multer({
 
 // Utility functions for Cloudinary operations
 export const cloudinaryUtils = {
+  // Test Cloudinary connection
+  testConnection: async () => {
+    try {
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        return {
+          success: false,
+          error: 'Cloudinary environment variables are not configured',
+          suggestion: 'Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file'
+        };
+      }
+
+      const result = await cloudinary.api.ping();
+      return {
+        success: true,
+        message: 'Cloudinary connection successful',
+        data: result
+      };
+    } catch (error) {
+      console.error('Cloudinary connection test failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        suggestion: 'Please check your Cloudinary credentials and internet connection'
+      };
+    }
+  },
+
   // Upload file to Cloudinary (for direct uploads without multer)
   uploadFile: async (filePath, folder = 'e-borrow/general', options = {}) => {
     try {
@@ -483,11 +715,26 @@ export const handleCloudinaryUpload = (uploadMiddleware) => {
 
         // ตรวจสอบว่าเป็น error จาก Cloudinary หรือไม่
         if (err.message && err.message.includes('An unknown file format not allowed')) {
+          console.error('❌ Cloudinary file format error detected');
+          console.error('File details:', {
+            originalname: req.files ? req.files.map(f => f.originalname) : 'No files',
+            mimetype: req.files ? req.files.map(f => f.mimetype) : 'No files'
+          });
+
           return res.status(400).json({
             success: false,
-            message: 'รูปแบบไฟล์ไม่รองรับโดย Cloudinary กรุณาลองใช้ไฟล์ประเภทอื่น เช่น PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG',
+            message: 'รูปแบบไฟล์ไม่รองรับโดย Cloudinary',
             error: err.message,
-            suggestion: 'Cloudinary รองรับไฟล์: PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG, GIF, ZIP, RAR, RTF, XML, JSON'
+            suggestion: 'Cloudinary รองรับไฟล์: PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG, GIF, ZIP, RAR, RTF, XML, JSON',
+            supportedFormats: [
+              'PDF (.pdf)',
+              'Microsoft Word (.doc, .docx)',
+              'Microsoft Excel (.xls, .xlsx)',
+              'Text files (.txt, .csv, .html)',
+              'Images (.jpg, .jpeg, .png, .gif, .webp)',
+              'Compressed files (.zip, .rar, .7z)',
+              'Other (.rtf, .xml, .json)'
+            ]
           });
         }
 
@@ -501,12 +748,20 @@ export const handleCloudinaryUpload = (uploadMiddleware) => {
           });
         }
 
+        // ตรวจสอบ error ทั่วไป
         return res.status(500).json({
           success: false,
           message: 'เกิดข้อผิดพลาดในระบบ',
-          error: err.message
+          error: err.message,
+          suggestion: 'กรุณาลองใหม่อีกครั้งหรือติดต่อผู้ดูแลระบบ'
         });
       }
+
+      // ถ้าไม่มี error ให้ log ข้อมูลไฟล์ที่อัปโหลดสำเร็จ
+      if (req.files && req.files.length > 0) {
+        console.log('✅ Files uploaded successfully:', req.files.map(f => f.originalname));
+      }
+
       next();
     });
   };

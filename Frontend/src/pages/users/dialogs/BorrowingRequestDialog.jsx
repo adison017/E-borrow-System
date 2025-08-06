@@ -425,7 +425,8 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                         formData.append("slip", slipFile);
                         formData.append("borrow_id", request.borrow_id);
                         try {
-                          const res = await authFetch(`${API_BASE}/returns/upload-slip`, {
+                          // อัปโหลดสลิปไปยัง Cloudinary
+                          const res = await authFetch(`${API_BASE}/returns/upload-slip-cloudinary`, {
                             method: "POST",
                             body: formData
                           });
@@ -435,7 +436,11 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                           const confirmRes = await authFetch(`${API_BASE}/returns/confirm-payment`, {
                             method: "POST",
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ borrow_id: request.borrow_id, proof_image: data.filename })
+                            body: JSON.stringify({
+                              borrow_id: request.borrow_id,
+                              proof_image: data.cloudinary_url || data.filename,
+                              cloudinary_public_id: data.cloudinary_public_id
+                            })
                           });
                           if (!confirmRes.ok) throw new Error("ยืนยันการจ่ายเงินไม่สำเร็จ");
                           setUploadSuccess(true);

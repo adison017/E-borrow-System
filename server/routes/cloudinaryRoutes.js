@@ -1,58 +1,98 @@
 import express from 'express';
-import cloudinaryController from '../controllers/cloudinaryController.js';
+import { cloudinaryUtils } from '../utils/cloudinaryUtils.js';
 import authMiddleware from '../middleware/authMiddleware.js';
-import {
-  handleCloudinaryUpload
-} from '../utils/cloudinaryUtils.js';
-import multer from 'multer';
 
 const router = express.Router();
 
-// Protect all cloudinary routes
-router.use(authMiddleware);
-
-// Get Cloudinary configuration
-router.get('/config', cloudinaryController.getConfig);
-
 // Test Cloudinary connection
-router.get('/test-connection', cloudinaryController.testConnection);
+router.get('/test-connection', authMiddleware, async (req, res) => {
+  try {
+    const result = await cloudinaryUtils.testConnection();
 
-// Simple multer upload for general files
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'เชื่อมต่อ Cloudinary สำเร็จ',
+        data: result.data
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'ไม่สามารถเชื่อมต่อ Cloudinary ได้',
+        error: result.error,
+        suggestion: result.suggestion
+      });
+    }
+  } catch (error) {
+    console.error('Cloudinary test connection error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการทดสอบการเชื่อมต่อ',
+      error: error.message
+    });
+  }
 });
 
-// Upload single file - support multiple field names
-router.post('/upload', handleCloudinaryUpload(upload.single('file')), cloudinaryController.uploadFile);
-router.post('/upload-image', handleCloudinaryUpload(upload.single('image')), cloudinaryController.uploadFile);
-router.post('/upload-photo', handleCloudinaryUpload(upload.single('photo')), cloudinaryController.uploadFile);
+// Get Cloudinary configuration status
+router.get('/config', authMiddleware, (req, res) => {
+  const isConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
 
-// Upload multiple files
-router.post('/upload-multiple', handleCloudinaryUpload(upload.array('files', 10)), cloudinaryController.uploadMultipleFiles);
+  res.json({
+    success: true,
+    data: {
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME || null,
+      api_key: process.env.CLOUDINARY_API_KEY ? '***configured***' : null,
+      is_configured: isConfigured
+    }
+  });
+});
 
-// Delete file
-router.delete('/delete/:public_id', cloudinaryController.deleteFile);
+// Upload file to Cloudinary (for testing)
+router.post('/upload', authMiddleware, async (req, res) => {
+  try {
+    // This is a placeholder for direct file upload testing
+    // In practice, you would use multer middleware here
+    res.json({
+      success: false,
+      message: 'Please use the appropriate upload endpoint for your file type'
+    });
+  } catch (error) {
+    console.error('Cloudinary upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์',
+      error: error.message
+    });
+  }
+});
 
-// Get file info
-router.get('/file-info/:public_id', cloudinaryController.getFileInfo);
+// Delete file from Cloudinary
+router.delete('/delete/:publicId', authMiddleware, async (req, res) => {
+  try {
+    const { publicId } = req.params;
+    const result = await cloudinaryUtils.deleteFile(publicId);
 
-// Generate upload URL for client-side upload
-router.post('/generate-upload-url', cloudinaryController.generateUploadUrl);
-
-// Transform image URL
-router.post('/transform-image', cloudinaryController.transformImage);
-
-// Get usage statistics
-router.get('/usage-stats', cloudinaryController.getUsageStats);
-
-// Migrate existing files (placeholder)
-router.post('/migrate-files', cloudinaryController.migrateFiles);
-
-// Create folder structure in Cloudinary
-router.post('/create-folders', cloudinaryController.createFolders);
-
-// List folders in Cloudinary
-router.get('/list-folders', cloudinaryController.listFolders);
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'ลบไฟล์สำเร็จ',
+        data: result.result
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'ไม่สามารถลบไฟล์ได้',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Cloudinary delete error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการลบไฟล์',
+      error: error.message
+    });
+  }
+});
 
 export default router;

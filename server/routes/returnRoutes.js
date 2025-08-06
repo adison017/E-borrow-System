@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import authMiddleware from '../middleware/authMiddleware.js';
 import { uploadPaySlip } from '../utils/cloudinaryUploadUtils.js';
+import { createPaySlipUploadWithBorrowCode } from '../utils/cloudinaryUtils.js';
 
 const router = express.Router();
 
@@ -98,5 +99,79 @@ router.post('/upload-slip', async (req, res, next) => {
 
 // ยืนยันการจ่ายเงิน
 router.post('/confirm-payment', returnController.confirmPayment);
+
+// อัปโหลดสลิปไปยัง Cloudinary (ใหม่)
+router.post('/upload-slip-cloudinary', async (req, res, next) => {
+  try {
+    // Get borrow_code from request body first
+    const { borrow_code } = req.body;
+    if (!borrow_code) {
+      return res.status(400).json({ message: 'borrow_code is required' });
+    }
+
+    // Create upload middleware with borrow code
+    const uploadMiddleware = createPaySlipUploadWithBorrowCode(borrow_code);
+
+    uploadMiddleware(req, res, async (err) => {
+      if (err) {
+        console.error('Upload error:', err);
+        return res.status(400).json({
+          message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์',
+          error: err.message
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'ไม่พบไฟล์ที่อัปโหลด' });
+      }
+
+      try {
+        // Check if file was uploaded to Cloudinary or stored locally
+        let responseData = {
+          filename: req.file.filename,
+          original_name: req.file.originalname,
+          file_size: req.file.size,
+          mime_type: req.file.mimetype
+        };
+
+        if (req.file.path && req.file.secure_url) {
+          // Cloudinary upload
+          responseData.cloudinary_url = req.file.secure_url;
+          responseData.cloudinary_public_id = req.file.public_id;
+          responseData.file_path = req.file.path;
+          console.log(`✅ Slip uploaded to Cloudinary: ${req.file.originalname} -> ${req.file.filename}`);
+        } else if (req.file.path) {
+          // Local storage
+          responseData.file_path = req.file.path;
+          responseData.cloudinary_public_id = null;
+          responseData.cloudinary_url = null;
+          responseData.stored_locally = true;
+          console.log(`📁 Slip stored locally: ${req.file.originalname} -> ${req.file.filename}`);
+        } else {
+          // Memory storage (fallback)
+          console.warn('⚠️ Slip stored in memory - Cloudinary not configured');
+          responseData.file_path = null;
+          responseData.cloudinary_public_id = null;
+          responseData.cloudinary_url = null;
+          responseData.stored_in_memory = true;
+        }
+
+        res.json(responseData);
+      } catch (uploadError) {
+        console.error('File processing error:', uploadError);
+        res.status(500).json({
+          message: 'เกิดข้อผิดพลาดในการประมวลผลไฟล์',
+          error: uploadError.message
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Upload route error:', error);
+    res.status(500).json({
+      message: 'เกิดข้อผิดพลาดในระบบ',
+      error: error.message
+    });
+  }
+});
 
 export default router;

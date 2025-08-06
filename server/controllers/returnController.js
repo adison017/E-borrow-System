@@ -603,13 +603,15 @@ export const uploadSlip = async (req, res) => {
 
 export const confirmPayment = async (req, res) => {
   try {
-    const { borrow_id, proof_image } = req.body;
+    const { borrow_id, proof_image, cloudinary_public_id } = req.body;
     console.log('[confirm-payment] req.body:', req.body);
     if (!borrow_id || !proof_image) {
       console.log('[confirm-payment] missing borrow_id or proof_image');
       return res.status(400).json({ success: false, message: 'Missing borrow_id or proof_image' });
     }
-    const affected = await updateProofImageAndPayStatus(borrow_id, proof_image);
+
+    // อัปเดต proof_image และ cloudinary_public_id (ถ้ามี)
+    const affected = await updateProofImageAndPayStatus(borrow_id, proof_image, cloudinary_public_id);
     console.log('[confirm-payment] affected:', affected);
     if (affected > 0) {
       res.json({ success: true });
