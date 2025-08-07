@@ -125,7 +125,7 @@ const Fine = () => {
       <AlertDialog
         show={showSuccessAlert}
         title="ชำระเงินสำเร็จ!"
-        message="การชำระค่าปรับเสร็จสิ้นแล้ว\nขอบคุณที่ใช้บริการ"
+        message="การชำระค่าปรับเสร็จสิ้นแล้ว ขอบคุณที่ใช้บริการ"
         type="success"
         duration={5000}
         onClose={() => setShowSuccessAlert(false)}

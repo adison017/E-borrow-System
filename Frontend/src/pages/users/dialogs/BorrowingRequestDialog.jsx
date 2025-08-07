@@ -201,7 +201,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
   // ฟังก์ชันแปลง QR Code เป็นไฟล์ภาพและดาวน์โหลด
   const downloadQRCode = async () => {
     if (!qrCodeRef.current || isDownloadingQR) return;
-    
+
     setIsDownloadingQR(true);
     try {
       // สร้าง canvas สำหรับ QR Code
@@ -282,11 +282,11 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
               <text x="150" y="180" text-anchor="middle" font-family="Arial" font-size="12" fill="black">${qrValue.substring(0, 20)}...</text>
             </svg>
           `;
-          
+
           const fallbackBlob = new Blob([fallbackSvg], { type: 'image/svg+xml' });
           const fallbackUrl = URL.createObjectURL(fallbackBlob);
           const fallbackImg = new Image();
-          
+
           fallbackImg.onload = () => {
             // วาดกรอบด้านนอกแบบสวยงาม
             ctx.strokeStyle = '#34495E';
@@ -312,7 +312,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
              ctx.font = 'bold 20px Arial';
              ctx.textAlign = 'center';
              ctx.fillText(`ยอดเงิน: ${totalFine.toLocaleString()} บาท`, 200, 410);
-            
+
             canvas.toBlob((blob) => {
               const downloadUrl = URL.createObjectURL(blob);
               const link = document.createElement('a');
@@ -326,14 +326,14 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
               setIsDownloadingQR(false);
             }, 'image/png');
           };
-          
+
           fallbackImg.src = fallbackUrl;
         } catch (fallbackError) {
           console.error('Fallback error:', fallbackError);
           setIsDownloadingQR(false);
         }
       };
-      
+
       img.src = svgUrl;
     } catch (error) {
       console.error('Error downloading QR code:', error);
@@ -607,6 +607,8 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                           } else {
                             console.error('ไม่พบ return_id ใน request, ไม่สามารถ trigger LINE Notify ได้');
                           }
+                          // แสดง success alert
+                          setShowSuccessAlert(true);
                           if (afterClose) afterClose(true);
                         } catch (err) {
                           setUploadError("เกิดข้อผิดพลาดในการอัปโหลดหรือยืนยันการจ่ายเงิน");
@@ -760,7 +762,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
       {/* Success Alert */}
       <AlertDialog
         show={showSuccessAlert}
-        message="ชำระเงินสำเร็จ ระบบได้รับข้อมูลการชำระเงินแล้ว"
+        message="🎉 ชำระเงินเสร็จสิ้น! ขอบคุณสำหรับการใช้บริการ รายการยืมของคุณได้เสร็จสิ้นเรียบร้อยแล้ว"
         type="success"
         onClose={() => {
           console.log('AlertDialog onClose called');
