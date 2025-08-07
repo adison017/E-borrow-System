@@ -103,27 +103,99 @@ const BorrowCalendar = () => {
     try {
       setLoading(true);
       setDebugInfo('กำลังดึงข้อมูล...');
+
+      // ตรวจสอบ token ก่อน
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setDebugInfo('ไม่พบ token - กรุณาเข้าสู่ระบบใหม่');
+        setNotificationData({
+          title: 'ไม่พบ token',
+          message: 'กรุณาเข้าสู่ระบบใหม่',
+          type: 'error'
+        });
+        setShowNotification(true);
+        return;
+      }
+
+      console.log('Making API call to:', `http://localhost:5000/api/borrows`);
       const data = await getAllBorrows();
       console.log('Fetched borrows data:', data);
+      console.log('Data type:', typeof data);
+      console.log('Is array:', Array.isArray(data));
+
       setDebugInfo(`ได้รับข้อมูล: ${Array.isArray(data) ? data.length : 'ไม่ใช่ array'} รายการ`);
 
       if (Array.isArray(data)) {
         setBorrows(data);
         console.log('Set borrows state with', data.length, 'items');
         setDebugInfo(`โหลดข้อมูลสำเร็จ: ${data.length} รายการ`);
+
+        // แสดงตัวอย่างข้อมูลแรก
+        if (data.length > 0) {
+          console.log('Sample data:', data[0]);
+          setDebugInfo(`โหลดข้อมูลสำเร็จ: ${data.length} รายการ - ตัวอย่าง: ${data[0].borrow_code}`);
+        }
+      } else if (data && data.message) {
+        // กรณี API ส่ง error message กลับมา
+        console.error('API Error:', data.message);
+        setDebugInfo(`API Error: ${data.message}`);
+        setNotificationData({
+          title: 'เกิดข้อผิดพลาด',
+          message: data.message,
+          type: 'error'
+        });
+        setShowNotification(true);
       } else {
         console.error('Data is not an array:', data);
-        setDebugInfo(`ข้อมูลไม่ถูกต้อง: ${typeof data}`);
+        setDebugInfo(`ข้อมูลไม่ถูกต้อง: ${typeof data} - ${JSON.stringify(data).slice(0, 100)}`);
+
+        // ลองสร้างข้อมูลทดสอบ
+        const testData = [
+          {
+            borrow_id: 'test_1',
+            borrow_code: 'TEST001',
+            borrower: { name: 'ทดสอบ ระบบ', department: 'IT', position: 'Developer' },
+            equipment: [{ name: 'Laptop Dell', item_code: 'LAP001', quantity: 1 }],
+            borrow_date: new Date().toISOString().split('T')[0],
+            return_date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
+            status: 'approved',
+            purpose: 'ทดสอบระบบ'
+          }
+        ];
+        setBorrows(testData);
+        setDebugInfo(`ใช้ข้อมูลทดสอบ: ${testData.length} รายการ`);
       }
     } catch (error) {
       console.error('Error fetching borrows:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+
       setDebugInfo(`เกิดข้อผิดพลาด: ${error.message}`);
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
-        message: 'ไม่สามารถดึงข้อมูลการยืมได้',
+        message: `ไม่สามารถดึงข้อมูลการยืมได้: ${error.message}`,
         type: 'error'
       });
       setShowNotification(true);
+
+      // สร้างข้อมูลทดสอบเมื่อเกิด error
+      const testData = [
+        {
+          borrow_id: 'error_test_1',
+          borrow_code: 'ERR001',
+          borrower: { name: 'ข้อมูลทดสอบ', department: 'ทดสอบ', position: 'ทดสอบ' },
+          equipment: [{ name: 'อุปกรณ์ทดสอบ', item_code: 'TEST001', quantity: 1 }],
+          borrow_date: new Date().toISOString().split('T')[0],
+          return_date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
+          status: 'pending',
+          purpose: 'ข้อมูลทดสอบเมื่อเกิดข้อผิดพลาด'
+        }
+      ];
+      setBorrows(testData);
+      setDebugInfo(`ใช้ข้อมูลทดสอบ (Error): ${testData.length} รายการ`);
     } finally {
       setLoading(false);
     }
@@ -132,6 +204,15 @@ const BorrowCalendar = () => {
      // แปลงข้อมูลการยืมเป็น events สำหรับปฏิทิน
    const events = useMemo(() => {
      console.log('Creating events from borrows:', borrows);
+     console.log('Borrows length:', borrows.length);
+     console.log('Filter status:', filterStatus);
+     console.log('Search term:', searchTerm);
+
+     if (!Array.isArray(borrows) || borrows.length === 0) {
+       console.log('No borrows data available');
+       return [];
+     }
+
      const filteredBorrows = borrows
        .filter(borrow => {
          // ไม่แสดงรายการที่เสร็จสิ้นแล้ว
@@ -147,6 +228,7 @@ const BorrowCalendar = () => {
        });
 
      console.log('Filtered borrows:', filteredBorrows);
+     console.log('Filtered borrows length:', filteredBorrows.length);
 
      const events = filteredBorrows.map(borrow => {
        console.log('Processing borrow:', borrow.borrow_code, 'dates:', borrow.borrow_date, borrow.return_date);
@@ -156,11 +238,43 @@ const BorrowCalendar = () => {
        const equipmentNames = borrow.equipment?.map(eq => eq.name).join(', ') || 'ไม่ระบุ';
        const statusText = getStatusText(borrow.status);
 
-       return {
+       // แปลงวันที่ให้ถูกต้อง
+       let startDate, endDate;
+       try {
+         // ใช้ return_date แทน due_date เพื่อความชัดเจน
+         const borrowDate = borrow.borrow_date || borrow.due_date;
+         const returnDate = borrow.return_date || borrow.due_date;
+
+         startDate = new Date(borrowDate);
+         endDate = new Date(returnDate);
+
+         // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
+         if (isNaN(startDate.getTime())) {
+           console.warn('Invalid start date for borrow:', borrow.borrow_code);
+           startDate = new Date(); // ใช้วันนี้เป็น default
+         }
+
+         if (isNaN(endDate.getTime())) {
+           console.warn('Invalid end date for borrow:', borrow.borrow_code);
+           endDate = new Date(startDate.getTime() + 7*24*60*60*1000); // 7 วันหลังจาก start date
+         }
+
+         // ถ้า end date เป็นวันเดียวกับ start date ให้เพิ่ม 1 วัน
+         if (endDate.getTime() === startDate.getTime()) {
+           endDate = new Date(startDate.getTime() + 24*60*60*1000);
+         }
+
+       } catch (error) {
+         console.error('Error parsing dates for borrow:', borrow.borrow_code, error);
+         startDate = new Date();
+         endDate = new Date(startDate.getTime() + 7*24*60*60*1000);
+       }
+
+       const event = {
          id: borrow.borrow_id,
          title: `${borrow.borrow_code}\n${borrowerName}\n${equipmentNames}\nสถานะ: ${statusText}`,
-         start: new Date(borrow.borrow_date),
-         end: new Date(borrow.return_date),
+         start: startDate,
+         end: endDate,
          borrow: borrow,
          status: borrow.status,
          allDay: true, // เปลี่ยนเป็น allDay เพื่อให้แสดงเต็มวัน
@@ -172,9 +286,19 @@ const BorrowCalendar = () => {
            statusText: statusText
          }
        };
+
+       console.log('Created event:', {
+         id: event.id,
+         title: event.title.split('\n')[0], // แสดงแค่ borrow_code
+         start: event.start.toISOString(),
+         end: event.end.toISOString(),
+         status: event.status
+       });
+
+       return event;
      });
 
-     console.log('Generated events:', events);
+     console.log('Generated events:', events.length, 'events');
      return events;
    }, [borrows, filterStatus, searchTerm]);
 
@@ -317,15 +441,61 @@ const BorrowCalendar = () => {
                 </Button>
               </div>
 
-              {/* Refresh Button */}
-              <Button
-                onClick={fetchBorrows}
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-              >
-                <MdRefresh className={loading ? 'animate-spin' : ''} />
-                {loading ? 'กำลังโหลด...' : 'รีเฟรช'}
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    // สร้างข้อมูลทดสอบ
+                    const testData = [
+                      {
+                        borrow_id: 'demo_1',
+                        borrow_code: 'DEMO001',
+                        borrower: { name: 'สมชาย ใจดี', department: 'IT', position: 'Developer' },
+                        equipment: [{ name: 'Laptop Dell Inspiron', item_code: 'LAP001', quantity: 1 }],
+                        borrow_date: new Date().toISOString().split('T')[0],
+                        return_date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
+                        status: 'approved',
+                        purpose: 'งานพัฒนาระบบ'
+                      },
+                      {
+                        borrow_id: 'demo_2',
+                        borrow_code: 'DEMO002',
+                        borrower: { name: 'สมหญิง รักงาน', department: 'Marketing', position: 'Manager' },
+                        equipment: [{ name: 'Projector Epson', item_code: 'PRJ001', quantity: 1 }],
+                        borrow_date: new Date(Date.now() + 2*24*60*60*1000).toISOString().split('T')[0],
+                        return_date: new Date(Date.now() + 5*24*60*60*1000).toISOString().split('T')[0],
+                        status: 'pending_approval',
+                        purpose: 'งานนำเสนอโครงการ'
+                      },
+                      {
+                        borrow_id: 'demo_3',
+                        borrow_code: 'DEMO003',
+                        borrower: { name: 'สมศักดิ์ มั่นคง', department: 'HR', position: 'Officer' },
+                        equipment: [{ name: 'กล้องถ่ายรูป Canon', item_code: 'CAM001', quantity: 1 }],
+                        borrow_date: new Date(Date.now() - 2*24*60*60*1000).toISOString().split('T')[0],
+                        return_date: new Date(Date.now() + 1*24*60*60*1000).toISOString().split('T')[0],
+                        status: 'carry',
+                        purpose: 'ถ่ายภาพกิจกรรมบริษัท'
+                      }
+                    ];
+                    setBorrows(testData);
+                    setDebugInfo(`โหลดข้อมูลทดสอบ: ${testData.length} รายการ`);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                >
+                  <MdEvent />
+                  ข้อมูลทดสอบ
+                </Button>
+
+                <Button
+                  onClick={fetchBorrows}
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                >
+                  <MdRefresh className={loading ? 'animate-spin' : ''} />
+                  {loading ? 'กำลังโหลด...' : 'รีเฟรช'}
+                </Button>
+              </div>
             </div>
           </CardBody>
         </Card>

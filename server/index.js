@@ -31,6 +31,7 @@ import returnRoutes from './routes/returnRoutes.js';
 import roomRoutes from './routes/roomRoutes.js';
 import contactInfoRoutes from './routes/contactInfoRoutes.js';
 import cloudinaryRoutes from './routes/cloudinaryRoutes.js';
+import notificationSettingsRoutes from './routes/notificationSettingsRoutes.js';
 
 
 
@@ -186,6 +187,7 @@ app.use('/api/damage-levels', damageLevelRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/contact-info', contactInfoRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
+app.use('/api/notification-settings', notificationSettingsRoutes);
 
 // Executive dashboard analytics endpoints
 import dashboardRoutes from './routes/dashboardRoutes.js';
