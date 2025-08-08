@@ -36,7 +36,8 @@ export const getAllBorrows = async () => {
   rm.image_url,
   bi.quantity,
   bt.borrow_date,
-  bt.return_date,
+  bt.return_date AS due_date,
+  ret.return_date AS return_date,
   bt.status,
   bt.purpose,
   bt.rejection_reason,
@@ -50,7 +51,16 @@ JOIN equipment e ON bi.item_id = e.item_id
 LEFT JOIN branches b ON u.branch_id = b.branch_id
 LEFT JOIN positions p ON u.position_id = p.position_id
 LEFT JOIN roles r ON u.role_id = r.role_id
-LEFT JOIN room rm ON e.room_id = rm.room_id;`
+LEFT JOIN room rm ON e.room_id = rm.room_id
+LEFT JOIN (
+  SELECT r1.*
+  FROM returns r1
+  INNER JOIN (
+    SELECT borrow_id, MAX(return_date) AS max_return_date
+    FROM returns
+    GROUP BY borrow_id
+  ) r2 ON r1.borrow_id = r2.borrow_id AND r1.return_date = r2.max_return_date
+) ret ON bt.borrow_id = ret.borrow_id;`
   );
 
   // Group by borrow_id
@@ -70,6 +80,7 @@ LEFT JOIN room rm ON e.room_id = rm.room_id;`
         },
         equipment: [],
         borrow_date: row.borrow_date ? row.borrow_date.toISOString ? row.borrow_date.toISOString().split('T')[0] : String(row.borrow_date).split('T')[0] : null,
+        due_date: row.due_date ? row.due_date.toISOString ? row.due_date.toISOString().split('T')[0] : String(row.due_date).split('T')[0] : null,
         return_date: row.return_date ? row.return_date.toISOString ? row.return_date.toISOString().split('T')[0] : String(row.return_date).split('T')[0] : null,
         status: row.status,
         purpose: row.purpose,
@@ -265,6 +276,7 @@ export const getBorrowsByStatus = async (statusArray) => {
       bt.rejection_reason,
       bt.signature_image,
       bt.handover_photo,
+      bt.important_documents,
       ret.proof_image
     FROM borrow_transactions bt
     JOIN users u ON bt.user_id = u.user_id
@@ -309,6 +321,7 @@ export const getBorrowsByStatus = async (statusArray) => {
         rejection_reason: row.rejection_reason,
         signature_image: row.signature_image,
         handover_photo: row.handover_photo,
+        important_documents: row.important_documents ? JSON.parse(row.important_documents) : [],
         proof_image: row.proof_image
       };
     }

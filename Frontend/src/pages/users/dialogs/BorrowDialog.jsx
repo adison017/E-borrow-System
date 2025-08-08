@@ -17,6 +17,65 @@ const BorrowDialog = ({
 }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ฟังก์ชันตรวจสอบประเภทไฟล์ Office
+  const getFileIcon = (fileName) => {
+    const extension = fileName.toLowerCase().split('.').pop();
+    switch (extension) {
+      case 'pdf':
+        return (
+          <svg className="h-4 w-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'doc':
+      case 'docx':
+        return (
+          <svg className="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'xls':
+      case 'xlsx':
+        return (
+          <svg className="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'ppt':
+      case 'pptx':
+        return (
+          <svg className="h-4 w-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'bmp':
+      case 'tiff':
+        return (
+          <svg className="h-4 w-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+          </svg>
+        );
+      default:
+        return (
+          <svg className="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          </svg>
+        );
+    }
+  };
+
+  // ฟังก์ชันตรวจสอบประเภทไฟล์ที่อนุญาต
+  const isAllowedFileType = (fileName) => {
+    const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'txt', 'rtf', 'csv'];
+    const extension = fileName.toLowerCase().split('.').pop();
+    return allowedExtensions.includes(extension);
+  };
   // ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
   function getTomorrowTH() {
     const now = new Date();
@@ -47,6 +106,7 @@ const BorrowDialog = ({
   useEffect(() => {
     if (!showBorrowDialog) {
       setSelectedFiles([]);
+      setIsSubmitting(false); // Reset loading state when dialog closes
     }
   }, [showBorrowDialog]);
 
@@ -56,6 +116,10 @@ const BorrowDialog = ({
     const validFiles = files.filter(file => {
       if (file.size > 10 * 1024 * 1024) { // 10MB limit
         alert(`ไฟล์ ${file.name} มีขนาดใหญ่เกินไป (สูงสุด 10MB)`);
+        return false;
+      }
+      if (!isAllowedFileType(file.name)) {
+        alert(`ไฟล์ ${file.name} ไม่ใช่ประเภทไฟล์ที่อนุญาต`);
         return false;
       }
       return true;
@@ -95,6 +159,10 @@ const BorrowDialog = ({
           alert(`ไฟล์ ${file.name} มีขนาดใหญ่เกินไป (สูงสุด 10MB)`);
           return false;
         }
+        if (!isAllowedFileType(file.name)) {
+          alert(`ไฟล์ ${file.name} ไม่ใช่ประเภทไฟล์ที่อนุญาต`);
+          return false;
+        }
         return true;
       });
 
@@ -108,18 +176,48 @@ const BorrowDialog = ({
   };
 
   const isBorrowDateValid = !!borrowData.borrowDate && borrowData.borrowDate >= getTomorrowTH();
+
+  // Handle form submission with loading state
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      await handleSubmitBorrow(e, selectedFiles);
+    } catch (error) {
+      console.error('Error submitting borrow request:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     showBorrowDialog && (
       <div className="modal modal-open">
         <div className="fixed inset-0 flex items-center justify-center z-50 p-2 transition-opacity duration-300">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] transform transition-all duration-300 flex flex-col">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] transform transition-all duration-300 flex flex-col relative">
+            {/* Loading Overlay */}
+            {isSubmitting && (
+              <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-xl">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600 font-medium">กำลังส่งคำขอยืม...</p>
+                  <p className="text-gray-500 text-sm mt-1">กรุณารอสักครู่</p>
+                </div>
+              </div>
+            )}
             {/* Header - Fixed */}
             <div className="flex-shrink-0 p-4 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold text-gray-800">แบบฟอร์มขอยืมครุภัณฑ์</h2>
                 <button
                   onClick={() => setShowBorrowDialog(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className={`transition-colors ${
+                    isSubmitting
+                      ? 'text-gray-300 cursor-not-allowed'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                  disabled={isSubmitting}
                 >
                   <MdClose className="w-6 h-6" />
                 </button>
@@ -164,17 +262,20 @@ const BorrowDialog = ({
                 </div>
               </div>
 
-              <form id="borrow-form" onSubmit={(e) => handleSubmitBorrow(e, selectedFiles)}>
+              <form id="borrow-form" onSubmit={handleFormSubmit}>
                 <div className="mb-4">
                   <label className="block text-gray-700 font-medium mb-2">เหตุผลการขอยืม</label>
                   <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm ${
+                      isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
                     placeholder="กรุณากรอกเหตุผลการขอยืม..."
                     rows={3}
                     name="reason"
                     value={borrowData.reason}
                     onChange={handleInputChange}
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -187,12 +288,15 @@ const BorrowDialog = ({
                     <div className="relative">
                       <input
                         type="date"
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                        className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm ${
+                          isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
                         name="borrowDate"
                         value={borrowData.borrowDate}
                         onChange={handleInputChange}
                         min={getTomorrowTH()}
                         required
+                        disabled={isSubmitting}
                       />
                       <button
                         type="button"
@@ -215,13 +319,16 @@ const BorrowDialog = ({
                     <div className="relative">
                       <input
                         type="date"
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                        className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm ${
+                          isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
                         name="returnDate"
                         value={borrowData.returnDate}
                         onChange={handleReturnDateChange}
                         min={borrowData.borrowDate}
                         max={calculateMaxReturnDate()}
                         required
+                        disabled={isSubmitting}
                       />
                       <button
                         type="button"
@@ -244,14 +351,16 @@ const BorrowDialog = ({
                   {/* Drag & Drop Area */}
                   <div
                     className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                      dragActive
+                      isSubmitting
+                        ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                        : dragActive
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
+                    onDragEnter={isSubmitting ? undefined : handleDrag}
+                    onDragLeave={isSubmitting ? undefined : handleDrag}
+                    onDragOver={isSubmitting ? undefined : handleDrag}
+                    onDrop={isSubmitting ? undefined : handleDrop}
                   >
                     <div className="space-y-2">
                       <div className="text-gray-600">
@@ -260,11 +369,15 @@ const BorrowDialog = ({
                         </svg>
                       </div>
                       <div className="text-gray-600">
-                        <label htmlFor="file-upload" className="cursor-pointer">
-                          <span className="font-medium text-blue-600 hover:text-blue-500 text-sm">
-                            คลิกเพื่อเลือกไฟล์
+                        <label htmlFor="file-upload" className={isSubmitting ? "cursor-not-allowed" : "cursor-pointer"}>
+                          <span className={`font-medium text-sm ${
+                            isSubmitting
+                              ? 'text-gray-400'
+                              : 'text-blue-600 hover:text-blue-500'
+                          }`}>
+                            {isSubmitting ? 'ไม่สามารถอัปโหลดไฟล์ได้ขณะส่งคำขอ' : 'คลิกเพื่อเลือกไฟล์'}
                           </span>
-                          {' '}หรือลากไฟล์มาวางที่นี่
+                          {!isSubmitting && ' หรือลากไฟล์มาวางที่นี่'}
                         </label>
                         <input
                           id="file-upload"
@@ -273,11 +386,12 @@ const BorrowDialog = ({
                           multiple
                           className="sr-only"
                           onChange={handleFileSelect}
-                          accept="*/*"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.txt,.rtf,.csv"
+                          disabled={isSubmitting}
                         />
                       </div>
                       <p className="text-xs text-gray-500">
-                        รองรับไฟล์ทุกประเภท (PDF, DOC, JPG, PNG, etc.)
+                        รองรับไฟล์ Office ทั้งหมด (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX) และรูปภาพ (JPG, PNG, etc.)
                       </p>
                     </div>
                   </div>
@@ -291,9 +405,7 @@ const BorrowDialog = ({
                           <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <div className="flex items-center space-x-2">
                               <div className="flex-shrink-0">
-                                <svg className="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                                </svg>
+                                {getFileIcon(file.name)}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium text-gray-900 truncate">
@@ -307,7 +419,12 @@ const BorrowDialog = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveFile(index)}
-                              className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                              className={`flex-shrink-0 p-1 transition-colors ${
+                                isSubmitting
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-gray-400 hover:text-red-500'
+                              }`}
+                              disabled={isSubmitting}
                             >
                               <MdClose className="h-3 w-3" />
                             </button>
@@ -327,16 +444,28 @@ const BorrowDialog = ({
                   type="button"
                   onClick={() => setShowBorrowDialog(false)}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors font-medium text-sm"
+                  disabled={isSubmitting}
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
                   form="borrow-form"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm flex items-center gap-1"
-                  disabled={!isBorrowDateValid}
+                  className={`px-4 py-2 rounded-lg transition-colors font-medium text-sm flex items-center gap-2 ${
+                    isSubmitting
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  } text-white`}
+                  disabled={!isBorrowDateValid || isSubmitting}
                 >
-                  ส่งคำขอยืม
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      กำลังส่งคำขอ...
+                    </>
+                  ) : (
+                    'ส่งคำขอยืม'
+                  )}
                 </button>
               </div>
             </div>

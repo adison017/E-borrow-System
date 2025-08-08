@@ -93,6 +93,17 @@ const ReceiveItem = () => {
   useEffect(() => {
     // Fetch borrows from backend
     getAllBorrows().then(data => {
+      console.log('=== DEBUG: getAllBorrows response ===');
+      console.log('Data type:', typeof data);
+      console.log('Is array:', Array.isArray(data));
+      console.log('Data length:', data?.length);
+      if (Array.isArray(data) && data.length > 0) {
+        console.log('First item structure:', data[0]);
+        console.log('First item equipment:', data[0].equipment);
+        console.log('First item borrow_date:', data[0].borrow_date);
+        console.log('First item return_date:', data[0].return_date);
+        console.log('First item due_date:', data[0].due_date);
+      }
       setBorrows(Array.isArray(data) ? data : []);
     });
     // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต receive list แบบ real-time ===
@@ -349,8 +360,15 @@ const ReceiveItem = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedDeliveries.length > 0 ? (
-                  paginatedDeliveries.map((item, index) => (
-                    <tr key={item.borrow_id} className="hover:bg-gray-50">
+                  paginatedDeliveries.map((item, index) => {
+                    console.log(`=== DEBUG: Rendering item ${index} ===`);
+                    console.log('Item:', item);
+                    console.log('Equipment:', item.equipment);
+                    console.log('Equipment length:', item.equipment?.length);
+                    console.log('Borrow date:', item.borrow_date);
+                    console.log('Return date:', item.return_date);
+                    return (
+                      <tr key={item.borrow_id} className="hover:bg-gray-50">
                       <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{item.borrow_code}</td>
                       <td className="w-48 px-4 py-4 whitespace-nowrap text-left">
                         <div className="flex items-center gap-3">
@@ -418,7 +436,8 @@ const ReceiveItem = () => {
                         </div>
                       </td>
                     </tr>
-                  ))
+                  );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={TABLE_HEAD.length} className="px-6 py-16 text-center">
