@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardHeader, Typography, Button, Textarea, Input } from '@material-tailwind/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardBody, Typography, Button, Input } from '@material-tailwind/react';
 import {
   MdSettings,
   MdContactPhone,
   MdLocationOn,
   MdAccessTime,
   MdNotifications,
-  MdSecurity,
-  MdStorage,
-  MdLanguage,
   MdSave,
   MdRefresh,
   MdCheckCircle,
@@ -18,10 +15,12 @@ import {
   MdBarChart,
   MdWifiTethering
 } from 'react-icons/md';
+import { FaUserEdit } from 'react-icons/fa';
+// removed security icons
 import { ImMail4 } from "react-icons/im";
 import { authFetch } from '../../utils/api';
-import { getCloudinaryConfig, testCloudinaryConnection as testConnection, getCloudinaryUsageStats as getUsageStats, createCloudinaryFolders, listCloudinaryFolders } from '../../utils/cloudinaryUtils';
 import Notification from '../../components/Notification';
+import PersonalInfoEdit from '../users/edit_profile.jsx';
 
 const SystemSettings = () => {
   const [contactInfo, setContactInfo] = useState({
@@ -44,16 +43,394 @@ const SystemSettings = () => {
   const [notificationData, setNotificationData] = useState({});
   const [activeTab, setActiveTab] = useState('notifications');
   const [isUpdatingStats, setIsUpdatingStats] = useState(false);
+  const [notifActive, setNotifActive] = useState('overview');
+
+  // Refs for in-page notification menu navigation
+  const overviewRef = useRef(null);
+  const connectionRef = useRef(null);
+  const contactRef = useRef(null);
+  const previewRef = useRef(null);
+  const globalRef = useRef(null);
+  const rolesRef = useRef(null);
+
+  // Security tab states
+  const [securityForm, setSecurityForm] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    otp: ''
+  });
+  const [otpSent, setOtpSent] = useState(false);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [passwordHint, setPasswordHint] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: '', color: 'bg-gray-200', textColor: 'text-gray-500' });
+  const [resendCooldownSec, setResendCooldownSec] = useState(0);
+  // Auto-logout settings
+  const [inactivityMinutes, setInactivityMinutes] = useState(() => {
+    const saved = parseInt(localStorage.getItem('security.inactivityMinutes'));
+    return Number.isFinite(saved) && saved > 0 ? saved : 45;
+  });
+  // Pre-logout warning
+  const [preWarnMinutes, setPreWarnMinutes] = useState(() => {
+    const saved = parseInt(localStorage.getItem('security.preLogoutWarnMinutes'));
+    return Number.isFinite(saved) && saved >= 0 ? saved : 1;
+  });
+  // Password policy
+  const [passwordPolicy, setPasswordPolicy] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('security.passwordPolicy') || '{}');
+      return {
+        minLength: Number.isFinite(saved.minLength) ? saved.minLength : 8,
+        requireLetter: typeof saved.requireLetter === 'boolean' ? saved.requireLetter : true,
+        requireNumber: typeof saved.requireNumber === 'boolean' ? saved.requireNumber : true,
+        requireUppercase: typeof saved.requireUppercase === 'boolean' ? saved.requireUppercase : false,
+        requireSpecial: typeof saved.requireSpecial === 'boolean' ? saved.requireSpecial : false,
+      };
+    } catch {
+      return { minLength: 8, requireLetter: true, requireNumber: true, requireUppercase: false, requireSpecial: false };
+    }
+  });
 
   useEffect(() => {
     fetchContactInfo();
-    fetchCloudinaryConfig();
     if (activeTab === 'notifications') {
       fetchNotificationStats();
       fetchUsers();
     }
   }, [activeTab]);
 
+  // Prefill email from logged-in user (if available)
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user?.email) {
+          setSecurityForm(prev => ({ ...prev, email: user.email }));
+        }
+      }
+    } catch (_) {}
+  }, []);
+
+  const validatePassword = (pwd) => {
+    const policy = passwordPolicy;
+    if (!pwd || pwd.length < policy.minLength) return `รหัสผ่านต้องมีอย่างน้อย ${policy.minLength} ตัวอักษร`;
+    if (policy.requireLetter && !/[A-Za-z]/.test(pwd)) return 'รหัสผ่านต้องมีตัวอักษร';
+    if (policy.requireNumber && !/[0-9]/.test(pwd)) return 'รหัสผ่านต้องมีตัวเลข';
+    if (policy.requireUppercase && !/[A-Z]/.test(pwd)) return 'ต้องมีตัวพิมพ์ใหญ่';
+    if (policy.requireSpecial && !/[^A-Za-z0-9]/.test(pwd)) return 'ต้องมีอักขระพิเศษ';
+    return '';
+  };
+
+  const goToNotificationSection = (key) => {
+    setNotifActive(key);
+    const sectionMap = {
+      overview: overviewRef,
+      connection: connectionRef,
+      contact: contactRef,
+      preview: previewRef,
+      global: globalRef,
+      roles: rolesRef,
+    };
+    const ref = sectionMap[key];
+    if (ref && ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const renderSessionSettings = () => (
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+            <MdSettings className="text-2xl text-gray-700" />
+          </div>
+          <div>
+            <Typography variant="h6" className="text-gray-800 font-bold mb-1">
+              ความปลอดภัยของเซสชัน
+            </Typography>
+            <Typography variant="paragraph" className="text-gray-600 text-sm">
+              ออกจากระบบอัตโนมัติเมื่อไม่มีการใช้งาน และตั้งค่าเตือนล่วงหน้า
+            </Typography>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <div>
+            <label className="text-sm font-semibold text-gray-700">ไม่มีการใช้งานเป็นเวลา</label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                type="number"
+                min={5}
+                max={240}
+                value={inactivityMinutes}
+                onChange={(e) => setInactivityMinutes(Math.max(5, Math.min(240, parseInt(e.target.value || '0'))))}
+                className="!border !border-gray-300 bg-white w-28"
+                labelProps={{ className: 'hidden' }}
+              />
+              <span className="text-gray-700">นาที</span>
+            </div>
+            <Typography variant="small" className="text-gray-500 mt-1">แนะนำ 15–60 นาที</Typography>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-gray-700">เตือนล่วงหน้า</label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                type="number"
+                min={0}
+                max={120}
+                value={preWarnMinutes}
+                onChange={(e) => setPreWarnMinutes(Math.max(0, Math.min(120, parseInt(e.target.value || '0'))))}
+                className="!border !border-gray-300 bg-white w-28"
+                labelProps={{ className: 'hidden' }}
+              />
+              <span className="text-gray-700">นาทีก่อนหมดเวลา</span>
+            </div>
+            <Typography variant="small" className="text-gray-500 mt-1">0 = ไม่เตือน</Typography>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <Button
+            onClick={() => {
+              localStorage.setItem('security.inactivityMinutes', String(inactivityMinutes));
+              window.dispatchEvent(new CustomEvent('security:inactivityUpdated', { detail: String(inactivityMinutes) }));
+              localStorage.setItem('security.preLogoutWarnMinutes', String(preWarnMinutes));
+              window.dispatchEvent(new CustomEvent('security:preWarnUpdated', { detail: String(preWarnMinutes) }));
+              setNotificationData({ title: 'บันทึกแล้ว', message: `ตั้งค่าออกจากระบบอัตโนมัติ ${inactivityMinutes} นาที`, type: 'success' });
+              setShowNotification(true);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            บันทึกการตั้งค่า
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              const saved = parseInt(localStorage.getItem('security.inactivityMinutes'));
+              setInactivityMinutes(Number.isFinite(saved) && saved > 0 ? saved : 45);
+              const savedWarn = parseInt(localStorage.getItem('security.preLogoutWarnMinutes'));
+              setPreWarnMinutes(Number.isFinite(savedWarn) && savedWarn >= 0 ? savedWarn : 1);
+            }}
+            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            ใช้ค่าที่บันทึกไว้
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderContactSettings = () => (
+    <div className="max-w-5xl mx-auto">
+      {/* ใช้ส่วน Contact Information Section เดิม */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 bg-blue-50 rounded-xl">
+            <MdContactPhone className="text-2xl text-blue-600" />
+          </div>
+          <div>
+            <Typography variant="h6" className="text-gray-800 font-bold mb-1">
+              ข้อมูลติดต่อเจ้าหน้าที่
+            </Typography>
+            <Typography variant="paragraph" className="text-gray-600 text-sm">
+              ข้อมูลนี้จะแสดงในข้อความแจ้งเตือน LINE เมื่อมีการอนุมัติการขอยืมครุภัณฑ์
+            </Typography>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Location */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <MdLocationOn className="text-blue-600" />
+              สถานที่ติดต่อ
+            </label>
+            <Input
+              type="text"
+              name="location"
+              value={contactInfo.location}
+              onChange={handleInputChange}
+              placeholder="เช่น ห้องพัสดุ อาคาร 1 ชั้น 2"
+              className="!border !border-gray-300 bg-white"
+              labelProps={{ className: 'hidden' }}
+              required
+            />
+          </div>
+
+          {/* Phone */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <MdContactPhone className="text-blue-600" />
+              เบอร์โทรศัพท์
+            </label>
+            <Input
+              type="text"
+              name="phone"
+              value={contactInfo.phone}
+              onChange={handleInputChange}
+              placeholder="เช่น 02-123-4567"
+              className="!border !border-gray-300 bg-white"
+              labelProps={{ className: 'hidden' }}
+              required
+            />
+          </div>
+
+          {/* Hours */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <MdAccessTime className="text-blue-600" />
+              เวลาทำการ
+            </label>
+            <Input
+              type="text"
+              name="hours"
+              value={contactInfo.hours}
+              onChange={handleInputChange}
+              placeholder="เช่น 8:30-16:30 น."
+              className="!border !border-gray-300 bg-white"
+              labelProps={{ className: 'hidden' }}
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+            <Button type="button" variant="outlined" onClick={fetchContactInfo} className="border-gray-300 text-gray-700 hover:bg-gray-50">
+              รีเฟรช
+            </Button>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+              บันทึก
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return { score: 0, label: '', color: 'bg-gray-200', textColor: 'text-gray-500' };
+    let score = 0;
+    const policy = passwordPolicy;
+    if (pwd.length >= policy.minLength) score += 30;
+    if (pwd.length >= Math.max(12, policy.minLength + 4)) score += 20;
+    if (!policy.requireUppercase) {
+      if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score += 20;
+    } else {
+      if (/[A-Z]/.test(pwd)) score += 20;
+    }
+    if (!policy.requireNumber) {
+      if (/[0-9]/.test(pwd)) score += 15;
+    } else {
+      if (/[0-9]/.test(pwd)) score += 15;
+    }
+    if (!policy.requireSpecial) {
+      if (/[^A-Za-z0-9]/.test(pwd)) score += 15;
+    } else {
+      if (/[^A-Za-z0-9]/.test(pwd)) score += 15;
+    }
+    if (score > 100) score = 100;
+    let label = 'อ่อน';
+    let color = 'bg-red-500';
+    let textColor = 'text-red-600';
+    if (score >= 70) { label = 'แข็งแกร่ง'; color = 'bg-green-500'; textColor = 'text-green-600'; }
+    else if (score >= 40) { label = 'ปานกลาง'; color = 'bg-yellow-500'; textColor = 'text-yellow-600'; }
+    return { score, label, color, textColor };
+  };
+
+  const handleSecurityInputChange = (e) => {
+    const { name, value } = e.target;
+    setSecurityForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'password') {
+      setPasswordHint(validatePassword(value));
+      setPasswordStrength(getPasswordStrength(value));
+    }
+  };
+
+  const requestPasswordOtp = async () => {
+    try {
+      setSecurityLoading(true);
+      setOtpSent(false);
+      if (resendCooldownSec > 0) {
+        return;
+      }
+      if (!securityForm.email) {
+        setNotificationData({ title: 'ข้อผิดพลาด', message: 'กรุณากรอกอีเมล', type: 'error' });
+        setShowNotification(true);
+        return;
+      }
+      const res = await authFetch('http://localhost:5000/api/users/request-password-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: securityForm.email })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOtpSent(true);
+        setNotificationData({ title: 'ส่ง OTP แล้ว', message: data.message || 'กรุณาตรวจสอบอีเมลของคุณ', type: 'success' });
+        setResendCooldownSec(60);
+      } else {
+        setNotificationData({ title: 'เกิดข้อผิดพลาด', message: data.message || 'ไม่สามารถส่ง OTP ได้', type: 'error' });
+      }
+      setShowNotification(true);
+    } catch (err) {
+      setNotificationData({ title: 'เกิดข้อผิดพลาด', message: 'ไม่สามารถส่ง OTP ได้', type: 'error' });
+      setShowNotification(true);
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
+  // Cooldown countdown
+  useEffect(() => {
+    if (resendCooldownSec <= 0) return;
+    const t = setTimeout(() => setResendCooldownSec((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldownSec]);
+
+  const submitPasswordReset = async () => {
+    try {
+      setSecurityLoading(true);
+      // validations
+      if (!securityForm.email || !securityForm.password || !securityForm.confirmPassword || !securityForm.otp) {
+        setNotificationData({ title: 'ข้อผิดพลาด', message: 'กรุณากรอกข้อมูลให้ครบถ้วน', type: 'error' });
+        setShowNotification(true);
+        return;
+      }
+      if (securityForm.password !== securityForm.confirmPassword) {
+        setNotificationData({ title: 'ข้อผิดพลาด', message: 'รหัสผ่านไม่ตรงกัน', type: 'error' });
+        setShowNotification(true);
+        return;
+      }
+      const pwdError = validatePassword(securityForm.password);
+      if (pwdError) {
+        setNotificationData({ title: 'ข้อผิดพลาด', message: pwdError, type: 'error' });
+        setShowNotification(true);
+        return;
+      }
+
+      const res = await authFetch('http://localhost:5000/api/users/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: securityForm.email, otp: securityForm.otp, password: securityForm.password })
+      });
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        setNotificationData({ title: 'สำเร็จ', message: data.message || 'เปลี่ยนรหัสผ่านสำเร็จ', type: 'success' });
+        setShowNotification(true);
+        setSecurityForm({ email: securityForm.email, password: '', confirmPassword: '', otp: '' });
+        setOtpSent(false);
+      } else {
+        setNotificationData({ title: 'เกิดข้อผิดพลาด', message: data.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้', type: 'error' });
+        setShowNotification(true);
+      }
+    } catch (err) {
+      setNotificationData({ title: 'เกิดข้อผิดพลาด', message: 'ไม่สามารถเปลี่ยนรหัสผ่านได้', type: 'error' });
+      setShowNotification(true);
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
 
 
   const fetchContactInfo = async () => {
@@ -84,28 +461,7 @@ const SystemSettings = () => {
     }
   };
 
-  const fetchCloudinaryConfig = async () => {
-    try {
-      setLoading(true);
-      const data = await getCloudinaryConfig();
-
-      if (data.success && data.data) {
-        setCloudinaryConfig(data.data);
-      } else {
-        console.log('No cloudinary config found or error:', data.message);
-      }
-    } catch (error) {
-      console.error('Error fetching cloudinary config:', error);
-      setNotificationData({
-        title: 'เกิดข้อผิดพลาด',
-        message: 'ไม่สามารถดึงข้อมูลการตั้งค่า Cloudinary ได้',
-        type: 'error'
-      });
-      setShowNotification(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // removed: fetchCloudinaryConfig (storage tab removed)
 
   const testCloudinaryConnection = async () => {
     try {
@@ -589,19 +945,9 @@ const SystemSettings = () => {
       icon: <MdNotifications className="w-5 h-5" />,
     },
     {
-      label: "ความปลอดภัย",
-      value: "security",
-      icon: <MdSecurity className="w-5 h-5" />,
-    },
-    {
-      label: "การจัดเก็บ",
-      value: "storage",
-      icon: <MdStorage className="w-5 h-5" />,
-    },
-    {
-      label: "ภาษา",
-      value: "language",
-      icon: <MdLanguage className="w-5 h-5" />,
+      label: "แก้ไขข้อมูลส่วนตัว",
+      value: "profile",
+      icon: <FaUserEdit className="w-5 h-5" />,
     },
   ];
 
@@ -612,8 +958,34 @@ const SystemSettings = () => {
 
     return (
       <div className="max-w-5xl mx-auto space-y-8">
+        {/* In-Page Menu */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sticky top-16 z-10">
+          <div className="flex gap-2 overflow-x-auto">
+            {[
+              { key: 'overview', label: 'ภาพรวม', icon: <MdNotifications className="w-4 h-4" /> },
+              { key: 'global', label: 'ควบคุมทั้งหมด', icon: <MdSettings className="w-4 h-4" /> },
+              { key: 'roles', label: 'ตามบทบาท', icon: <MdPeople className="w-4 h-4" /> },
+              { key: 'contact', label: 'ข้อมูลติดต่อ', icon: <MdContactPhone className="w-4 h-4" /> },
+              { key: 'preview', label: 'ตัวอย่าง LINE', icon: <MdInfo className="w-4 h-4" /> },
+              { key: 'connection', label: 'ทดสอบการเชื่อมต่อ', icon: <MdWifiTethering className="w-4 h-4" /> },
+            ].map(item => (
+              <button
+                key={item.key}
+                onClick={() => goToNotificationSection(item.key)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm whitespace-nowrap border transition-colors ${
+                  notifActive === item.key
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
         {/* Header Section - Modern & Clean */}
-        <div className="relative overflow-hidden bg-white rounded-2xl shadow-sm border border-gray-100">
+        <div ref={overviewRef} className="relative overflow-hidden bg-white rounded-2xl shadow-sm border border-gray-100">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"></div>
           <div className="relative p-8">
             <div className="flex items-center justify-between">
@@ -715,7 +1087,7 @@ const SystemSettings = () => {
 
 
         {/* LINE Bot Connection Test - Simplified */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div ref={connectionRef} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-green-50 rounded-xl">
@@ -751,7 +1123,7 @@ const SystemSettings = () => {
         </div>
 
         {/* Contact Information Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div ref={contactRef} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-blue-50 rounded-xl">
               <MdContactPhone className="text-2xl text-blue-600" />
@@ -864,7 +1236,7 @@ const SystemSettings = () => {
         </div>
 
         {/* Preview Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div ref={previewRef} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-green-50 rounded-xl">
               <MdInfo className="text-2xl text-green-600" />
@@ -976,6 +1348,86 @@ const SystemSettings = () => {
           </div>
         </div>
 
+        {/* Session Security Settings moved to its own tab */}
+        <div className="hidden">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <MdSettings className="text-2xl text-gray-700" />
+            </div>
+            <div>
+              <Typography variant="h6" className="text-gray-800 font-bold mb-1">
+                ความปลอดภัยของเซสชัน
+              </Typography>
+              <Typography variant="paragraph" className="text-gray-600 text-sm">
+                ออกจากระบบอัตโนมัติเมื่อไม่มีการใช้งาน และตั้งค่าเตือนล่วงหน้า
+              </Typography>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div>
+              <label className="text-sm font-semibold text-gray-700">ไม่มีการใช้งานเป็นเวลา</label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="number"
+                  min={5}
+                  max={240}
+                  value={inactivityMinutes}
+                  onChange={(e) => setInactivityMinutes(Math.max(5, Math.min(240, parseInt(e.target.value || '0'))))}
+                  className="!border !border-gray-300 bg-white w-28"
+                  labelProps={{ className: 'hidden' }}
+                />
+                <span className="text-gray-700">นาที</span>
+              </div>
+              <Typography variant="small" className="text-gray-500 mt-1">แนะนำ 15–60 นาที</Typography>
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-gray-700">เตือนล่วงหน้า</label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="number"
+                  min={0}
+                  max={120}
+                  value={preWarnMinutes}
+                  onChange={(e) => setPreWarnMinutes(Math.max(0, Math.min(120, parseInt(e.target.value || '0'))))}
+                  className="!border !border-gray-300 bg-white w-28"
+                  labelProps={{ className: 'hidden' }}
+                />
+                <span className="text-gray-700">นาทีก่อนหมดเวลา</span>
+              </div>
+              <Typography variant="small" className="text-gray-500 mt-1">0 = ไม่เตือน</Typography>
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <Button
+              onClick={() => {
+                localStorage.setItem('security.inactivityMinutes', String(inactivityMinutes));
+                window.dispatchEvent(new CustomEvent('security:inactivityUpdated', { detail: String(inactivityMinutes) }));
+                localStorage.setItem('security.preLogoutWarnMinutes', String(preWarnMinutes));
+                window.dispatchEvent(new CustomEvent('security:preWarnUpdated', { detail: String(preWarnMinutes) }));
+                setNotificationData({ title: 'บันทึกแล้ว', message: `ตั้งค่าออกจากระบบอัตโนมัติ ${inactivityMinutes} นาที`, type: 'success' });
+                setShowNotification(true);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              บันทึกการตั้งค่า
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                const saved = parseInt(localStorage.getItem('security.inactivityMinutes'));
+                setInactivityMinutes(Number.isFinite(saved) && saved > 0 ? saved : 45);
+                const savedWarn = parseInt(localStorage.getItem('security.preLogoutWarnMinutes'));
+                setPreWarnMinutes(Number.isFinite(savedWarn) && savedWarn >= 0 ? savedWarn : 1);
+              }}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              ใช้ค่าที่บันทึกไว้
+            </Button>
+          </div>
+        </div>
+
         {/* Main Controls - Clean & Modern */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
@@ -1008,7 +1460,7 @@ const SystemSettings = () => {
 
           <div className="p-8 space-y-8">
             {/* Global Control - Enhanced */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+            <div ref={globalRef} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-white rounded-xl shadow-sm border border-blue-200">
@@ -1096,7 +1548,7 @@ const SystemSettings = () => {
               </div>
 
             {/* Role-based Control - Redesigned */}
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
+            <div ref={rolesRef} className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
               <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-white rounded-xl shadow-sm border border-purple-200">
                   <MdPeople className="text-2xl text-purple-600" />
@@ -1194,32 +1646,307 @@ const SystemSettings = () => {
 
   const renderSecuritySettings = () => (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-red-50 to-pink-50 p-6 rounded-xl border border-red-100">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 bg-red-100 rounded-lg">
-            <MdSecurity className="text-2xl text-red-600" />
+      <div className="bg-gradient-to-r from-rose-50 via-red-50 to-pink-50 p-6 rounded-2xl border border-rose-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white rounded-xl border border-rose-200">
+              <MdShield className="text-2xl text-rose-600" />
           </div>
           <div>
-            <Typography variant="h5" className="text-gray-800 font-bold">
-              การตั้งค่าความปลอดภัย
-            </Typography>
-            <Typography variant="paragraph" className="text-gray-600">
-              จัดการการเข้าถึงระบบและความปลอดภัย
-            </Typography>
+              <Typography variant="h5" className="text-gray-800 font-bold">การตั้งค่าความปลอดภัย</Typography>
+              <Typography variant="small" className="text-gray-600">ยืนยันอีเมลและตั้งรหัสผ่านใหม่อย่างปลอดภัย</Typography>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center gap-4">
+            <div className={`flex items-center gap-2 ${!otpSent ? 'text-blue-600' : 'text-green-600'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs ${!otpSent ? 'bg-blue-600' : 'bg-green-600'}`}>1</span>
+              <span className="font-medium">ขอ OTP</span>
+            </div>
+            <div className="w-10 h-[2px] bg-gray-300" />
+            <div className={`flex items-center gap-2 ${otpSent ? 'text-blue-600' : 'text-gray-400'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs ${otpSent ? 'bg-blue-600' : 'bg-gray-400'}`}>2</span>
+              <span className="font-medium">ตั้งรหัสผ่าน</span>
+            </div>
           </div>
         </div>
       </div>
 
       <Card className="shadow-lg border-0">
-        <CardBody className="p-6">
-          <div className="text-center py-12">
-            <MdSecurity className="text-6xl text-gray-300 mx-auto mb-4" />
-            <Typography variant="h6" className="text-gray-500 mb-2">
-              ฟีเจอร์นี้จะเปิดให้ใช้งานเร็วๆ นี้
-            </Typography>
-            <Typography variant="paragraph" className="text-gray-400">
-              การตั้งค่าความปลอดภัยจะพร้อมใช้งานในเวอร์ชันถัดไป
-            </Typography>
+        <CardBody className="p-6 space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left: Request OTP */}
+            <div className="rounded-xl border border-gray-100 p-5 bg-gradient-to-br from-white to-gray-50">
+              <div className="flex items-center gap-2 mb-4">
+                <MdMarkEmailRead className="text-xl text-blue-600" />
+                <Typography variant="h6" className="font-semibold text-gray-800">ยืนยันอีเมลเพื่อรับ OTP</Typography>
+              </div>
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-gray-700">อีเมล</label>
+                <Input
+                  type="email"
+                  name="email"
+                  value={securityForm.email}
+                  onChange={handleSecurityInputChange}
+                  placeholder="your@email.com"
+                  className="!border !border-gray-300 bg-white"
+                  labelProps={{ className: 'hidden' }}
+                />
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={requestPasswordOtp}
+                    disabled={securityLoading || !securityForm.email || resendCooldownSec > 0}
+                    className={`text-white ${resendCooldownSec > 0 ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+                  >
+                    {securityLoading ? 'กำลังส่ง...' : (resendCooldownSec > 0 ? `ส่งอีกครั้งใน ${resendCooldownSec}s` : 'ส่ง OTP')}
+                  </Button>
+                  {otpSent && (
+                    <span className="inline-flex items-center gap-1 text-green-700 text-sm">
+                      <MdCheckCircle /> ส่งไปยังอีเมลแล้ว (หมดอายุ 5 นาที)
+                    </span>
+                  )}
+                </div>
+                {resendCooldownSec > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <MdTimer />
+                    กรุณารอสักครู่ก่อนส่งใหม่
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Set new password */}
+            <div className="rounded-xl border border-gray-100 p-5 bg-gradient-to-br from-white to-gray-50">
+              <div className="flex items-center gap-2 mb-4">
+                <MdLockReset className="text-xl text-purple-600" />
+                <Typography variant="h6" className="font-semibold text-gray-800">ตั้งรหัสผ่านใหม่</Typography>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">รหัส OTP</label>
+                  <Input
+                    type="text"
+                    name="otp"
+                    value={securityForm.otp}
+                    onChange={handleSecurityInputChange}
+                    placeholder="กรอกรหัส 6 หลัก"
+                    className="!border !border-gray-300 bg-white"
+                    labelProps={{ className: 'hidden' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">รหัสผ่านใหม่</label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      value={securityForm.password}
+                      onChange={handleSecurityInputChange}
+                      placeholder="อย่างน้อย 8 ตัวอักษร มีตัวอักษรและตัวเลข"
+                      className="!border !border-gray-300 bg-white pr-12"
+                      labelProps={{ className: 'hidden' }}
+                    />
+                    <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600" onClick={() => setShowPassword(v => !v)}>
+                      {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                    </button>
+                  </div>
+                  {/* Strength Bar */}
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className={`font-medium ${passwordStrength.textColor}`}>{passwordStrength.label}</span>
+                      <span className="text-gray-500">{passwordStrength.score}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className={`h-2 ${passwordStrength.color}`} style={{ width: `${passwordStrength.score}%` }}></div>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                      {[
+                        { ok: securityForm.password.length >= 8, text: 'อย่างน้อย 8 ตัว' },
+                        { ok: /[A-Za-z]/.test(securityForm.password), text: 'มีตัวอักษร' },
+                        { ok: /[0-9]/.test(securityForm.password), text: 'มีตัวเลข' }
+                      ].map((r, idx) => (
+                        <div key={idx} className={`px-2 py-1 rounded border ${r.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                          {r.text}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {passwordHint && (
+                    <Typography variant="small" className="text-red-600 mt-1">{passwordHint}</Typography>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">ยืนยันรหัสผ่าน</label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirm ? 'text' : 'password'}
+                      name="confirmPassword"
+                      value={securityForm.confirmPassword}
+                      onChange={handleSecurityInputChange}
+                      placeholder="พิมพ์รหัสผ่านอีกครั้ง"
+                      className="!border !border-gray-300 bg-white pr-12"
+                      labelProps={{ className: 'hidden' }}
+                    />
+                    <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600" onClick={() => setShowConfirm(v => !v)}>
+                      {showConfirm ? <MdVisibilityOff /> : <MdVisibility />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Password Policy */}
+          <div className="rounded-xl border border-gray-100 p-5 bg-white">
+            <div className="flex items-center gap-2 mb-4">
+              <MdShield className="text-xl text-gray-700" />
+              <Typography variant="h6" className="font-semibold text-gray-800">นโยบายรหัสผ่าน</Typography>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-700">ความยาวขั้นต่ำ</label>
+                <Input
+                  type="number"
+                  min={6}
+                  max={64}
+                  value={passwordPolicy.minLength}
+                  onChange={(e) => setPasswordPolicy(p => ({ ...p, minLength: Math.max(6, Math.min(64, parseInt(e.target.value || '0'))) }))}
+                  className="!border !border-gray-300 bg-white w-28"
+                  labelProps={{ className: 'hidden' }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'requireLetter', label: 'ต้องมีตัวอักษร' },
+                  { key: 'requireNumber', label: 'ต้องมีตัวเลข' },
+                  { key: 'requireUppercase', label: 'ต้องมีตัวพิมพ์ใหญ่' },
+                  { key: 'requireSpecial', label: 'ต้องมีอักขระพิเศษ' },
+                ].map(opt => (
+                  <label key={opt.key} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={passwordPolicy[opt.key]}
+                      onChange={(e) => setPasswordPolicy(p => ({ ...p, [opt.key]: e.target.checked }))}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <Button
+                onClick={() => {
+                  localStorage.setItem('security.passwordPolicy', JSON.stringify(passwordPolicy));
+                  setPasswordHint(validatePassword(securityForm.password));
+                  setPasswordStrength(getPasswordStrength(securityForm.password));
+                  setNotificationData({ title: 'บันทึกแล้ว', message: 'อัปเดตนโยบายรหัสผ่านสำเร็จ', type: 'success' });
+                  setShowNotification(true);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                บันทึกนโยบาย
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  try {
+                    const saved = JSON.parse(localStorage.getItem('security.passwordPolicy') || '{}');
+                    setPasswordPolicy({
+                      minLength: Number.isFinite(saved.minLength) ? saved.minLength : 8,
+                      requireLetter: typeof saved.requireLetter === 'boolean' ? saved.requireLetter : true,
+                      requireNumber: typeof saved.requireNumber === 'boolean' ? saved.requireNumber : true,
+                      requireUppercase: typeof saved.requireUppercase === 'boolean' ? saved.requireUppercase : false,
+                      requireSpecial: typeof saved.requireSpecial === 'boolean' ? saved.requireSpecial : false,
+                    });
+                  } catch {}
+                }}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                ใช้ค่าที่บันทึกไว้
+              </Button>
+            </div>
+          </div>
+
+          {/* Auto-logout settings */}
+          <div className="rounded-xl border border-gray-100 p-5 bg-white">
+            <div className="flex items-center gap-2 mb-4">
+              <MdLock className="text-xl text-gray-700" />
+              <Typography variant="h6" className="font-semibold text-gray-800">การออกจากระบบอัตโนมัติ</Typography>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              <div>
+                <label className="text-sm font-semibold text-gray-700">ไม่มีการใช้งานเป็นเวลา</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    min={5}
+                    max={240}
+                    value={inactivityMinutes}
+                    onChange={(e) => setInactivityMinutes(Math.max(5, Math.min(240, parseInt(e.target.value || '0'))))}
+                    className="!border !border-gray-300 bg-white w-28"
+                    labelProps={{ className: 'hidden' }}
+                  />
+                  <span className="text-gray-700">นาที</span>
+                </div>
+                <Typography variant="small" className="text-gray-500 mt-1">แนะนำ 15–60 นาที</Typography>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700">เตือนล่วงหน้า</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={120}
+                    value={preWarnMinutes}
+                    onChange={(e) => setPreWarnMinutes(Math.max(0, Math.min(120, parseInt(e.target.value || '0'))))}
+                    className="!border !border-gray-300 bg-white w-28"
+                    labelProps={{ className: 'hidden' }}
+                  />
+                  <span className="text-gray-700">นาทีก่อนหมดเวลา</span>
+                </div>
+                <Typography variant="small" className="text-gray-500 mt-1">0 = ไม่เตือน</Typography>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    localStorage.setItem('security.inactivityMinutes', String(inactivityMinutes));
+                    window.dispatchEvent(new CustomEvent('security:inactivityUpdated', { detail: String(inactivityMinutes) }));
+                    localStorage.setItem('security.preLogoutWarnMinutes', String(preWarnMinutes));
+                    window.dispatchEvent(new CustomEvent('security:preWarnUpdated', { detail: String(preWarnMinutes) }));
+                    setNotificationData({ title: 'บันทึกแล้ว', message: `ตั้งค่าออกจากระบบอัตโนมัติ ${inactivityMinutes} นาที`, type: 'success' });
+                    setShowNotification(true);
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  บันทึกการตั้งค่า
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    const saved = parseInt(localStorage.getItem('security.inactivityMinutes'));
+                    setInactivityMinutes(Number.isFinite(saved) && saved > 0 ? saved : 45);
+                    const savedWarn = parseInt(localStorage.getItem('security.preLogoutWarnMinutes'));
+                    setPreWarnMinutes(Number.isFinite(savedWarn) && savedWarn >= 0 ? savedWarn : 1);
+                  }}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  ใช้ค่าที่บันทึกไว้
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="text-sm text-gray-600 flex items-center gap-2">
+              <MdLock className="text-gray-700" />
+              ข้อมูลของคุณถูกปกป้องและเข้ารหัสระหว่างการส่ง
+            </div>
+            <Button
+              onClick={submitPasswordReset}
+              disabled={securityLoading || !otpSent}
+              className={`text-white ${securityLoading ? 'bg-gray-400' : 'bg-purple-600 hover:bg-purple-700'}`}
+            >
+              {securityLoading ? 'กำลังเปลี่ยนรหัสผ่าน...' : 'ยืนยันเปลี่ยนรหัสผ่าน'}
+            </Button>
           </div>
         </CardBody>
       </Card>
@@ -1445,18 +2172,9 @@ const SystemSettings = () => {
   );
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'notifications':
-        return renderNotificationSettings();
-      case 'security':
-        return renderSecuritySettings();
-      case 'storage':
-        return renderStorageSettings();
-      case 'language':
-        return renderLanguageSettings();
-      default:
-        return renderNotificationSettings();
-    }
+    if (activeTab === 'notifications') return renderNotificationSettings();
+    if (activeTab === 'profile') return <PersonalInfoEdit />;
+    return renderNotificationSettings();
   };
 
   return (

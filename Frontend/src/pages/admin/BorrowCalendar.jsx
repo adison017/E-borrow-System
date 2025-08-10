@@ -30,6 +30,33 @@ import Notification from '../../components/Notification';
 // ตั้งค่า locale เป็นภาษาไทย
 dayjs.locale('th');
 
+// Helpers to avoid Invalid Date displays
+const safeParse = (value) => {
+  if (!value) return null;
+  const d1 = dayjs(value);
+  if (d1.isValid()) return d1;
+  if (typeof value === 'string') {
+    // Try DD/MM/YYYY
+    const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (m) {
+      const d2 = dayjs(`${m[3]}-${m[2]}-${m[1]}`);
+      if (d2.isValid()) return d2;
+    }
+  }
+  const d3 = dayjs(new Date(value));
+  return d3.isValid() ? d3 : null;
+};
+
+const safeFormatDate = (value, fmt) => {
+  const d = safeParse(value);
+  return d ? d.format(fmt) : '-';
+};
+
+const isPastDate = (value) => {
+  const d = safeParse(value);
+  return d ? d.isBefore(dayjs(), 'day') : false;
+};
+
 // ตั้งค่า localizer สำหรับ react-big-calendar
 const locales = {
   'th': th,
@@ -230,7 +257,7 @@ const BorrowCalendar = () => {
      console.log('Filtered borrows:', filteredBorrows);
      console.log('Filtered borrows length:', filteredBorrows.length);
 
-     const events = filteredBorrows.map(borrow => {
+      const events = filteredBorrows.map(borrow => {
        console.log('Processing borrow:', borrow.borrow_code, 'dates:', borrow.borrow_date, borrow.return_date);
 
        // สร้าง title ที่เข้าใจง่าย
@@ -270,9 +297,15 @@ const BorrowCalendar = () => {
          endDate = new Date(startDate.getTime() + 7*24*60*60*1000);
        }
 
-       const event = {
+        // แสดงวันคืนจริงหากมี (return_date จากตาราง returns) ไม่เช่นนั้นใช้กำหนดคืน (due_date)
+        const hasActualReturn = Boolean(borrow.return_date);
+        const returnDateRaw = borrow.return_date || borrow.due_date;
+        const returnDateStr = safeFormatDate(returnDateRaw, 'DD/MM/YYYY');
+        const returnLabel = hasActualReturn ? 'คืนจริง' : 'กำหนดคืน';
+
+        const event = {
          id: borrow.borrow_id,
-         title: `${borrow.borrow_code}\n${borrowerName}\n${equipmentNames}\nสถานะ: ${statusText}`,
+           title: `${borrow.borrow_code}\n${borrowerName}\n${equipmentNames}\nสถานะ: ${statusText}\n${returnLabel}: ${returnDateStr}`,
          start: startDate,
          end: endDate,
          borrow: borrow,
@@ -283,7 +316,8 @@ const BorrowCalendar = () => {
            borrowerName: borrowerName,
            equipmentNames: equipmentNames,
            status: borrow.status,
-           statusText: statusText
+            statusText: statusText,
+             returnDateStr
          }
        };
 
@@ -552,15 +586,16 @@ const BorrowCalendar = () => {
          )}
 
          {/* Calendar */}
-         <Card className="shadow-lg border-0 mb-6">
-           <CardBody className="p-6">
-             <div className="h-[600px]">
-                                <Calendar
+          <Card className="shadow-lg border-0 mb-6">
+            <CardBody className="p-6 overflow-hidden">
+              <div className="relative" style={{ height: 'calc(100vh - 260px)' }}>
+                <div className="absolute inset-0 overflow-auto">
+                  <Calendar
                    localizer={localizer}
                    events={events}
                    startAccessor="start"
                    endAccessor="end"
-                   style={{ height: '100%' }}
+                    style={{ height: '100%' }}
                    view={view}
                    onView={setView}
                    onSelectEvent={handleSelectEvent}
@@ -597,7 +632,8 @@ const BorrowCalendar = () => {
                       }
                       return {};
                     }}
-                 />
+                  />
+                </div>
              </div>
            </CardBody>
          </Card>
@@ -788,42 +824,48 @@ const BorrowCalendar = () => {
                          <div className="p-2 bg-orange-500 rounded-lg">
                            <MdAccessTime className="text-white text-xl" />
                          </div>
-                         <Typography variant="h6" className="text-gray-800 font-semibold">
-                           กำหนดคืน
-                         </Typography>
+                          <Typography variant="h6" className="text-gray-800 font-semibold">
+                            {selectedEvent.borrow.return_date ? 'วันคืนจริง' : 'กำหนดคืน'}
+                          </Typography>
                        </div>
                      </div>
-                     <div className="p-4">
-                       <div className="flex items-center gap-3">
-                         <div className="text-center">
-                           <Typography variant="h4" className="font-bold text-orange-600">
-                             {dayjs(selectedEvent.borrow.return_date).format('DD')}
-                           </Typography>
-                           <Typography variant="small" className="text-gray-600">
-                             {dayjs(selectedEvent.borrow.return_date).format('MMM YYYY')}
-                           </Typography>
-                         </div>
-                         <div className="flex-1">
-                           <Typography variant="small" className="text-gray-600">
-                             วัน{dayjs(selectedEvent.borrow.return_date).format('dddd')}
-                           </Typography>
-                           {selectedEvent.borrow.status === 'completed' && (
-                             <div className="flex items-center gap-2 mt-1">
-                               <MdCheckCircle className="text-emerald-500" />
-                               <Typography variant="small" className="text-emerald-600 font-semibold">
-                                 คืนแล้ว
-                               </Typography>
-                             </div>
-                           )}
-                         </div>
-                       </div>
-                     </div>
+                      <div className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="text-center">
+                            <Typography variant="h4" className="font-bold text-orange-600">
+                              {safeFormatDate(selectedEvent.borrow.return_date || selectedEvent.borrow.due_date, 'DD')}
+                            </Typography>
+                            <Typography variant="small" className="text-gray-600">
+                              {safeFormatDate(selectedEvent.borrow.return_date || selectedEvent.borrow.due_date, 'MMM YYYY')}
+                            </Typography>
+                          </div>
+                          <div className="flex-1">
+                            <Typography variant="small" className="text-gray-600">
+                              วัน{safeFormatDate(selectedEvent.borrow.return_date || selectedEvent.borrow.due_date, 'dddd')}
+                            </Typography>
+                            {/* ถ้ามีวันคืนจริง ให้แสดงกำหนดเดิมเสริม */}
+                            {selectedEvent.borrow.return_date && selectedEvent.borrow.due_date && (
+                              <div className="mt-1 text-xs text-gray-500">
+                                กำหนดเดิม: {safeFormatDate(selectedEvent.borrow.due_date, 'DD/MM/YYYY')}
+                              </div>
+                            )}
+                            {selectedEvent.borrow.status === 'completed' && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <MdCheckCircle className="text-emerald-500" />
+                                <Typography variant="small" className="text-emerald-600 font-semibold">
+                                  คืนแล้ว
+                                </Typography>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                    </div>
                  </div>
 
                  {/* Warning Messages */}
-                 {selectedEvent.borrow.status === 'approved' &&
-                  dayjs(selectedEvent.borrow.return_date).isBefore(dayjs()) && (
+                  {selectedEvent.borrow.status === 'approved' &&
+                   isPastDate(selectedEvent.borrow.return_date || selectedEvent.borrow.due_date) && (
                    <div className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden bg-gradient-to-r from-red-50 to-pink-50">
                      <div className="p-4">
                        <div className="flex items-center gap-3">
@@ -835,7 +877,7 @@ const BorrowCalendar = () => {
                              เกินกำหนดคืน
                            </Typography>
                            <Typography variant="small" className="text-red-600">
-                             กำหนดคืน: {dayjs(selectedEvent.borrow.return_date).format('DD/MM/YYYY')}
+                              กำหนดคืน: {safeFormatDate(selectedEvent.borrow.return_date || selectedEvent.borrow.due_date, 'DD/MM/YYYY')}
                            </Typography>
                          </div>
                        </div>

@@ -7,8 +7,8 @@ import { GiHandTruck } from "react-icons/gi";
 import React, { useEffect, useState } from 'react';
 import { BiPackage } from "react-icons/bi";
 import { BsGraphUp } from "react-icons/bs";
-import { FaHandshake, FaSignOutAlt, FaUserEdit, FaBuilding } from "react-icons/fa";
-import { MdAnnouncement, MdClose, MdManageAccounts, MdMenu, MdOutlineEditNote, MdViewList, MdSettings, MdCalendarMonth } from "react-icons/md";
+import { FaHandshake, FaSignOutAlt, FaBuilding } from "react-icons/fa";
+import { MdAnnouncement, MdClose, MdManageAccounts, MdMenu, MdOutlineEditNote, MdViewList, MdCalendarMonth } from "react-icons/md";
 import { RiArrowGoBackLine } from "react-icons/ri";
 import { QrCodeIcon } from "@heroicons/react/24/outline";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -28,9 +28,7 @@ const menuItems = [
   { to: '/success', icon: <BsClipboardCheckFill size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
   { to: '/borrow-calendar', icon: <MdCalendarMonth size={22} />, label: 'ปฏิทินการยืม', key: 'borrowCalendar' },
   { to: '/manage-news', icon: <FaNewspaper  size={22} />, label: 'จัดการข่าวสาร', key: 'manageNews' },
-  { to: '/edit_profile', icon: <FaUserEdit size={22} />, label: 'แก้ไขข้อมูลส่วนตัว', key: 'profile' },
   { to: '/qr-scanner', icon: <QrCodeIcon className="w-6 h-6" />, label: 'สแกน QR Code ครุภัณฑ์', key: 'qrScanner' },
-  { to: '/system-settings', icon: <MdSettings size={22} />, label: 'ตั้งค่าระบบ', key: 'systemSettings' },
 ];
 
 function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }) {

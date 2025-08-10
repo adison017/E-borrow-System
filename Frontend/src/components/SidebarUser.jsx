@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AiFillHome } from "react-icons/ai";
-import { FaArchive, FaCheckCircle, FaMoneyBillAlt, FaShoppingBag, FaSignOutAlt, FaThList, FaUserEdit } from "react-icons/fa";
+import { FaArchive, FaCheckCircle, FaMoneyBillAlt, FaShoppingBag, FaSignOutAlt, FaThList } from "react-icons/fa";
 import { MdAccessTimeFilled, MdCancel, MdClose, MdKeyboardArrowRight, MdMenu } from "react-icons/md";
 import { RiArrowGoBackLine } from "react-icons/ri";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -18,7 +18,6 @@ const borrowingMenus = [
 
 const mainMenus = [
   { to: '/DashboardUs', icon: <AiFillHome size={22} />, label: 'หน้าแรก', key: 'dashboard' },
-  { to: '/edit_profile', icon: <FaUserEdit size={22} />, label: 'แก้ไขข้อมูลส่วนตัว', key: 'profile' },
   { to: '/equipment', icon: <FaShoppingBag size={22} />, label: 'รายการครุภัณฑ์', key: 'equipment' },
 ];
 
