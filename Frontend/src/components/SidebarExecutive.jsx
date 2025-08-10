@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AiOutlineHistory } from "react-icons/ai";
 import { BsGraphUp } from "react-icons/bs";
-import { FaShoppingCart, FaSignOutAlt, FaUserEdit } from "react-icons/fa";
+import { FaShoppingCart, FaSignOutAlt } from "react-icons/fa";
 import { GiAutoRepair } from "react-icons/gi";
 import { MdAnnouncement, MdClose, MdMenu } from "react-icons/md";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -16,7 +16,6 @@ const menuItems = [
   { to: '/Repair', icon: <MdAnnouncement size={22} />, label: 'อนุมัติการซ่อมครุภัณฑ์', key: 'repairApproval' },
   { to: '/History', icon: <AiOutlineHistory size={22} />, label: 'ประวัติอนุมัติการยืม', key: 'history' },
   { to: '/History_Repair', icon: <GiAutoRepair size={22} />, label: 'ประวัติซ่อมครุภัณฑ์', key: 'historyRepair' },
-  { to: '/edit_profile', icon: <FaUserEdit size={22} />, label: 'แก้ไขข้อมูลส่วนตัว', key: 'profile' },
 ];
 
 function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }) {

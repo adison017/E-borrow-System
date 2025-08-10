@@ -72,7 +72,10 @@ function AppInner() {
   };
 
   const inactivityTimer = useRef(null);
-  const INACTIVITY_LIMIT = 45 * 60 * 1000; // 45 นาที (ms)
+  const [inactivityMinutes, setInactivityMinutes] = useState(() => {
+    const saved = parseInt(localStorage.getItem('security.inactivityMinutes'));
+    return Number.isFinite(saved) && saved > 0 ? saved : 45;
+  });
 
   // ฟังก์ชัน logout
   const autoLogout = () => {
@@ -85,7 +88,7 @@ function AppInner() {
   // ฟังก์ชัน reset timer
   const resetInactivityTimer = () => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-    inactivityTimer.current = setTimeout(autoLogout, INACTIVITY_LIMIT);
+    inactivityTimer.current = setTimeout(autoLogout, inactivityMinutes * 60 * 1000);
   };
 
   useEffect(() => {
@@ -96,6 +99,26 @@ function AppInner() {
     return () => {
       events.forEach(event => window.removeEventListener(event, resetInactivityTimer));
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    };
+  }, [inactivityMinutes]);
+
+  // รับค่าที่อัปเดตจาก SystemSettings (same-tab custom event หรือข้ามแท็บผ่าน storage)
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'security.inactivityMinutes') {
+        const val = parseInt(e.newValue);
+        if (Number.isFinite(val) && val > 0) setInactivityMinutes(val);
+      }
+    };
+    const onCustom = (e) => {
+      const val = parseInt(e.detail);
+      if (Number.isFinite(val) && val > 0) setInactivityMinutes(val);
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('security:inactivityUpdated', onCustom);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('security:inactivityUpdated', onCustom);
     };
   }, []);
 
