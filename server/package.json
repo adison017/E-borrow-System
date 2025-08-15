@@ -11,8 +11,8 @@
     "check-local-images": "node scripts/check-local-images.js",
     "test-cloudinary-upload": "node scripts/test-cloudinary-upload.js",
     "upload-user-avatars": "node scripts/upload-user-avatars-to-cloudinary.js",
-                    "test-document-upload": "node test-document-upload.js",
-                "test-file-extension": "node test-file-extension-fix.js"
+    "test-document-upload": "node test-document-upload.js",
+    "test-file-extension": "node test-file-extension-fix.js"
   },
   "keywords": [],
   "author": "",
@@ -23,9 +23,11 @@
     "bcrypt": "^6.0.0",
     "canvas": "^3.1.0",
     "cloudinary": "^2.7.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^7.5.1",
     "file-saver": "^2.0.5",
     "google-auth-library": "^10.2.0",
     "jsonwebtoken": "^9.0.2",

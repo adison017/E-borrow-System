@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { MdAddCircle, MdDelete, MdEdit, MdChevronLeft, MdChevronRight, MdClose, MdVisibility, MdVisibilityOff, MdPushPin } from 'react-icons/md';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Tooltip } from '@material-tailwind/react';
 import DeleteNewsDialog from './dialog/DeleteNewsDialog';
 import NewsFormDialog from './dialog/NewsFormDialog';
 
@@ -134,27 +135,27 @@ const ManageNews = () => {
     let type = "info";
     switch (action) {
       case "add":
-        message = `เพิ่มข่าวใหม่เรียบร้อยแล้ว`;
+        message = `เพิ่มประกาศใหม่เรียบร้อยแล้ว`;
         type = "success";
         break;
       case "edit":
-        message = `แก้ไขข่าวเรียบร้อยแล้ว`;
+        message = `แก้ไขประกาศเรียบร้อยแล้ว`;
         type = "success";
         break;
       case "delete":
-        message = `ลบข่าวเรียบร้อยแล้ว`;
+        message = `ลบประกาศเรียบร้อยแล้ว`;
         type = "success";
         break;
       case "add_error":
-        message = "เกิดข้อผิดพลาดในการเพิ่มข่าว";
+        message = "เกิดข้อผิดพลาดในการเพิ่มประกาศ";
         type = "error";
         break;
       case "edit_error":
-        message = "เกิดข้อผิดพลาดในการแก้ไขข่าว";
+        message = "เกิดข้อผิดพลาดในการแก้ไขประกาศ";
         type = "error";
         break;
       case "delete_error":
-        message = "เกิดข้อผิดพลาดในการลบข่าว";
+        message = "เกิดข้อผิดพลาดในการลบประกาศ";
         type = "error";
         break;
       case "fetch_error":
@@ -417,20 +418,13 @@ const ManageNews = () => {
       />
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold">จัดการข่าวสาร</h1>
-          <button
-            onClick={handleAddNew}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full flex items-center transition duration-150 ease-in-out"
-          >
-            <MdAddCircle className="mr-2" size={20} />
-            เพิ่มข่าวใหม่
-          </button>
+          <h1 className="text-3xl font-bold">จัดการประกาศ</h1>
         </div>
 
-        {/* สถิติข่าวสาร */}
+        {/* สถิติประกาศ */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-800">ข่าวทั้งหมด</h3>
+            <h3 className="text-lg font-semibold text-blue-800">ประกาศทั้งหมด</h3>
             <p className="text-2xl font-bold text-blue-600">{newsItems.length}</p>
           </div>
           <div className="bg-green-50 p-4 rounded-lg">
@@ -467,11 +461,11 @@ const ManageNews = () => {
         </div>
       </div>
 
-      {/* News Items List/Table */}
-      <div className="space-y-6">
-        {newsItems.length === 0 ? (
-          <p className="text-gray-500">ยังไม่มีข่าวสารในระบบ</p>
-        ) : (
+              {/* News Items List/Table */}
+        <div className="space-y-6">
+          {newsItems.length === 0 ? (
+            <p className="text-gray-500">ยังไม่มีประกาศในระบบ</p>
+          ) : (
           newsItems.map((item) => (
             <div
               key={item.id}
@@ -555,6 +549,19 @@ const ManageNews = () => {
         selectedNews={newsToDelete}
         onConfirm={confirmDelete}
       />
+
+      {/* Floating Add News Button */}
+      <Tooltip content="เพิ่มประกาศ" placement="left">
+        <button
+          onClick={handleAddNew}
+          className="fixed bottom-8 right-8 z-[60] border-black bg-black/70 hover:bg-white hover:border-2 hover:border-black hover:text-black text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center text-3xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+          aria-label="เพิ่มประกาศ"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.75v14.5m7.25-7.25H4.75" />
+          </svg>
+        </button>
+      </Tooltip>
     </div>
   );
 };

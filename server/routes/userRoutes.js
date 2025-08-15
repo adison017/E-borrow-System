@@ -5,6 +5,9 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import userController from '../controllers/userController.js';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import User from '../models/userModel.js';
 import db from '../db.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 import { uploadUserAvatar } from '../utils/cloudinaryUploadUtils.js';
@@ -259,6 +262,41 @@ router.get('/role/:role', authMiddleware, userController.getUsersByRole);
 // เพิ่ม login route
 router.post('/login', userController.login);
 
+// Refresh Access Token (rotate refresh token)
+router.post('/auth/refresh', async (req, res) => {
+  try {
+    const refresh = req.cookies?.refresh_token;
+    if (!refresh) return res.status(401).json({ message: 'Missing refresh token' });
+
+    const payload = jwt.verify(refresh, process.env.REFRESH_SECRET || (process.env.JWT_SECRET + '_refresh'));
+
+    // ดึงข้อมูลผู้ใช้เพื่อใส่ role/username ใน access token ใหม่
+    const user = await User.findById(payload.user_id);
+    if (!user) return res.status(401).json({ message: 'User not found' });
+
+    let role = 'user';
+    if (user.role_name && user.role_name.toLowerCase().includes('admin')) role = 'admin';
+    else if (user.role_name && user.role_name.toLowerCase().includes('executive')) role = 'executive';
+
+    // ออก access token ใหม่ (มี role/username) และ rotate refresh token ใหม่ทุกครั้ง
+    const access = jwt.sign({ user_id: user.user_id, username: user.username, role }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    const newRefresh = jwt.sign({ user_id: payload.user_id, tokenId: crypto.randomUUID() }, process.env.REFRESH_SECRET || (process.env.JWT_SECRET + '_refresh'), { expiresIn: '7d' });
+
+    res.cookie('refresh_token', newRefresh, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/auth/refresh',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({ token: access });
+  } catch (err) {
+    console.error('Refresh error:', err.message);
+    return res.status(401).json({ message: 'Invalid refresh token' });
+  }
+});
+
 // เพิ่ม endpoint สำหรับ verify token
 router.get('/verify-token', authMiddleware, (req, res) => {
   res.json({ user: req.user });
@@ -269,6 +307,11 @@ router.post('/verify-password', authMiddleware, userController.verifyPassword);
 
 // เพิ่ม endpoint สำหรับดึงข้อมูลผู้ใช้จาก token
 router.get('/profile', authMiddleware, userController.getProfile);
+
+// Session Management Routes
+router.get('/sessions', authMiddleware, userController.getActiveSessions);
+router.post('/logout', authMiddleware, userController.logout);
+router.post('/logout-all', authMiddleware, userController.logoutAll);
 
 // Debug route to test server
 router.get('/test', (req, res) => {
