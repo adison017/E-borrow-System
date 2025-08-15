@@ -38,6 +38,22 @@ export const useSocket = () => {
     return socketService.isSocketConnected();
   }, []);
 
+  // ตรวจสอบสถานะการ authenticate
+  const isAuthenticated = useCallback(() => {
+    return socketService.isSocketAuthenticated();
+  }, []);
+
+  // ฟังก์ชันสำหรับ authenticate socket
+  const authenticate = useCallback(async (token) => {
+    try {
+      await socketService.authenticate(token);
+      return true;
+    } catch (error) {
+      console.error('Socket authentication failed:', error);
+      return false;
+    }
+  }, []);
+
   // Cleanup เมื่อ component unmount
   useEffect(() => {
     return () => {
@@ -56,6 +72,8 @@ export const useSocket = () => {
     off,
     emit,
     isConnected,
+    isAuthenticated,
+    authenticate,
     socket: socketService.getSocket()
   };
 };

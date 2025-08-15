@@ -1,18 +1,456 @@
 
 import bcrypt from 'bcrypt';
 import fs from 'fs';
-import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import User from '../models/userModel.js';
 import { sendMail } from '../utils/emailUtils.js';
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
+
 // สำหรับเก็บ OTP ชั่วคราว (ใน production ควรใช้ redis หรือ db)
 const otpStore = new Map();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // สำหรับเก็บ OTP สมัครสมาชิก (แยกจาก OTP เปลี่ยนรหัสผ่าน)
 const registerOtpStore = new Map();
+
+// สำหรับเก็บ login attempts และ device tracking
+const loginAttempts = new Map();
+const activeSessions = new Map();
+
+// JWT Secret - ต้องตั้งค่าใน environment variable
+const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET || (JWT_SECRET + '_refresh');
+if (!JWT_SECRET || JWT_SECRET === 'your_jwt_secret_key') {
+  console.error('⚠️ WARNING: JWT_SECRET not properly configured!');
+  console.error('Please set JWT_SECRET environment variable');
+  process.exit(1);
+}
+
+// Helper function สำหรับสร้าง device fingerprint
+function generateDeviceFingerprint(req) {
+  const userAgent = req.headers['user-agent'] || '';
+  
+  // แก้ไขการดึง IP Address ให้ถูกต้อง
+  let ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+  
+  // แปลง IPv6 localhost เป็น IPv4
+  if (ip === '::1' || ip === '::ffff:127.0.0.1') {
+    ip = '127.0.0.1 (localhost)';
+  } else if (ip.startsWith('::ffff:')) {
+    ip = ip.replace('::ffff:', '');
+  }
+  
+  const acceptLanguage = req.headers['accept-language'] || '';
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  
+  const fingerprint = crypto
+    .createHash('sha256')
+    .update(`${userAgent}${ip}${acceptLanguage}${acceptEncoding}`)
+    .digest('hex');
+    
+  return {
+    fingerprint,
+    userAgent,
+    ip,
+    timestamp: Date.now()
+  };
+}
+
+// Helper function สำหรับตรวจสอบ login attempts
+function checkLoginAttempts(username, ip) {
+  const key = `${username}:${ip}`;
+  const attempts = loginAttempts.get(key) || { count: 0, lastAttempt: 0, blockedUntil: 0 };
+  
+  // ตรวจสอบว่าถูกบล็อกหรือไม่
+  if (attempts.blockedUntil > Date.now()) {
+    const remainingTime = Math.ceil((attempts.blockedUntil - Date.now()) / 1000 / 60);
+    throw new Error(`บัญชีถูกบล็อกชั่วคราว กรุณาลองใหม่ใน ${remainingTime} นาที`);
+  }
+  
+  // รีเซ็ตถ้าผ่านไป 15 นาทีแล้ว
+  if (Date.now() - attempts.lastAttempt > 15 * 60 * 1000) {
+    attempts.count = 0;
+  }
+  
+  return attempts;
+}
+
+// Helper function สำหรับอัปเดต login attempts
+function updateLoginAttempts(username, ip, success = false) {
+  const key = `${username}:${ip}`;
+  const attempts = loginAttempts.get(key) || { count: 0, lastAttempt: 0, blockedUntil: 0 };
+  
+  if (success) {
+    // รีเซ็ตเมื่อ login สำเร็จ
+    loginAttempts.delete(key);
+  } else {
+    // เพิ่มจำนวนครั้งที่ผิด
+    attempts.count += 1;
+    attempts.lastAttempt = Date.now();
+    
+    // บล็อกถ้าผิด 5 ครั้ง
+    if (attempts.count >= 5) {
+      attempts.blockedUntil = Date.now() + (15 * 60 * 1000); // บล็อก 15 นาที
+    }
+    
+    loginAttempts.set(key, attempts);
+  }
+}
+
+// Helper function สำหรับดึงข้อมูลติดต่อจาก API
+async function getContactInfo() {
+  const defaultContactInfo = {
+    email: 'support@it.msu.ac.th',
+    phone: '043-754-321',
+    hours: 'จันทร์-ศุกร์ 8:30-16:30 น.',
+    location: 'คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม'
+  };
+  
+  try {
+    const ContactInfoModel = await import('../models/contactInfoModel.js');
+    const result = await ContactInfoModel.getContactInfo();
+    if (result.success && result.data) {
+      // ใช้ข้อมูลจากฐานข้อมูล contact_info
+      return {
+        email: defaultContactInfo.email, // อีเมลใช้ค่าเริ่มต้นเสมอ
+        phone: result.data.phone || defaultContactInfo.phone,
+        hours: result.data.hours || defaultContactInfo.hours,
+        location: result.data.location || defaultContactInfo.location
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching contact info:', error);
+    // ใช้ค่าเริ่มต้นหากเกิด error
+  }
+  
+  return defaultContactInfo;
+}
+
+// Helper function สำหรับส่งแจ้งเตือน login ใหม่
+async function sendLoginNotification(user, deviceInfo, isNewDevice = false) {
+  try {
+    const subject = isNewDevice ? '🔐 แจ้งเตือนความปลอดภัย: เข้าสู่ระบบจากอุปกรณ์ใหม่' : '🔐 แจ้งเตือนความปลอดภัย: เข้าสู่ระบบ';
+    const brandLogo = '';
+    const currentTime = new Date(deviceInfo.timestamp).toLocaleString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: 'Asia/Bangkok'
+    });
+    
+    // แยก User Agent ให้อ่านง่ายขึ้น
+    const userAgent = deviceInfo.userAgent;
+    const browserInfo = userAgent.includes('Chrome') ? 'Google Chrome' :
+                       userAgent.includes('Firefox') ? 'Mozilla Firefox' :
+                       userAgent.includes('Safari') ? 'Safari' :
+                       userAgent.includes('Edge') ? 'Microsoft Edge' :
+                       userAgent.includes('Opera') ? 'Opera' : 'Unknown Browser';
+    
+    const osInfo = userAgent.includes('Windows') ? 'Windows' :
+                   userAgent.includes('Mac') ? 'macOS' :
+                   userAgent.includes('Linux') ? 'Linux' :
+                   userAgent.includes('Android') ? 'Android' :
+                   userAgent.includes('iOS') ? 'iOS' : 'Unknown OS';
+    
+    const deviceInfoText = `
+      🌐 เบราว์เซอร์: ${browserInfo}
+      💻 ระบบปฏิบัติการ: ${osInfo}
+      📍 IP Address: ${deviceInfo.ip}
+      🕐 เวลา: ${currentTime}
+    `;
+    
+    // ดึงข้อมูลติดต่อจาก API
+    const contactInfo = await getContactInfo();
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>แจ้งเตือนความปลอดภัย</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+          }
+          .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+          }
+          .header {
+            text-align: center;
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: #ffffff;
+            padding: 30px 20px;
+            margin-bottom: 30px;
+            border-bottom: 5px solid #3b82f6;
+          }
+          .logo {
+            width: 80px;
+            height: 80px;
+            background: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: #2563eb;
+            font-size: 36px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          }
+          .title {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+          }
+          .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            margin: 10px 0 0 0;
+          }
+          .greeting {
+            font-size: 18px;
+            color: #495057;
+            margin-bottom: 25px;
+          }
+          .alert-box {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+            position: relative;
+          }
+          .alert-icon {
+            position: absolute;
+            top: -15px;
+            left: 20px;
+            background: #ffc107;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+          }
+          .device-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .info-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+          }
+          .info-item:last-child {
+            border-bottom: none;
+          }
+          .info-icon {
+            width: 24px;
+            margin-right: 12px;
+            color: #2563eb;
+            font-size: 16px;
+          }
+          .info-label {
+            font-weight: bold;
+            color: #495057;
+            min-width: 120px;
+          }
+          .info-value {
+            color: #6c757d;
+            flex: 1;
+          }
+          .warning-box {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            border: 2px solid #dc3545;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+          }
+          .warning-icon {
+            font-size: 24px;
+            color: #dc3545;
+            margin-bottom: 10px;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            color: #6c757d;
+            font-size: 14px;
+          }
+          .contact-info {
+            background: #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+          }
+          .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+          }
+          .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">🔐</div>
+            <h1 class="title">ระบบยืม-คืนครุภัณฑ์</h1>
+            <p class="subtitle">คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม</p>
+          </div>
+          
+          <div class="greeting">
+            สวัสดี <strong>${user.Fullname}</strong>
+          </div>
+          
+          <div class="alert-box">
+            <div class="alert-icon">⚠️ แจ้งเตือนความปลอดภัย</div>
+            <h2 style="color: #856404; margin-top: 20px;">
+              ${isNewDevice ? '🔍 ตรวจพบการเข้าสู่ระบบจากอุปกรณ์ใหม่' : '🔐 การเข้าสู่ระบบสำเร็จ'}
+            </h2>
+            <p style="color: #856404; margin: 15px 0;">
+              ${isNewDevice ? 
+                'เราได้ตรวจพบการเข้าสู่ระบบจากอุปกรณ์ที่ไม่เคยใช้กับบัญชีนี้มาก่อน หากไม่ใช่คุณ กรุณาติดต่อผู้ดูแลระบบทันที' :
+                'บัญชีของคุณได้เข้าสู่ระบบสำเร็จ หากไม่ใช่คุณ กรุณาติดต่อผู้ดูแลระบบทันที'
+              }
+            </p>
+          </div>
+          
+          <div class="device-info">
+            <h3 style="color: #495057; margin-top: 0; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
+              📊 รายละเอียดการเข้าสู่ระบบ
+            </h3>
+            <div class="info-item">
+              <span class="info-icon">🌐</span>
+              <span class="info-label">เบราว์เซอร์:</span>
+              <span class="info-value">${browserInfo}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-icon">💻</span>
+              <span class="info-label">ระบบปฏิบัติการ:</span>
+              <span class="info-value">${osInfo}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-icon">📍</span>
+              <span class="info-label">IP Address:</span>
+              <span class="info-value">${deviceInfo.ip}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-icon">🕐</span>
+              <span class="info-label">เวลา:</span>
+              <span class="info-value">${currentTime}</span>
+            </div>
+          </div>
+          
+          ${isNewDevice ? `
+          <div class="warning-box">
+            <div class="warning-icon">🚨</div>
+            <h3 style="color: #721c24; margin: 10px 0;">การแจ้งเตือนความปลอดภัย</h3>
+            <p style="color: #721c24; margin: 0;">
+              หากไม่ใช่คุณที่เข้าสู่ระบบ กรุณาติดต่อผู้ดูแลระบบทันทีเพื่อความปลอดภัยของบัญชี
+            </p>
+          </div>
+          ` : ''}
+          
+          <div class="contact-info">
+            <h4 style="color: #495057; margin: 0 0 10px 0;">📞 ติดต่อผู้ดูแลระบบ</h4>
+            <p style="margin: 5px 0;">
+              <strong>สถานที่:</strong> ${contactInfo.location}<br>
+              <strong>โทรศัพท์:</strong> ${contactInfo.phone}<br>
+              <strong>เวลาทำการ:</strong> ${contactInfo.hours}
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="mailto:${contactInfo.email}" class="btn">📧 ติดต่อผู้ดูแลระบบ</a>
+            <a href="https://it.msu.ac.th" class="btn">🌐 ไปยังเว็บไซต์</a>
+          </div>
+          
+          <div class="footer">
+            <p>📧 อีเมลนี้ถูกส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ</p>
+            <p>🔒 ข้อมูลของคุณได้รับการปกป้องตามมาตรฐานความปลอดภัย</p>
+            <p style="font-size: 12px; color: #adb5bd;">
+              © 2025 คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม<br>
+              ระบบยืม-คืนครุภัณฑ์ | เวอร์ชัน 1.0.0
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const emailText = `
+🔐 แจ้งเตือนความปลอดภัย: ระบบยืม-คืนครุภัณฑ์
+คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม
+
+สวัสดี ${user.Fullname},
+
+${isNewDevice ? '🔍 ตรวจพบการเข้าสู่ระบบจากอุปกรณ์ใหม่' : '🔐 การเข้าสู่ระบบสำเร็จ'}
+
+${deviceInfoText}
+
+${isNewDevice ? 
+  '⚠️  หากไม่ใช่คุณ กรุณาติดต่อผู้ดูแลระบบทันทีเพื่อความปลอดภัยของบัญชี' :
+  '✅ การเข้าสู่ระบบสำเร็จ หากไม่ใช่คุณ กรุณาติดต่อผู้ดูแลระบบทันที'
+}
+
+📞 ติดต่อผู้ดูแลระบบ:
+   สถานที่: ${contactInfo.location}
+   โทรศัพท์: ${contactInfo.phone}
+   เวลาทำการ: ${contactInfo.hours}
+
+🔒 ข้อมูลของคุณได้รับการปกป้องตามมาตรฐานความปลอดภัย
+
+---
+© 2025 คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม
+ระบบยืม-คืนครุภัณฑ์ | เวอร์ชัน 1.0.0
+    `;
+    
+    await sendMail({
+      to: user.email,
+      subject: subject,
+      text: emailText,
+      html: emailHtml
+    });
+  } catch (error) {
+    console.error('Error sending login notification:', error);
+  }
+}
 
 // POST /api/users/request-otp
 // ส่ง OTP ไปอีเมลสำหรับสมัครสมาชิก
@@ -25,12 +463,210 @@ async function requestRegisterOtp(req, res) {
     // สร้าง otp 6 หลัก
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     registerOtpStore.set(contact, { otp, expires: Date.now() + 5 * 60 * 1000 });
+    // ดึงข้อมูลติดต่อจาก API
+    const contactInfo = await getContactInfo();
+    
     // ส่งอีเมล
+    const brandLogo = '';
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>OTP สำหรับสมัครสมาชิก</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+          }
+          .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+          }
+          .header {
+            text-align: center;
+            border-bottom: 3px solid #28a745;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+          }
+          .title {
+            color: #28a745;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+          }
+          .subtitle {
+            color: #6c757d;
+            font-size: 16px;
+            margin: 10px 0 0 0;
+          }
+          .otp-box {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 25px 0;
+            text-align: center;
+          }
+          .otp-code {
+            font-size: 48px;
+            font-weight: bold;
+            color: #155724;
+            letter-spacing: 8px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+          }
+          .info-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .warning-box {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+          }
+          .contact-info {
+            background: #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            color: #6c757d;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">📧</div>
+            <h1 class="title">ระบบยืม-คืนครุภัณฑ์</h1>
+            <p class="subtitle">คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม</p>
+          </div>
+          
+          <h2 style="color: #495057; text-align: center;">🔐 ยืนยันการสมัครสมาชิก</h2>
+          
+          <div class="otp-box">
+            <h3 style="color: #155724; margin: 0 0 15px 0;">รหัส OTP ของคุณ</h3>
+            <div class="otp-code">${otp}</div>
+            <p style="color: #155724; margin: 15px 0 0 0; font-size: 16px;">
+              รหัสนี้จะหมดอายุใน 5 นาที
+            </p>
+          </div>
+          
+          <div class="info-box">
+            <h4 style="color: #495057; margin: 0 0 15px 0;">📋 วิธีการใช้งาน</h4>
+            <ol style="color: #6c757d; margin: 0; padding-left: 20px;">
+              <li>คัดลอกรหัส OTP ด้านบน</li>
+              <li>กลับไปยังหน้าเว็บไซต์</li>
+              <li>วางรหัส OTP ในช่องที่กำหนด</li>
+              <li>กดปุ่ม "ยืนยัน" เพื่อดำเนินการต่อ</li>
+            </ol>
+          </div>
+          
+          <div class="warning-box">
+            <h4 style="color: #856404; margin: 0 0 10px 0;">⚠️ ข้อควรระวัง</h4>
+            <p style="color: #856404; margin: 0;">
+              • อย่าแชร์รหัส OTP กับผู้อื่น<br>
+              • รหัสนี้ใช้สำหรับการสมัครสมาชิกเท่านั้น<br>
+              • หากไม่ใช่คุณ กรุณาละเว้นการใช้งาน
+            </p>
+          </div>
+          
+          <div class="contact-info">
+            <h4 style="color: #495057; margin: 0 0 10px 0;">📞 ติดต่อผู้ดูแลระบบ</h4>
+            <p style="margin: 5px 0;">
+              <strong>สถานที่:</strong> ${contactInfo.location}<br>
+              <strong>โทรศัพท์:</strong> ${contactInfo.phone}<br>
+              <strong>เวลาทำการ:</strong> ${contactInfo.hours}
+            </p>
+          </div>
+          
+          <div class="footer">
+            <p>📧 อีเมลนี้ถูกส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ</p>
+            <p>🔒 ข้อมูลของคุณได้รับการปกป้องตามมาตรฐานความปลอดภัย</p>
+            <p style="font-size: 12px; color: #adb5bd;">
+              © 2025 คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม<br>
+              ระบบยืม-คืนครุภัณฑ์ | เวอร์ชัน 1.0.0
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const emailText = `
+📧 OTP สำหรับสมัครสมาชิก: ระบบยืม-คืนครุภัณฑ์
+คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม
+
+🔐 ยืนยันการสมัครสมาชิก
+
+รหัส OTP ของคุณ: ${otp}
+
+⏰ รหัสนี้จะหมดอายุใน 5 นาที
+
+📋 วิธีการใช้งาน:
+1. คัดลอกรหัส OTP ด้านบน
+2. กลับไปยังหน้าเว็บไซต์
+3. วางรหัส OTP ในช่องที่กำหนด
+4. กดปุ่ม "ยืนยัน" เพื่อดำเนินการต่อ
+
+⚠️ ข้อควรระวัง:
+• อย่าแชร์รหัส OTP กับผู้อื่น
+• รหัสนี้ใช้สำหรับการสมัครสมาชิกเท่านั้น
+• หากไม่ใช่คุณ กรุณาละเว้นการใช้งาน
+
+📞 ติดต่อผู้ดูแลระบบ:
+   สถานที่: ${contactInfo.location}
+   โทรศัพท์: ${contactInfo.phone}
+   เวลาทำการ: ${contactInfo.hours}
+
+🔒 ข้อมูลของคุณได้รับการปกป้องตามมาตรฐานความปลอดภัย
+
+---
+© 2025 คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม
+ระบบยืม-คืนครุภัณฑ์ | เวอร์ชัน 1.0.0
+    `;
+    
     await sendMail({
       to: contact,
-      subject: 'OTP สำหรับยืนยันอีเมลสมัครสมาชิก',
-      text: `รหัส OTP สำหรับสมัครสมาชิกคือ: ${otp}`,
-      html: `<h2>OTP สำหรับสมัครสมาชิก</h2><p>รหัส OTP ของคุณคือ: <b>${otp}</b></p>`
+      subject: '📧 OTP สำหรับยืนยันการสมัครสมาชิก - ระบบยืม-คืนครุภัณฑ์',
+      text: emailText,
+      html: emailHtml
     });
     res.json({ message: 'ส่ง OTP ไปยังอีเมลแล้ว' });
   } catch (err) {
@@ -113,8 +749,6 @@ const upload = multer({
   }
 }).single('avatar');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
-
 const userController = {
   // POST /api/users/reset-password
   resetPassword: async (req, res) => {
@@ -188,12 +822,290 @@ const userController = {
       // สร้าง otp 6 หลัก
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       otpStore.set(email, { otp, expires: Date.now() + 5 * 60 * 1000 });
+      
+      // ดึงข้อมูลติดต่อจาก API
+      const contactInfo = await getContactInfo();
+      
       // ส่งอีเมล
+      const emailHtml = `
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>OTP สำหรับยืนยันการสมัครสมาชิก</title>
+        <style>
+          /* Base Styles */
+          body {
+            font-family: 'Segoe UI', 'Tahoma', 'Geneva', 'Verdana', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0;
+            background-color: #f8fafc;
+          }
+          
+          /* Container */
+          .container {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            box-shadow: 0 4px 20px rgba(0, 75, 150, 0.1);
+            border: 1px solid #e0e7ff;
+            overflow: hidden;
+          }
+          
+          /* Header */
+          .header {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 5px solid #3b82f6;
+          }
+          
+          .logo {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: #2563eb;
+            font-size: 36px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+          
+          .title {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+          }
+          
+          .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            margin: 10px 0 0 0;
+          }
+          
+          /* Content */
+          .content {
+            padding: 30px;
+          }
+          
+          /* OTP Box */
+          .otp-box {
+            background: #f0f7ff;
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: center;
+          }
+          
+          .otp-code {
+            font-size: 42px;
+            font-weight: bold;
+            color: #1e40af;
+            letter-spacing: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+          
+          /* Info Box */
+          .info-box {
+            background: #f8fafc;
+            border: 1px solid #e0e7ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          
+          .info-box h4 {
+            color: #1e3a8a;
+            margin-top: 0;
+            border-bottom: 2px solid #e0e7ff;
+            padding-bottom: 10px;
+          }
+          
+          .info-box ol {
+            color: #4b5563;
+            margin: 0;
+            padding-left: 20px;
+          }
+          
+          .info-box li {
+            margin-bottom: 8px;
+          }
+          
+          /* Warning Box */
+          .warning-box {
+            background: #fff7ed;
+            border: 2px solid #f97316;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+          }
+          
+          .warning-box h4 {
+            color: #9a3412;
+            margin-top: 0;
+          }
+          
+          .warning-box p {
+            color: #9a3412;
+            margin: 0;
+          }
+          
+          /* Contact Info */
+          .contact-info {
+            background: #f0f7ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+          }
+          
+          .contact-info h4 {
+            color: #1e3a8a;
+            margin-top: 0;
+          }
+          
+          /* Footer */
+          .footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e0e7ff;
+            color: #64748b;
+            font-size: 14px;
+          }
+          
+          /* Responsive */
+          @media (max-width: 480px) {
+            .container {
+              border-radius: 0;
+            }
+            
+            .content {
+              padding: 20px;
+            }
+            
+            .otp-code {
+              font-size: 32px;
+              letter-spacing: 5px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">🔐</div>
+            <h1 class="title">ระบบยืม-คืนครุภัณฑ์</h1>
+            <p class="subtitle">คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม</p>
+          </div>
+          
+          <div class="content">
+            <h2 style="color: #1e3a8a; text-align: center; margin-top: 0;">🔐 ยืนยันการสมัครสมาชิก</h2>
+            
+            <div class="otp-box">
+              <h3 style="color: #1e3a8a; margin: 0 0 15px 0;">รหัส OTP ของคุณ</h3>
+              <div class="otp-code">${otp}</div>
+              <p style="color: #1e3a8a; margin: 15px 0 0 0; font-size: 16px;">
+                ⏰ รหัสนี้จะหมดอายุใน 5 นาที
+              </p>
+            </div>
+            
+            <div class="info-box">
+              <h4>📋 วิธีการใช้งาน</h4>
+              <ol>
+                <li>คัดลอกรหัส OTP ด้านบน</li>
+                <li>กลับไปยังหน้าเว็บไซต์</li>
+                <li>วางรหัส OTP ในช่องที่กำหนด</li>
+                <li>กดปุ่ม "ยืนยัน" เพื่อดำเนินการต่อ</li>
+              </ol>
+            </div>
+            
+            <div class="warning-box">
+              <h4>⚠️ ข้อควรระวัง</h4>
+              <p>
+                • อย่าแชร์รหัส OTP กับผู้อื่น<br>
+                • รหัสนี้ใช้สำหรับการสมัครสมาชิกเท่านั้น<br>
+                • หากไม่ใช่คุณ กรุณาละเว้นการใช้งาน
+              </p>
+            </div>
+            
+            <div class="contact-info">
+              <h4>📞 ติดต่อผู้ดูแลระบบ</h4>
+              <p style="margin: 5px 0;">
+                <strong>สถานที่:</strong> ${contactInfo.location}<br>
+                <strong>โทรศัพท์:</strong> ${contactInfo.phone}<br>
+                <strong>เวลาทำการ:</strong> ${contactInfo.hours}
+              </p>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>📧 อีเมลนี้ถูกส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ</p>
+            <p>🔒 ข้อมูลของคุณได้รับการปกป้องตามมาตรฐานความปลอดภัย</p>
+            <p style="font-size: 12px; color: #94a3b8;">
+              © ${new Date().getFullYear()} คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม<br>
+              ระบบยืม-คืนครุภัณฑ์ | เวอร์ชัน 1.0.0
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+      `;
+      
+      const emailText = `
+      📧 OTP สำหรับสมัครสมาชิก: ระบบยืม-คืนครุภัณฑ์
+      คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม
+      
+      🔐 ยืนยันการสมัครสมาชิก
+      
+      รหัส OTP ของคุณ: ${otp}
+      
+      ⏰ รหัสนี้จะหมดอายุใน 5 นาที
+      
+      📋 วิธีการใช้งาน:
+      1. คัดลอกรหัส OTP ด้านบน
+      2. กลับไปยังหน้าเว็บไซต์
+      3. วางรหัส OTP ในช่องที่กำหนด
+      4. กดปุ่ม "ยืนยัน" เพื่อดำเนินการต่อ
+      
+      ⚠️ ข้อควรระวัง:
+      • อย่าแชร์รหัส OTP กับผู้อื่น
+      • รหัสนี้ใช้สำหรับการสมัครสมาชิกเท่านั้น
+      • หากไม่ใช่คุณ กรุณาละเว้นการใช้งาน
+      
+      📞 ติดต่อผู้ดูแลระบบ:
+         สถานที่: ${contactInfo.location}
+         โทรศัพท์: ${contactInfo.phone}
+         เวลาทำการ: ${contactInfo.hours}
+      
+      🔒 ข้อมูลของคุณได้รับการปกป้องตามมาตรฐานความปลอดภัย
+      
+      ---
+      © ${new Date().getFullYear()} คณะวิทยาการสารสนเทศ มหาวิทยาลัยมหาสารคาม
+      ระบบยืม-คืนครุภัณฑ์ | เวอร์ชัน 1.0.0
+      `;
+      
       await sendMail({
         to: email,
-        subject: 'OTP สำหรับยืนยันการเปลี่ยนรหัสผ่าน',
-        text: `รหัส OTP ของคุณคือ: ${otp}`,
-        html: `<h2>OTP สำหรับเปลี่ยนรหัสผ่าน</h2><p>รหัส OTP ของคุณคือ: <b>${otp}</b></p>`
+        subject: '🔑 OTP สำหรับเปลี่ยนรหัสผ่าน - ระบบยืม-คืนครุภัณฑ์',
+        text: emailText,
+        html: emailHtml
       });
       res.json({ message: 'ส่ง OTP ไปยังอีเมลแล้ว' });
     } catch (err) {
@@ -267,8 +1179,19 @@ const userController = {
       if (!usernamePattern.test(username)) {
         return res.status(400).json({ message: 'ชื่อผู้ใช้ไม่ถูกต้อง' });
       }
+
+      // ตรวจสอบ login attempts
+      const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+      try {
+        checkLoginAttempts(username, ip);
+      } catch (error) {
+        updateLoginAttempts(username, ip, false); // เพิ่มครั้งที่ผิด
+        return res.status(401).json({ message: error.message });
+      }
+
       const user = await User.findByUsername(username);
       if (!user) {
+        updateLoginAttempts(username, ip, false); // เพิ่มครั้งที่ผิด
         return res.status(401).json({ message: 'ไม่พบผู้ใช้งานนี้' });
       }
 
@@ -283,14 +1206,52 @@ const userController = {
       // ตรวจสอบรหัสผ่าน (hash)
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
+        updateLoginAttempts(username, ip, false); // เพิ่มครั้งที่ผิด
         return res.status(401).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
       }
+
       // กำหนด role string สำหรับ frontend
       let role = 'user';
       if (user.role_name && user.role_name.toLowerCase().includes('admin')) role = 'admin';
       else if (user.role_name && user.role_name.toLowerCase().includes('executive')) role = 'executive';
-      // สร้าง JWT token
-      const token = jwt.sign({ user_id: user.user_id, username: user.username, role }, JWT_SECRET, { expiresIn: '7d' });
+
+      // สร้าง device fingerprint
+      const deviceInfo = generateDeviceFingerprint(req);
+      
+      // ตรวจสอบว่าเป็นอุปกรณ์ใหม่หรือไม่
+      const userSessions = activeSessions.get(user.user_id) || [];
+      const isNewDevice = !userSessions.some(session => session.fingerprint === deviceInfo.fingerprint);
+      
+      // สร้าง Access Token อายุสั้น และ Refresh Token ในคุกกี้
+      const token = jwt.sign({ 
+        user_id: user.user_id, 
+        username: user.username, 
+        role,
+        deviceFingerprint: deviceInfo.fingerprint,
+        loginTime: Date.now()
+      }, JWT_SECRET, { expiresIn: '15m' });
+
+      const refreshToken = jwt.sign({ user_id: user.user_id, tokenId: crypto.randomUUID() }, REFRESH_SECRET, { expiresIn: '7d' });
+      
+      // บันทึก session ใหม่
+      const newSession = {
+        token,
+        deviceInfo,
+        loginTime: Date.now(),
+        lastActivity: Date.now()
+      };
+      
+      userSessions.push(newSession);
+      activeSessions.set(user.user_id, userSessions);
+      
+      // ส่งแจ้งเตือนถ้าเป็นอุปกรณ์ใหม่
+      if (isNewDevice) {
+        sendLoginNotification(user, deviceInfo, true);
+      }
+      
+      // รีเซ็ต login attempts เมื่อสำเร็จ
+      updateLoginAttempts(username, ip, true);
+      
       // ส่งข้อมูล user (ไม่รวม password) + token + เฉพาะ field ที่จำเป็น
       const { user_id, user_code, username: userUsername, Fullname, email, phone, avatar, street, parish, district, province, postal_no, branch_name, position_name } = user;
       console.log('LOGIN RESPONSE:', {
@@ -314,6 +1275,15 @@ const userController = {
           role
         }
       });
+      // เซ็ต HttpOnly Secure Cookie สำหรับ refresh token
+      res.cookie('refresh_token', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/api/users/auth/refresh',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
       res.json({
         message: 'เข้าสู่ระบบสำเร็จ',
         token,
@@ -780,6 +1750,64 @@ const userController = {
       res.json(mapped);
     } catch (err) {
       console.error('Error in getUsersByRole:', err);
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // GET /api/users/sessions - ดู session ที่ใช้งานอยู่
+  getActiveSessions: async (req, res) => {
+    try {
+      const userId = req.user.user_id;
+      const userSessions = activeSessions.get(userId) || [];
+      
+      const sessions = userSessions.map(session => ({
+        deviceInfo: session.deviceInfo,
+        loginTime: session.loginTime,
+        lastActivity: session.lastActivity,
+        isCurrent: session.token === req.headers.authorization?.replace('Bearer ', '')
+      }));
+      
+      res.json({ sessions });
+    } catch (err) {
+      console.error('Error getting active sessions:', err);
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // POST /api/users/logout - ออกจากระบบ
+  logout: async (req, res) => {
+    try {
+      const userId = req.user.user_id;
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      
+      if (token) {
+        // ลบ session ที่ตรงกับ token
+        const userSessions = activeSessions.get(userId) || [];
+        const updatedSessions = userSessions.filter(session => session.token !== token);
+        
+        if (updatedSessions.length === 0) {
+          activeSessions.delete(userId);
+        } else {
+          activeSessions.set(userId, updatedSessions);
+        }
+      }
+      
+      res.json({ message: 'ออกจากระบบสำเร็จ' });
+    } catch (err) {
+      console.error('Error during logout:', err);
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // POST /api/users/logout-all - ออกจากระบบทุกอุปกรณ์
+  logoutAll: async (req, res) => {
+    try {
+      const userId = req.user.user_id;
+      activeSessions.delete(userId);
+      
+      res.json({ message: 'ออกจากระบบทุกอุปกรณ์สำเร็จ' });
+    } catch (err) {
+      console.error('Error during logout all:', err);
       res.status(500).json({ error: err.message });
     }
   }
