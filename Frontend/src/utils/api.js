@@ -178,3 +178,30 @@ export const getNews = async () => {
 
 // Room
 export const getRooms = () => authFetch(`${API_BASE}/rooms`).then(res => res.json());
+
+// News CRUD
+export const createNews = async (payload) => {
+  const res = await authFetch(`${API_BASE}/news`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Create news failed');
+  return res.json();
+};
+
+export const updateNewsApi = async (id, payload) => {
+  const res = await authFetch(`${API_BASE}/news/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Update news failed');
+  return res.json();
+};
+
+export const deleteNewsApi = async (id) => {
+  const res = await authFetch(`${API_BASE}/news/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Delete news failed');
+  return res.json();
+};

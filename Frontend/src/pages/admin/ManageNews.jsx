@@ -1,6 +1,7 @@
-import { getNews } from '../../utils/api';
+import { getNews, createNews, updateNewsApi, deleteNewsApi } from '../../utils/api';
+import { uploadMultipleFilesToCloudinary } from '../../utils/cloudinaryUtils';
 import { useEffect, useState } from 'react';
-import { MdAddCircle, MdDelete, MdEdit } from 'react-icons/md';
+import { MdAddCircle, MdDelete, MdEdit, MdChevronLeft, MdChevronRight, MdClose, MdVisibility, MdVisibilityOff, MdPushPin } from 'react-icons/md';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import DeleteNewsDialog from './dialog/DeleteNewsDialog';
@@ -20,6 +21,102 @@ const getCategoryColor = (category) => {
     default:
       return 'bg-gray-100 text-gray-800';
   }
+};
+
+// Simple image carousel for news images
+const ImageCarousel = ({ urls, altBase = 'image' }) => {
+  const [index, setIndex] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  if (!Array.isArray(urls) || urls.length === 0) return null;
+
+  const total = urls.length;
+  const prev = () => setIndex((i) => (i - 1 + total) % total);
+  const next = () => setIndex((i) => (i + 1) % total);
+
+  return (
+    <div className="mt-4">
+      <div className="relative h-64 md:h-80 w-fit max-w-full rounded-lg overflow-hidden bg-black shadow mx-auto">
+        <img
+          src={urls[index]}
+          alt={`${altBase}-${index + 1}`}
+          className="h-full w-auto max-w-full object-contain cursor-zoom-in"
+          onClick={() => setIsPreviewOpen(true)}
+        />
+        {total > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={prev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center"
+              aria-label="ก่อนหน้า"
+            >
+              <MdChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={next}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center"
+              aria-label="ถัดไป"
+            >
+              <MdChevronRight size={18} />
+            </button>
+          </>
+        )}
+      </div>
+      {total > 1 && (
+        <div className="mt-2 flex items-center justify-center gap-1">
+          {urls.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setIndex(i)}
+              className={`w-2 h-2 rounded-full ${i === index ? 'bg-blue-600' : 'bg-gray-300'}`}
+              aria-label={`ไปยังรูปที่ ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+      {isPreviewOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setIsPreviewOpen(false)}>
+          <div className="relative w-full h-full max-w-6xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={urls[index]}
+              alt={`${altBase}-preview-${index + 1}`}
+              className="w-full h-full object-contain"
+            />
+            {total > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={prev}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white rounded-full w-10 h-10 flex items-center justify-center"
+                  aria-label="ก่อนหน้า"
+                >
+                  <MdChevronLeft size={22} />
+                </button>
+                <button
+                  type="button"
+                  onClick={next}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white rounded-full w-10 h-10 flex items-center justify-center"
+                  aria-label="ถัดไป"
+                >
+                  <MdChevronRight size={22} />
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-full w-10 h-10 flex items-center justify-center"
+              aria-label="ปิด"
+            >
+              <MdClose size={22} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const ManageNews = () => {
@@ -80,8 +177,15 @@ const ManageNews = () => {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    category: 'ประกาศ'
+    category: 'ประกาศ',
+    image_url: [],
+    force_show: false,
+    show_to_all: false,
   });
+
+  // Hold files selected but not yet uploaded
+  const [pendingImages, setPendingImages] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
 
   // Fetch all news
   useEffect(() => {
@@ -104,21 +208,115 @@ const ManageNews = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Handle images selected from dialog child input (no upload yet)
+  useEffect(() => {
+    const onImagesSelected = (evt) => {
+      const files = evt.detail || [];
+      if (!files || files.length === 0) return;
+      // Calculate remaining capacity (max 10 total)
+      const currentCount = Array.isArray(previewUrls) ? previewUrls.length : 0;
+      const remaining = Math.max(0, 10 - currentCount);
+      if (remaining === 0) return;
+      const toAdd = files.slice(0, remaining);
+      // Create previews for new files only
+      const newPreviews = toAdd.map((f) => URL.createObjectURL(f));
+      // Append to existing state
+      setPendingImages((prev) => ([...(Array.isArray(prev) ? prev : []), ...toAdd]));
+      setPreviewUrls((prev) => {
+        const base = Array.isArray(prev) ? prev : [];
+        const combined = [...base, ...newPreviews];
+        setFormData((f) => ({ ...f, image_url: combined }));
+        return combined;
+      });
+    };
+
+    const onImageRemoveAt = (evt) => {
+      const idx = evt.detail?.index;
+      if (typeof idx !== 'number') return;
+      setPendingImages((prev) => {
+        if (!Array.isArray(prev) || prev.length === 0) return prev; // editing existing images only
+        const next = prev.filter((_, i) => i !== idx);
+        return next;
+      });
+      setPreviewUrls((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        const removed = prev[idx];
+        if (removed && typeof removed === 'string' && removed.startsWith('blob:')) {
+          try { URL.revokeObjectURL(removed); } catch {}
+        }
+        const next = prev.filter((_, i) => i !== idx);
+        setFormData((f) => ({ ...f, image_url: next }));
+        return next;
+      });
+    };
+
+    const onImagesClear = () => {
+      // Cleanup previews
+      previewUrls.forEach((u) => { if (u?.startsWith('blob:')) URL.revokeObjectURL(u); });
+      setPendingImages([]);
+      setPreviewUrls([]);
+      setFormData((f) => ({ ...f, image_url: [] }));
+    };
+
+    window.addEventListener('newsImagesSelected', onImagesSelected);
+    window.addEventListener('newsImageRemoveAt', onImageRemoveAt);
+    window.addEventListener('newsImagesClear', onImagesClear);
+    return () => {
+      window.removeEventListener('newsImagesSelected', onImagesSelected);
+      window.removeEventListener('newsImageRemoveAt', onImageRemoveAt);
+      window.removeEventListener('newsImagesClear', onImagesClear);
+      // Cleanup previews
+      previewUrls.forEach((u) => { if (u?.startsWith('blob:')) URL.revokeObjectURL(u); });
+    };
+  }, [previewUrls]);
+
   const handleAddNew = () => {
     setIsEditing(false);
     setCurrentItem(null);
-    setFormData({ title: '', content: '', category: 'ประกาศ' });
+    // Cleanup previews
+    previewUrls.forEach((u) => { if (u?.startsWith('blob:')) URL.revokeObjectURL(u); });
+    setPendingImages([]);
+    setPreviewUrls([]);
+    setFormData({ title: '', content: '', category: 'ประกาศ', image_url: [], force_show: false, show_to_all: false });
     setShowModal(true);
   };
 
   const handleEdit = (item) => {
     setIsEditing(true);
     setCurrentItem(item);
+    // Cleanup previews
+    previewUrls.forEach((u) => { if (u?.startsWith('blob:')) URL.revokeObjectURL(u); });
+    setPendingImages([]);
     setFormData({
       title: item.title,
       content: item.content,
-      category: item.category
+      category: item.category,
+      image_url: (() => {
+        try {
+          if (!item.image_url) return [];
+          if (Array.isArray(item.image_url)) return item.image_url;
+          const parsed = JSON.parse(item.image_url);
+          return Array.isArray(parsed) ? parsed : (typeof item.image_url === 'string' ? [item.image_url] : []);
+        } catch (e) {
+          return typeof item.image_url === 'string' ? [item.image_url] : [];
+        }
+      })(),
+      force_show: !!item.force_show,
+      show_to_all: !!item.show_to_all,
     });
+    // Show existing images as previews
+    const existing = (() => {
+      try {
+        const v = item.image_url;
+        if (!v) return [];
+        if (Array.isArray(v)) return v;
+        const parsed = JSON.parse(v);
+        return Array.isArray(parsed) ? parsed : (typeof v === 'string' ? [v] : []);
+      } catch (e) {
+        return typeof item.image_url === 'string' ? [item.image_url] : [];
+      }
+    })();
+    setPreviewUrls(existing);
     setShowModal(true);
   };
 
@@ -130,11 +328,7 @@ const ManageNews = () => {
   const confirmDelete = async () => {
     if (newsToDelete) {
       try {
-        // This part of the logic needs to be updated to use axios or a similar method
-        // For now, we'll keep it as is, but it will likely cause an error
-        // because the original axios.delete is removed.
-        // A proper implementation would involve an API call to delete the news item.
-        // For demonstration, we'll simulate a successful deletion.
+        await deleteNewsApi(newsToDelete.id);
         setNewsItems(prevItems => prevItems.filter(item => item.id !== newsToDelete.id));
         setShowDeleteModal(false);
         setNewsToDelete(null);
@@ -148,32 +342,37 @@ const ManageNews = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Prepare image URLs: keep existing (non-blob) + upload new pending
+      const currentUrls = Array.isArray(formData.image_url)
+        ? formData.image_url
+        : (formData.image_url ? [formData.image_url] : []);
+      const existingCloudUrls = currentUrls.filter(u => typeof u === 'string' && !u.startsWith('blob:'));
+
+      let uploadedUrls = [];
+      if (pendingImages.length > 0) {
+        const res = await uploadMultipleFilesToCloudinary(pendingImages, 'e-borrow/news');
+        if (!res || !res.success) throw new Error('Upload images failed');
+        uploadedUrls = (res.data || []).filter(r => r.success).map(r => r.url);
+      }
+      const cloudUrls = [...existingCloudUrls, ...uploadedUrls];
+
       if (isEditing && currentItem) {
-        // Update existing item
-        // This part of the logic needs to be updated to use axios or a similar method
-        // For now, we'll keep it as is, but it will likely cause an error
-        // because the original axios.put is removed.
-        // A proper implementation would involve an API call to update the news item.
-        // For demonstration, we'll simulate an update.
-        setNewsItems(prevItems =>
-          prevItems.map(item =>
-            item.id === currentItem.id ? { ...item, ...formData } : item
-          )
-        );
+        const payload = normalizeNewsPayload({ ...formData, image_url: cloudUrls });
+        const updated = await updateNewsApi(currentItem.id, payload);
+        setNewsItems(prevItems => prevItems.map(item => item.id === currentItem.id ? updated : item));
         notifyNewsAction("edit");
       } else {
-        // Add new item
-        // This part of the logic needs to be updated to use axios or a similar method
-        // For now, we'll keep it as is, but it will likely cause an error
-        // because the original axios.post is removed.
-        // A proper implementation would involve an API call to add the news item.
-        // For demonstration, we'll simulate an addition.
-        const newItem = { id: Date.now(), ...formData, date: new Date().toISOString() };
-        setNewsItems(prevItems => [newItem, ...prevItems]);
+        const payload = normalizeNewsPayload({ ...formData, image_url: cloudUrls });
+        const created = await createNews(payload);
+        setNewsItems(prev => [created, ...prev]);
         notifyNewsAction("add");
       }
       setShowModal(false);
-      setFormData({ title: '', content: '', category: 'ประกาศ' });
+      // Cleanup and reset
+      previewUrls.forEach((u) => { if (u?.startsWith('blob:')) URL.revokeObjectURL(u); });
+      setPendingImages([]);
+      setPreviewUrls([]);
+      setFormData({ title: '', content: '', category: 'ประกาศ', image_url: [], force_show: false, show_to_all: false });
     } catch (err) {
       if (isEditing) {
         notifyNewsAction("edit_error");
@@ -181,6 +380,22 @@ const ManageNews = () => {
         notifyNewsAction("add_error");
       }
     }
+  };
+
+  // Normalize payload before send to API
+  const normalizeNewsPayload = (data) => {
+    const payload = { ...data };
+    // image_url can be array -> send array, backend will stringify; or string
+    if (Array.isArray(payload.image_url)) {
+      // keep as array
+    } else if (typeof payload.image_url === 'string' && payload.image_url) {
+      payload.image_url = [payload.image_url];
+    } else {
+      payload.image_url = [];
+    }
+    payload.force_show = !!payload.force_show;
+    payload.show_to_all = !!payload.show_to_all;
+    return payload;
   };
 
   if (loading) return <div className="p-6">กำลังโหลด...</div>;
@@ -200,15 +415,56 @@ const ManageNews = () => {
         pauseOnHover
         theme="colored"
       />
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">จัดการข่าวสาร</h1>
-        <button
-          onClick={handleAddNew}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full flex items-center transition duration-150 ease-in-out"
-        >
-          <MdAddCircle className="mr-2" size={20} />
-          เพิ่มข่าวใหม่
-        </button>
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold">จัดการข่าวสาร</h1>
+          <button
+            onClick={handleAddNew}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full flex items-center transition duration-150 ease-in-out"
+          >
+            <MdAddCircle className="mr-2" size={20} />
+            เพิ่มข่าวใหม่
+          </button>
+        </div>
+
+        {/* สถิติข่าวสาร */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold text-blue-800">ข่าวทั้งหมด</h3>
+            <p className="text-2xl font-bold text-blue-600">{newsItems.length}</p>
+          </div>
+          <div className="bg-green-50 p-4 rounded-lg">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-green-800">
+              <MdVisibility size={20} />
+              เห็นได้
+            </h3>
+            <p className="text-2xl font-bold text-green-600">
+              {newsItems.filter(item => item.show_to_all).length}
+            </p>
+          </div>
+          <div className="bg-red-50 p-4 rounded-lg">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-red-800">
+              <MdPushPin size={20} />
+              ปักหมุด
+            </h3>
+            <p className="text-2xl font-bold text-red-600">
+              {newsItems.filter(item => item.force_show).length}
+            </p>
+          </div>
+        </div>
+
+                {/* ข้อมูลอธิบาย */}
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <p className="text-sm text-yellow-800">
+            <strong>หมายเหตุ:</strong>
+            <span className="inline-flex items-center gap-1 mx-1"><MdVisibility size={14} className="text-green-600" /><strong>เห็นได้</strong></span>
+            = User เห็นได้ |
+            <span className="inline-flex items-center gap-1 mx-1"><MdVisibilityOff size={14} className="text-gray-600" /><strong>ซ่อน</strong></span>
+            = User เห็นไม่ได้ |
+            <span className="inline-flex items-center gap-1 mx-1"><MdPushPin size={14} className="text-red-600" /><strong>ปักหมุด</strong></span>
+            = แสดงตลอด (ปิดไม่ได้)
+          </p>
+        </div>
       </div>
 
       {/* News Items List/Table */}
@@ -223,10 +479,30 @@ const ManageNews = () => {
             >
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <span className={`text-xs font-semibold p-2 rounded-full ${getCategoryColor(item.category)}`}>
-                    {item.category}
-                  </span>
-                  <h2 className="ml-2 text-2xl font-semibold text-blue-600 mt-4">{item.title}</h2>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <span className={`text-xs font-semibold p-2 rounded-full ${getCategoryColor(item.category)}`}>
+                      {item.category}
+                    </span>
+                    {/* แสดงสถานะการมองเห็นของข่าว */}
+                    {item.show_to_all ? (
+                      <span className="flex items-center gap-1 text-xs font-semibold p-2 rounded-full bg-green-100 text-green-800" title="แสดงให้ User เห็น">
+                        <MdVisibility size={14} />
+                        เห็นได้
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs font-semibold p-2 rounded-full bg-gray-100 text-gray-600" title="ไม่แสดงให้ User">
+                        <MdVisibilityOff size={14} />
+                        ซ่อน
+                      </span>
+                    )}
+                    {item.force_show && (
+                      <span className="flex items-center gap-1 text-xs font-semibold p-2 rounded-full bg-red-100 text-red-800" title="แสดงตลอด (ปิดไม่ได้)">
+                        <MdPushPin size={14} />
+                        ปักหมุด
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="ml-2 text-2xl font-semibold text-blue-600 mt-2">{item.title}</h2>
                   <p className="ml-2  text-sm text-gray-500">เผยแพร่เมื่อ: {new Date(item.date).toLocaleDateString('th-TH')}</p>
                 </div>
                 <div className="flex space-x-2 ">
@@ -247,6 +523,16 @@ const ManageNews = () => {
                 </div>
               </div>
               <p className="text-gray-700 leading-relaxed mt-3 ml-2 ">{item.content}</p>
+              {item.image_url && (() => {
+                let urls = [];
+                try {
+                  urls = Array.isArray(item.image_url) ? item.image_url : JSON.parse(item.image_url);
+                  if (!Array.isArray(urls)) urls = item.image_url ? [item.image_url] : [];
+                } catch (e) {
+                  urls = item.image_url ? [item.image_url] : [];
+                }
+                return <ImageCarousel urls={urls} altBase={item.title} />;
+              })()}
             </div>
           ))
         )}
