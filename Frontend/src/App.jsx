@@ -3,6 +3,7 @@ import { MdMenu } from 'react-icons/md';
 import { Navigate, Route, BrowserRouter as Router, Routes, useLocation, useNavigate } from 'react-router-dom';
 import AuthSystem from './components/AuthSystem'; // เพิ่มบรรทัดนี้
 import Footer from './components/Footer';
+import FirstVisitNewsModal from './components/FirstVisitNewsModal';
 import Header from './components/Header';
 import SidebarAdmin from './components/SidebarAdmin';
 import SidebarExecutive from './components/SidebarExecutive';
@@ -72,10 +73,8 @@ function AppInner() {
   };
 
   const inactivityTimer = useRef(null);
-  const [inactivityMinutes, setInactivityMinutes] = useState(() => {
-    const saved = parseInt(localStorage.getItem('security.inactivityMinutes'));
-    return Number.isFinite(saved) && saved > 0 ? saved : 45;
-  });
+  const INACTIVITY_MINUTES = 45; // Enforce 45 minutes globally
+  const inactivityMinutes = INACTIVITY_MINUTES;
 
   // ฟังก์ชัน logout
   const autoLogout = () => {
@@ -100,27 +99,9 @@ function AppInner() {
       events.forEach(event => window.removeEventListener(event, resetInactivityTimer));
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     };
-  }, [inactivityMinutes]);
-
-  // รับค่าที่อัปเดตจาก SystemSettings (same-tab custom event หรือข้ามแท็บผ่าน storage)
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === 'security.inactivityMinutes') {
-        const val = parseInt(e.newValue);
-        if (Number.isFinite(val) && val > 0) setInactivityMinutes(val);
-      }
-    };
-    const onCustom = (e) => {
-      const val = parseInt(e.detail);
-      if (Number.isFinite(val) && val > 0) setInactivityMinutes(val);
-    };
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('security:inactivityUpdated', onCustom);
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('security:inactivityUpdated', onCustom);
-    };
   }, []);
+
+  // บังคับใช้ 45 นาทีตายตัว: ไม่รับค่าจาก SystemSettings หรือ storage อีกต่อไป
 
   // // ถ้ายังไม่ได้ login ให้แสดงหน้า AuthSystem
   // if (!userRole) {
@@ -316,6 +297,8 @@ function AppInner() {
 
       {/* Main content */}
       <main className={`flex-1 flex flex-col transition-all duration-300 w-full bg-gradient-to-r from-indigo-950 md:from-2% sm:from-1% to-blue-700 ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
+        {/* First-visit news modal for all roles */}
+        <FirstVisitNewsModal userId={JSON.parse(localStorage.getItem('user') || '{}')?.id} />
         <Header userRole={userRole} changeRole={changeRole} />
         {/* Content */}
         <div className="bg-white p-4 m-4 rounded-xl flex-1 min-h-0">

@@ -1,6 +1,8 @@
 import express from 'express';
+import multer from 'multer';
 import { cloudinaryUtils } from '../utils/cloudinaryUtils.js';
 import authMiddleware from '../middleware/authMiddleware.js';
+import cloudinaryController from '../controllers/cloudinaryController.js';
 
 const router = express.Router();
 
@@ -48,23 +50,16 @@ router.get('/config', authMiddleware, (req, res) => {
 });
 
 // Upload file to Cloudinary (for testing)
-router.post('/upload', authMiddleware, async (req, res) => {
-  try {
-    // This is a placeholder for direct file upload testing
-    // In practice, you would use multer middleware here
-    res.json({
-      success: false,
-      message: 'Please use the appropriate upload endpoint for your file type'
-    });
-  } catch (error) {
-    console.error('Cloudinary upload error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์',
-      error: error.message
-    });
-  }
-});
+// Configure multer for generic uploads (memory storage)
+const memoryStorage = multer.memoryStorage();
+const uploadSingle = multer({ storage: memoryStorage, limits: { fileSize: 5 * 1024 * 1024 } }).single('file');
+const uploadMultiple = multer({ storage: memoryStorage, limits: { fileSize: 5 * 1024 * 1024, files: 10 } }).array('files', 10);
+
+// Upload single file to Cloudinary
+router.post('/upload', authMiddleware, uploadSingle, cloudinaryController.uploadFile);
+
+// Upload multiple files to Cloudinary (max 10)
+router.post('/upload-multiple', authMiddleware, uploadMultiple, cloudinaryController.uploadMultipleFiles);
 
 // Delete file from Cloudinary
 router.delete('/delete/:publicId', authMiddleware, async (req, res) => {

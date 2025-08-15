@@ -68,10 +68,7 @@ const SystemSettings = () => {
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: '', color: 'bg-gray-200', textColor: 'text-gray-500' });
   const [resendCooldownSec, setResendCooldownSec] = useState(0);
   // Auto-logout settings
-  const [inactivityMinutes, setInactivityMinutes] = useState(() => {
-    const saved = parseInt(localStorage.getItem('security.inactivityMinutes'));
-    return Number.isFinite(saved) && saved > 0 ? saved : 45;
-  });
+  const [inactivityMinutes, setInactivityMinutes] = useState(45);
   // Pre-logout warning
   const [preWarnMinutes, setPreWarnMinutes] = useState(() => {
     const saved = parseInt(localStorage.getItem('security.preLogoutWarnMinutes'));
@@ -161,13 +158,11 @@ const SystemSettings = () => {
           <div>
             <label className="text-sm font-semibold text-gray-700">ไม่มีการใช้งานเป็นเวลา</label>
             <div className="flex items-center gap-2 mt-1">
-              <Input
+               <Input
                 type="number"
-                min={5}
-                max={240}
                 value={inactivityMinutes}
-                onChange={(e) => setInactivityMinutes(Math.max(5, Math.min(240, parseInt(e.target.value || '0'))))}
-                className="!border !border-gray-300 bg-white w-28"
+                disabled
+                className="!border !border-gray-300 bg-gray-100 w-28"
                 labelProps={{ className: 'hidden' }}
               />
               <span className="text-gray-700">นาที</span>
@@ -1400,19 +1395,7 @@ const SystemSettings = () => {
           </div>
 
           <div className="flex gap-3 mt-6">
-            <Button
-              onClick={() => {
-                localStorage.setItem('security.inactivityMinutes', String(inactivityMinutes));
-                window.dispatchEvent(new CustomEvent('security:inactivityUpdated', { detail: String(inactivityMinutes) }));
-                localStorage.setItem('security.preLogoutWarnMinutes', String(preWarnMinutes));
-                window.dispatchEvent(new CustomEvent('security:preWarnUpdated', { detail: String(preWarnMinutes) }));
-                setNotificationData({ title: 'บันทึกแล้ว', message: `ตั้งค่าออกจากระบบอัตโนมัติ ${inactivityMinutes} นาที`, type: 'success' });
-                setShowNotification(true);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              บันทึกการตั้งค่า
-            </Button>
+            <Button disabled className="bg-gray-300 text-white cursor-not-allowed">ล็อกไว้ที่ 45 นาที</Button>
             <Button
               variant="outlined"
               onClick={() => {
