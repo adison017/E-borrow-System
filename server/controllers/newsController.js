@@ -12,12 +12,20 @@ export const getAllNews = async (req, res) => {
 
 // Create new news
 export const createNews = async (req, res) => {
-  const { title, content, category } = req.body;
+  const { title, content, category, image_url, force_show, show_to_all, date } = req.body;
 
   try {
+    const normalizedImage = Array.isArray(image_url)
+      ? JSON.stringify(image_url)
+      : (typeof image_url === 'string' ? image_url : null);
     const [result] = await pool.query(
-      'INSERT INTO news (title, content, category) VALUES (?, ?, ?)',
-      [title, content, category]
+      // Allow optional date and image_url
+      date
+        ? 'INSERT INTO news (title, content, category, image_url, force_show, show_to_all, date) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        : 'INSERT INTO news (title, content, category, image_url, force_show, show_to_all) VALUES (?, ?, ?, ?, ?, ?)',
+      date
+        ? [title, content, category, normalizedImage, force_show ? 1 : 0, show_to_all ? 1 : 0, date]
+        : [title, content, category, normalizedImage, force_show ? 1 : 0, show_to_all ? 1 : 0]
     );
 
     const [newNews] = await pool.query('SELECT * FROM news WHERE id = ?', [result.insertId]);
@@ -30,12 +38,20 @@ export const createNews = async (req, res) => {
 // Update news
 export const updateNews = async (req, res) => {
   const { id } = req.params;
-  const { title, content, category } = req.body;
+  const { title, content, category, image_url, force_show, show_to_all, date } = req.body;
 
   try {
+    const normalizedImage = Array.isArray(image_url)
+      ? JSON.stringify(image_url)
+      : (typeof image_url === 'string' ? image_url : null);
     const [result] = await pool.query(
-      'UPDATE news SET title = ?, content = ?, category = ? WHERE id = ?',
-      [title, content, category, id]
+      // Update optional fields; if date not provided, keep existing date
+      date
+        ? 'UPDATE news SET title = ?, content = ?, category = ?, image_url = ?, force_show = ?, show_to_all = ?, date = ? WHERE id = ?'
+        : 'UPDATE news SET title = ?, content = ?, category = ?, image_url = ?, force_show = ?, show_to_all = ? WHERE id = ?',
+      date
+        ? [title, content, category, normalizedImage, force_show ? 1 : 0, show_to_all ? 1 : 0, date, id]
+        : [title, content, category, normalizedImage, force_show ? 1 : 0, show_to_all ? 1 : 0, id]
     );
 
     if (result.affectedRows === 0) {

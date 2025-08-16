@@ -1,9 +1,24 @@
-export const API_BASE = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/api`
-  : "http://localhost:5000/api";
-export const UPLOAD_BASE = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL
-  : "http://localhost:5000";
+// Environment-based API configuration
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api`;
+  }
+  
+  // สำหรับตอนนี้ใช้ localhost
+  return 'http://localhost:5000/api';
+};
+
+const getUploadBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // สำหรับตอนนี้ใช้ localhost
+  return 'http://localhost:5000';
+};
+
+export const API_BASE = getApiBaseUrl();
+export const UPLOAD_BASE = getUploadBaseUrl();
 
 // Helper function สำหรับ fetch API ที่แนบ JWT token
 export function authFetch(url, options = {}) {
@@ -11,31 +26,21 @@ export function authFetch(url, options = {}) {
   const headers = options.headers ? { ...options.headers } : {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-    console.log('API Request - URL:', url);
-    console.log('API Request - Token present:', !!token);
-  } else {
-    console.log('API Request - No token found in localStorage');
   }
   return fetch(url, { ...options, headers });
 }
 
 // Equipment
 export const getEquipment = () => authFetch(`${API_BASE}/equipment`).then(res => {
-  console.log('getEquipment response status:', res.status);
   if (!res.ok) {
     throw new Error(`HTTP error! status: ${res.status}`);
   }
   return res.json();
-}).catch(error => {
-  console.error('getEquipment error:', error);
-  throw error;
 });
 
 // Upload image to Cloudinary and return URL
 export const uploadImage = async (file, item_code) => {
   try {
-    console.log('[UPLOAD] Starting upload for item_code:', item_code);
-
     const formData = new FormData();
     formData.append("image", file);
 
@@ -51,15 +56,14 @@ export const uploadImage = async (file, item_code) => {
 
     if (!res.ok) {
       const errorData = await res.json();
-      console.error('[UPLOAD] Upload failed:', errorData);
+      if (import.meta.env.MODE !== 'production') console.error('[UPLOAD] Upload failed');
       throw new Error(errorData.error || 'Upload failed');
     }
 
     const data = await res.json();
-    console.log('[UPLOAD] Upload successful:', data);
     return data.url;
   } catch (error) {
-    console.error('[UPLOAD] Upload error:', error);
+    if (import.meta.env.MODE !== 'production') console.error('[UPLOAD] Upload error');
     throw error;
   }
 };
@@ -82,25 +86,19 @@ export const addEquipment = (data) => {
 
 export const updateEquipment = (item_id, data) => {
   const payload = { ...data };
-  console.log('updateEquipment - URL:', `${API_BASE}/equipment/${item_id}`);
-  console.log('updateEquipment - Payload:', payload);
 
   return authFetch(`${API_BASE}/equipment/${item_id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   }).then(res => {
-    console.log('updateEquipment - Response status:', res.status);
     if (!res.ok) {
       return res.json().then(errorData => {
-        console.error('updateEquipment - Error response:', errorData);
+        if (import.meta.env.MODE !== 'production') console.error('updateEquipment error');
         throw new Error(`HTTP error! status: ${res.status}, message: ${errorData.error || errorData.message || 'Unknown error'}`);
       });
     }
     return res.json();
-  }).catch(error => {
-    console.error('updateEquipment - Error:', error);
-    throw error;
   });
 };
 
@@ -114,9 +112,7 @@ export const deleteCategory = (id) => authFetch(`${API_BASE}/category/${id}`, { 
 
 // Update equipment status
 export const updateEquipmentStatus = (item_code, status) => {
-  // item_code must be string (not id)
   if (!item_code || typeof item_code !== 'string') throw new Error('item_code is required');
-  // status: can be string or object (support both)
   const statusPayload = typeof status === 'object' && status.status ? status : { status };
   return authFetch(`${API_BASE}/equipment/${item_code}/status`, {
     method: "PUT",
@@ -136,26 +132,10 @@ export const getRepairRequestsByItemId = (item_id) => {
 };
 
 export const updateBorrowStatus = (borrow_id, status, rejection_reason, signature_image, handover_photo) => {
-  console.log('=== updateBorrowStatus API Debug ===');
-  console.log('borrow_id:', borrow_id);
-  console.log('status:', status);
-  console.log('rejection_reason:', rejection_reason);
-  console.log('signature_image exists:', !!signature_image);
-  console.log('signature_image length:', signature_image ? signature_image.length : 0);
-  console.log('handover_photo exists:', !!handover_photo);
-  console.log('handover_photo length:', handover_photo ? handover_photo.length : 0);
-
   const body = { status };
   if (rejection_reason !== undefined) body.rejection_reason = rejection_reason;
   if (signature_image !== undefined) body.signature_image = signature_image;
   if (handover_photo !== undefined) body.handover_photo = handover_photo;
-
-  console.log('Request body:', {
-    status: body.status,
-    rejection_reason: body.rejection_reason,
-    signature_image_length: body.signature_image ? body.signature_image.length : 0,
-    handover_photo_length: body.handover_photo ? body.handover_photo.length : 0
-  });
 
   return authFetch(`${API_BASE}/borrows/${borrow_id}/status`, {
     method: "PUT",
@@ -178,3 +158,30 @@ export const getNews = async () => {
 
 // Room
 export const getRooms = () => authFetch(`${API_BASE}/rooms`).then(res => res.json());
+
+// News CRUD
+export const createNews = async (payload) => {
+  const res = await authFetch(`${API_BASE}/news`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Create news failed');
+  return res.json();
+};
+
+export const updateNewsApi = async (id, payload) => {
+  const res = await authFetch(`${API_BASE}/news/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Update news failed');
+  return res.json();
+};
+
+export const deleteNewsApi = async (id) => {
+  const res = await authFetch(`${API_BASE}/news/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Delete news failed');
+  return res.json();
+};

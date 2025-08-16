@@ -4,8 +4,15 @@ import 'dotenv/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import http from 'http';
+import https from 'https';
+import fs from 'fs';
 import { Server as SocketIOServer } from 'socket.io';
+import jwt from 'jsonwebtoken';
+
+// Rate limiting
+import rateLimit from 'express-rate-limit';
 
 // Import cron job
 import './cron/notifySchedule.js';
@@ -34,12 +41,31 @@ import cloudinaryRoutes from './routes/cloudinaryRoutes.js';
 import notificationSettingsRoutes from './routes/notificationSettingsRoutes.js';
 
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const server = http.createServer(app);
+app.set('trust proxy', 1);
+
+// SSL Configuration
+const isProduction = process.env.NODE_ENV === 'production';
+let server;
+
+// สำหรับตอนนี้ให้ใช้ HTTP ทั้งหมด (development mode)
+server = http.createServer(app);
+
+// เมื่อมี domain จริงแล้ว ให้เปลี่ยนเป็น:
+// if (isProduction) {
+//   // Production: Use HTTPS
+//   const privateKey = fs.readFileSync(process.env.SSL_PRIVATE_KEY_PATH || '/path/to/private-key.pem', 'utf8');
+//   const certificate = fs.readFileSync(process.env.SSL_CERTIFICATE_PATH || '/path/to/certificate.pem', 'utf8');
+//   const credentials = { key: privateKey, cert: certificate };
+//   server = https.createServer(credentials, app);
+// } else {
+//   // Development: Use HTTP
+//   server = http.createServer(app);
+// }
+
 const io = new SocketIOServer(server, {
   cors: {
     origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
@@ -48,35 +74,176 @@ const io = new SocketIOServer(server, {
   }
 });
 
+// Socket.IO Session Management
+const socketSessions = new Map(); // เก็บ socket sessions
+const userSockets = new Map(); // เก็บ user_id -> socket mapping
+
 // ฟังก์ชัน broadcast badgeCountsUpdated
 export function broadcastBadgeCounts(badges) {
   io.emit('badgeCountsUpdated', badges);
 }
 
-// ตัวอย่าง: เรียก broadcastBadgeCounts({ pendingCount: 1, carryCount: 2, borrowApprovalCount: 3, repairApprovalCount: 4 })
-// ในจุดที่มีการเปลี่ยนแปลงข้อมูลที่เกี่ยวข้องกับ badge
+// ฟังก์ชันส่งข้อมูลเฉพาะ user
+export function emitToUser(userId, event, data) {
+  const userSocketIds = userSockets.get(userId);
+  if (userSocketIds) {
+    userSocketIds.forEach(socketId => {
+      const socket = io.sockets.sockets.get(socketId);
+      if (socket) {
+        socket.emit(event, data);
+      }
+    });
+  }
+}
+
+// ฟังก์ชันลบ socket session
+function removeSocketSession(socketId) {
+  const session = socketSessions.get(socketId);
+  if (session) {
+    // ลบ socket จาก user mapping
+    const userSocketIds = userSockets.get(session.userId);
+    if (userSocketIds) {
+      userSocketIds.delete(socketId);
+      if (userSocketIds.size === 0) {
+        userSockets.delete(session.userId);
+      }
+    }
+    // ลบ session
+    socketSessions.delete(socketId);
+    console.log(`Socket session removed: ${socketId} for user: ${session.userId}`);
+  }
+}
+
+// ฟังก์ชันตรวจสอบ JWT token
+function verifyToken(token) {
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
+}
 
 io.on('connection', async (socket) => {
   console.log('Socket connected:', socket.id);
-  // Query badge ปัจจุบัน
-  try {
-    const [pending, carry, pendingApproval] = await Promise.all([
-      BorrowModel.getBorrowsByStatus(['pending']),
-      BorrowModel.getBorrowsByStatus(['carry']),
-      BorrowModel.getBorrowsByStatus(['pending_approval'])
-    ]);
-    const allRepairs = await RepairRequest.getAllRepairRequests();
-    const repairApprovalCount = allRepairs.length;
-    socket.emit('badgeCountsUpdated', {
-      pendingCount: pending.length + pendingApproval.length,
-      carryCount: carry.length,
-      borrowApprovalCount: pendingApproval.length,
-      repairApprovalCount
-    });
-  } catch (err) {
-    console.error('Error sending initial badge counts:', err);
-  }
+  
+  // ตรวจสอบ authentication
+  socket.on('authenticate', async (data) => {
+    try {
+      const { token } = data;
+      if (!token) {
+        socket.emit('auth_error', { message: 'Token required' });
+        socket.disconnect();
+        return;
+      }
+      
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        socket.emit('auth_error', { message: 'Invalid token' });
+        socket.disconnect();
+        return;
+      }
+      
+      // บันทึก session
+      const session = {
+        userId: decoded.user_id,
+        username: decoded.username,
+        role: decoded.role,
+        deviceFingerprint: decoded.deviceFingerprint,
+        loginTime: decoded.loginTime,
+        connectedAt: Date.now()
+      };
+      
+      socketSessions.set(socket.id, session);
+      
+      // เพิ่ม socket ไปยัง user mapping
+      if (!userSockets.has(decoded.user_id)) {
+        userSockets.set(decoded.user_id, new Set());
+      }
+      userSockets.get(decoded.user_id).add(socket.id);
+      
+      console.log(`User authenticated: ${decoded.username} (${decoded.user_id}) on socket: ${socket.id}`);
+      
+      // ส่งข้อมูล badge counts เริ่มต้น
+      try {
+        const [pending, carry, pendingApproval] = await Promise.all([
+          BorrowModel.getBorrowsByStatus(['pending']),
+          BorrowModel.getBorrowsByStatus(['carry']),
+          BorrowModel.getBorrowsByStatus(['pending_approval'])
+        ]);
+        const allRepairs = await RepairRequest.getAllRepairRequests();
+        const repairApprovalCount = allRepairs.length;
+        
+        socket.emit('badgeCountsUpdated', {
+          pendingCount: pending.length + pendingApproval.length,
+          carryCount: carry.length,
+          borrowApprovalCount: pendingApproval.length,
+          repairApprovalCount
+        });
+        
+        socket.emit('auth_success', { message: 'Authentication successful' });
+      } catch (err) {
+        console.error('Error sending initial badge counts:', err);
+        socket.emit('auth_error', { message: 'Error loading data' });
+      }
+      
+    } catch (error) {
+      console.error('Socket authentication error:', error);
+      socket.emit('auth_error', { message: 'Authentication failed' });
+      socket.disconnect();
+    }
+  });
+  
+  // จัดการ disconnect
+  socket.on('disconnect', (reason) => {
+    console.log(`Socket disconnected: ${socket.id}, reason: ${reason}`);
+    removeSocketSession(socket.id);
+  });
+  
+  // จัดการ error
+  socket.on('error', (error) => {
+    console.error(`Socket error: ${socket.id}`, error);
+    removeSocketSession(socket.id);
+  });
+  
+  // Heartbeat เพื่อตรวจสอบการเชื่อมต่อ
+  socket.on('ping', () => {
+    socket.emit('pong', { timestamp: Date.now() });
+  });
+  
+  // ตรวจสอบ session หลังจาก 30 วินาที
+  setTimeout(() => {
+    const session = socketSessions.get(socket.id);
+    if (!session) {
+      console.log(`Socket ${socket.id} not authenticated, disconnecting...`);
+      socket.disconnect();
+    }
+  }, 30000);
 });
+
+// Cleanup sessions ทุก 5 นาที
+setInterval(() => {
+  const now = Date.now();
+  const disconnectedSockets = [];
+  
+  socketSessions.forEach((session, socketId) => {
+    // ลบ session ที่ไม่มีการใช้งานเกิน 30 นาที
+    if (now - session.connectedAt > 30 * 60 * 1000) {
+      disconnectedSockets.push(socketId);
+    }
+  });
+  
+  disconnectedSockets.forEach(socketId => {
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket) {
+      socket.disconnect();
+    }
+    removeSocketSession(socketId);
+  });
+  
+  if (disconnectedSockets.length > 0) {
+    console.log(`Cleaned up ${disconnectedSockets.length} inactive socket sessions`);
+  }
+}, 5 * 60 * 1000);
 
 // Enable CORS with specific options
 app.use(cors({
@@ -87,10 +254,74 @@ app.use(cors({
   credentials: true
 }));
 
+// Parse cookies for refresh token handling
+app.use(cookieParser());
+
 // Add request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
+});
+
+// Security Headers Middleware
+app.use((req, res, next) => {
+  // Prevent clickjacking
+  res.setHeader('X-Frame-Options', 'DENY');
+  
+  // Prevent MIME type sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // Enable XSS protection
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Strict Transport Security (HSTS) - only in production
+  // if (isProduction) {
+  //   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  // }
+  
+  // Content Security Policy
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;");
+  
+  // Referrer Policy
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Permissions Policy
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  
+  next();
+});
+
+// Rate Limiting for Login Endpoints
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: {
+    message: 'Too many login attempts, please try again after 15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to login routes
+app.use('/api/users/login', loginLimiter);
+app.use('/api/users/verify-otp', loginLimiter);
+app.use('/api/users/request-otp', loginLimiter);
+
+// General rate limiting for all routes (dev ผ่อนคลายมากขึ้น)
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 300 : 2000, // ผ่อนคลายใน dev
+  message: {
+    message: 'Too many requests from this IP, please try again later'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ยกเว้นเส้นทาง dashboard จาก general limiter (ลด 429 ระหว่างโหลดหลายกราฟ)
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/dashboard')) return next();
+  return generalLimiter(req, res, next);
 });
 
 // Parse URL-encoded bodies
@@ -244,7 +475,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, async () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log('CORS enabled for:', ['http://localhost:5173', 'http://127.0.0.1:5173']);
+  console.log('CORS enabled for: http://localhost:5173, http://127.0.0.1:5173');
   console.log('Socket.IO server started');
 
   // Initialize database tables after server starts
