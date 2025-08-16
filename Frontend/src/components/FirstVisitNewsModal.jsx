@@ -1,24 +1,45 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { IoMdNotifications } from 'react-icons/io';
+import { MdCalendarToday, MdChevronLeft, MdChevronRight, MdClose } from 'react-icons/md';
 import { getNews } from '../utils/api';
-import { MdChevronLeft, MdChevronRight, MdClose } from 'react-icons/md';
 
 // Mark a news item as hidden for a user so it won't be shown again
 // v2: include news date in the key so republished/updated news shows again
 const STORAGE_HIDE_PREFIX = 'news_hide_v2_';
 
-// Category color mapping (same as ManageNews.jsx)
-const getCategoryColor = (category) => {
+// Category color mapping with gradient styles
+const getCategoryStyle = (category) => {
   switch (category) {
     case 'การบำรุงรักษา':
-      return 'bg-orange-100 text-orange-800';
+      return {
+        badge: 'bg-amber-500 text-white shadow-lg shadow-orange-200/50',
+        icon: '🔧',
+        glow: 'shadow-orange-300/30'
+      };
     case 'อุปกรณ์ใหม่':
-      return 'bg-green-100 text-green-800';
+      return {
+        badge: 'bg-green-500 text-white shadow-lg shadow-green-200/50',
+        icon: '✨',
+        glow: 'shadow-green-300/30'
+      };
     case 'กิจกรรม':
-      return 'bg-blue-100 text-blue-800';
+      return {
+        badge: 'bg-indigo-500 text-white shadow-lg shadow-blue-200/50',
+        icon: '🎉',
+        glow: 'shadow-blue-300/30'
+      };
     case 'ประกาศ':
-      return 'bg-purple-100 text-purple-800';
+      return {
+        badge: 'bg-purple-400 text-white shadow-lg shadow-purple-200/50',
+        icon: '📢',
+        glow: 'shadow-purple-300/30'
+      };
     default:
-      return 'bg-gray-100 text-gray-800';
+      return {
+        badge: 'bg-slate-500 text-white shadow-lg shadow-gray-200/50',
+        icon: '📌',
+        glow: 'shadow-gray-300/30'
+      };
   }
 };
 
@@ -101,36 +122,82 @@ export default function FirstVisitNewsModal({ userId }) {
     setCurrentIndex((idx) => (idx >= remaining.length ? 0 : idx));
   };
 
+  const categoryStyle = getCategoryStyle(current?.category);
+
   return (
     <div className="modal modal-open">
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden">
-          <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-blue-50 to-blue-100">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-blue-900">ประกาศ</h3>
-              {current?.category && (
-                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getCategoryColor(current.category)}`}>
-                  {current.category}
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button className="btn btn-sm btn-outline" onClick={handleCloseForNow}>ปิดชั่วคราว</button>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="flex items-start gap-4">
-              <button className="btn btn-ghost" onClick={movePrev} aria-label="ก่อนหน้า"><MdChevronLeft size={20} /></button>
-              <div className="flex-1">
-                <h4 className="text-2xl font-semibold text-blue-700 mb-2 tracking-tight">{current.title}</h4>
-                <div className="text-xs md:text-sm text-gray-500 mb-3 flex items-center justify-between">
-                  <span>เผยแพร่เมื่อ: {new Date(current.date).toLocaleDateString('th-TH')}</span>
-                  {current?.category && (
-                    <span className={`text-[10px] md:text-xs font-semibold px-2 py-1 rounded-full ${getCategoryColor(current.category)}`}>
-                      {current.category}
-                    </span>
-                  )}
+      {/* Backdrop with blur effect */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-opacity duration-300">
+        {/* Container with navigation buttons on sides */}
+        <div className="flex items-center gap-4 w-full max-w-5xl">
+          {/* Previous Button - Outside Modal */}
+          <button
+            className="p-3 bg-white/80 hover:bg-white shadow-lg hover:shadow-xl rounded-2xl h-20 transition-all duration-300 group backdrop-blur-sm flex-shrink-0"
+            onClick={movePrev}
+            aria-label="ก่อนหน้า"
+          >
+            <MdChevronLeft className="text-gray-600 group-hover:text-blue-600 text-2xl transition-colors" />
+          </button>
+
+          {/* Main Modal Container with glass morphism effect */}
+          <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-h-[95vh] overflow-hidden border border-white/20 transform transition-all duration-500 flex flex-col">
+            {/* Decorative gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 opacity-50"></div>
+            
+            {/* Header Section */}
+            <div className="relative p-6 border-b border-gray-200/50 bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-sm flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg animate-pulse">
+                    <IoMdNotifications className="text-white text-2xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-black bg-clip-text ">
+                      ข่าวสารและประกาศ
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">อัพเดทล่าสุดสำหรับคุณ</p>
+                  </div>
                 </div>
+                <button
+                  className="group p-2 hover:bg-gray-100/80 rounded-xl transition-all duration-300 backdrop-blur-sm"
+                  onClick={handleCloseForNow}
+                  aria-label="ปิด"
+                >
+                  <MdClose className="text-gray-500 group-hover:text-gray-700 text-xl transition-colors" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Content Section - Scrollable */}
+            <div className="relative p-8 overflow-y-auto flex-1">
+              {/* Main Content Area */}
+              <div className="w-full">
+                {/* Category Badge and Title */}
+                <div className="mb-4">
+                  <h3 className="text-3xl font-bold text-gray-800 leading-tight mb-2">
+                    {current.title}
+                  </h3>
+                  <div className="flex items-center mb-2 gap-2 text-sm text-gray-600">
+                    <MdCalendarToday className="text-gray-400" />
+                    <span>เผยแพร่เมื่อ {new Date(current.date).toLocaleDateString('th-TH', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}</span>
+                  </div>
+                    {current?.category && (
+                    <div className="inline-flex items-center gap-2 mb-3">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-bold ${categoryStyle.badge} transform hover:scale-105 transition-transform`}>
+                        <span className="text-lg">{categoryStyle.icon}</span>
+                        {current.category}
+                      </span>
+                    </div>
+                  )}
+                    
+                  
+                </div>
+
+                {/* Image Gallery */}
                 {current.image_url && (() => {
                   let urls = [];
                   try {
@@ -144,108 +211,154 @@ export default function FirstVisitNewsModal({ userId }) {
                   const prevImg = () => setImageIndex((i) => (i - 1 + total) % total);
                   const nextImg = () => setImageIndex((i) => (i + 1) % total);
                   return (
-                    <div className="mb-4">
-                      <div className="relative h-56 md:h-72 w-fit max-w-full rounded-lg overflow-hidden bg-black shadow mx-auto">
-                        <img src={urls[imageIndex]} alt={`${current.title}-${imageIndex}`} className="h-full w-auto max-w-full object-contain cursor-zoom-in" onClick={() => setIsPreviewOpen(true)} />
+                    <div className="mb-6">
+                      <div className={`relative h-64 md:h-96 w-full rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-2xl ${categoryStyle.glow} group`}>
+                        <img
+                          src={urls[imageIndex]}
+                          alt={`${current.title}-${imageIndex}`}
+                          className="h-full w-full object-cover cursor-zoom-in transition-transform duration-500 group-hover:scale-105"
+                          onClick={() => setIsPreviewOpen(true)}
+                        />
+                        
+                        {/* Gradient overlay for better text visibility */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none"></div>
+                        
                         {total > 1 && (
-                          <>
+                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">
                             <button
                               type="button"
                               onClick={prevImg}
-                              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center"
+                              className="bg-white/90 backdrop-blur-sm hover:bg-white text-gray-800 rounded-full w-9 h-9 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300"
                               aria-label="ก่อนหน้า"
                             >
-                              <MdChevronLeft size={18} />
+                              <MdChevronLeft className="text-lg" />
                             </button>
+                            
+                            <div className="bg-black/50 backdrop-blur-sm text-white px-4 py-1 rounded-full text-sm font-medium">
+                              {imageIndex + 1} / {total}
+                            </div>
+                            
                             <button
                               type="button"
                               onClick={nextImg}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center"
+                              className="bg-white/90 backdrop-blur-sm hover:bg-white text-gray-800 rounded-full w-9 h-9 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300"
                               aria-label="ถัดไป"
                             >
-                              <MdChevronRight size={18} />
+                              <MdChevronRight className="text-lg" />
                             </button>
-                          </>
+                          </div>
                         )}
                       </div>
+                      
+                      {/* Image dots indicator */}
                       {total > 1 && (
-                        <div className="mt-2 flex items-center justify-center gap-1">
+                        <div className="mt-4 flex items-center justify-center gap-2">
                           {urls.map((_, i) => (
                             <button
                               key={i}
                               type="button"
                               onClick={() => setImageIndex(i)}
-                              className={`w-2 h-2 rounded-full ${i === imageIndex ? 'bg-blue-600' : 'bg-gray-300'}`}
+                              className={`transition-all duration-300 ${
+                                i === imageIndex
+                                  ? 'w-8 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full'
+                                  : 'w-2 h-2 bg-gray-300 hover:bg-gray-400 rounded-full'
+                              }`}
                               aria-label={`ไปยังรูปที่ ${i + 1}`}
                             />
                           ))}
                         </div>
                       )}
+
+                      {/* Full screen preview */}
                       {isPreviewOpen && (
-                        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setIsPreviewOpen(false)}>
-                          <div className="relative w-full h-full max-w-6xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-                            <img src={urls[imageIndex]} alt={`${current.title}-preview-${imageIndex}`} className="w-full h-full object-contain" />
+                        <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center p-4 transition-opacity duration-300" onClick={() => setIsPreviewOpen(false)}>
+                          <div className="relative w-full h-full max-w-7xl max-h-[90vh] transform transition-transform duration-300 scale-100" onClick={(e) => e.stopPropagation()}>
+                            <img
+                              src={urls[imageIndex]}
+                              alt={`${current.title}-preview-${imageIndex}`}
+                              className="w-full h-full object-contain rounded-lg"
+                            />
                             {total > 1 && (
-                              <>
+                              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">
                                 <button
                                   type="button"
                                   onClick={prevImg}
-                                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white rounded-full w-10 h-10 flex items-center justify-center"
+                                  className="bg-black/50 backdrop-blur-sm hover:bg-black text-white rounded-full w-9 h-9 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300"
                                   aria-label="ก่อนหน้า"
                                 >
-                                  <MdChevronLeft size={22} />
+                                  <MdChevronLeft className="text-lg" />
                                 </button>
+                                
+                                <div className="bg-black/50 backdrop-blur-sm text-white px-4 py-1 rounded-full text-sm font-medium">
+                                  {imageIndex + 1} / {total}
+                                </div>
                                 <button
                                   type="button"
                                   onClick={nextImg}
-                                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white rounded-full w-10 h-10 flex items-center justify-center"
+                                  className="bg-black/50 backdrop-blur-sm hover:bg-black text-white rounded-full w-9 h-9 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300"
                                   aria-label="ถัดไป"
                                 >
-                                  <MdChevronRight size={22} />
-                                </button>
-                              </>
+                                <MdChevronRight className="text-lg" />
+                              </button>
+                            </div>
                             )}
                             <button
                               type="button"
                               onClick={() => setIsPreviewOpen(false)}
-                              className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-full w-10 h-10 flex items-center justify-center"
+                              className="absolute top-2 right-2 bg-black/10 backdrop-blur-md hover:bg-black/20 text-black rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300"
                               aria-label="ปิด"
                             >
-                              <MdClose size={22} />
+                              <MdClose size={24} />
                             </button>
+                            
                           </div>
                         </div>
                       )}
                     </div>
                   );
                 })()}
-                <p className="text-gray-700 whitespace-pre-wrap">{current.content}</p>
+                
+                {/* Content Text */}
+                <div className="bg-gray-50/50 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50">
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-base">
+                    {current.content}
+                  </p>
+                </div>
               </div>
-              <button className="btn btn-ghost" onClick={moveNext} aria-label="ถัดไป"><MdChevronRight size={20} /></button>
             </div>
-            {/* indicators */}
-            <div className="mt-4 flex items-center justify-center gap-2">
-              {newsItems.map((_, idx) => (
+            
+            {/* Footer Section */}
+            <div className="relative p-6 border-t border-gray-200/50 bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3">
+                <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                  กำลังแสดงข่าวที่ {currentIndex + 1} จาก {newsItems.length} รายการ
+                </span>
+                
                 <button
-                  key={idx}
-                  className={`w-2.5 h-2.5 rounded-full ${idx === currentIndex ? 'bg-blue-600' : 'bg-gray-300'}`}
-                  onClick={() => setCurrentIndex(idx)}
-                  aria-label={`ไปยังข่าวที่ ${idx + 1}`}
-                />
-              ))}
+                  className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-300 w-full max-w-xs text-center ${
+                    (current && (current.force_show === 1 || current.force_show === '1' || current.force_show === true))
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:shadow-md'
+                  }`}
+                  onClick={handleDontShowAgain}
+                  disabled={(current && (current.force_show === 1 || current.force_show === '1' || current.force_show === true))}
+                >
+                  ไม่ต้องแสดงอีก
+                </button>
+              </div>
             </div>
           </div>
-          <div className="p-4 border-t flex justify-between">
-            <span className="text-sm text-gray-500">{currentIndex + 1} / {newsItems.length}</span>
-            <div className="flex gap-2">
-              <button className={`btn btn-outline ${(current && (current.force_show === 1 || current.force_show === '1' || current.force_show === true)) ? 'btn-disabled opacity-50 cursor-not-allowed' : ''}`} onClick={handleDontShowAgain} disabled={(current && (current.force_show === 1 || current.force_show === '1' || current.force_show === true))}>ไม่ต้องแสดงอีก</button>
-              <button className="btn btn-primary" onClick={moveNext}>ข่าวถัดไป</button>
-            </div>
-          </div>
+
+          {/* Next Button - Outside Modal */}
+          <button
+            className="p-3 bg-white/80 hover:bg-white shadow-lg hover:shadow-xl h-20 rounded-2xl transition-all duration-300 group backdrop-blur-sm flex-shrink-0"
+            onClick={moveNext}
+            aria-label="ถัดไป"
+          >
+            <MdChevronRight className="text-gray-600 group-hover:text-blue-600 text-2xl transition-colors" />
+          </button>
         </div>
       </div>
     </div>
   );
 }
-
-

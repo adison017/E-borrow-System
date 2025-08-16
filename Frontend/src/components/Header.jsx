@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { MdSettings, MdNotifications, MdAssignment, MdFactCheck, MdLocalShipping, MdUndo, MdBuild, MdErrorOutline, MdPayment, MdWarningAmber, MdCheckCircle, MdSchedule, MdChevronRight } from 'react-icons/md';
+import { MdAssignment, MdBuild, MdCheckCircle, MdChevronRight, MdErrorOutline, MdFactCheck, MdLocalShipping, MdNotifications, MdPayment, MdSchedule, MdSettings, MdUndo, MdWarningAmber } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
-import Notification from './Notification';
-import { getAllBorrows, authFetch } from '../utils/api';
 import { useBadgeCounts } from '../hooks/useSocket';
+import { authFetch, getAllBorrows } from '../utils/api';
+import Notification from './Notification';
 // import { Avatar } from "@material-tailwind/react"; // ไม่ใช้ Avatar แล้ว
 
 function Header({ userRole, changeRole }) {
@@ -140,6 +140,27 @@ function Header({ userRole, changeRole }) {
 
   useEffect(() => {
     if (showNotifMenu) stopTitleBlink();
+  }, [showNotifMenu]);
+
+  // Keep menu open when clicking inside; close only when clicking outside
+  useEffect(() => {
+    const handleDocClick = (e) => {
+      try {
+        const menu = document.getElementById('notif-menu');
+        const btn = document.getElementById('notif-button');
+        if (!menu) return;
+        // If click is inside menu or on the notification button, do not close
+        if (menu.contains(e.target) || (btn && btn.contains(e.target))) return;
+        setShowNotifMenu(false);
+      } catch (err) {}
+    };
+
+    if (showNotifMenu) {
+      document.addEventListener('mousedown', handleDocClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleDocClick);
+    };
   }, [showNotifMenu]);
 
   const stopTitleBlink = () => {
@@ -535,63 +556,127 @@ function Header({ userRole, changeRole }) {
               {/* Notifications - role specific content */}
               <div className="relative">
                 <button
+                  id="notif-button"
                   onClick={() => setShowNotifMenu(v => !v)}
-                  onBlur={() => setTimeout(() => setShowNotifMenu(false), 150)}
-                  className="md:flex items-center justify-center p-2 rounded-full hover:bg-blue-700 transition-colors relative"
+                  className="md:flex items-center justify-center p-2 rounded-full hover:bg-blue-700 transition-all duration-200 relative group"
                   title="การแจ้งเตือน"
                 >
-                  <MdNotifications className="h-5 w-5" />
+                  <MdNotifications className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full animate-pulse">
                       {unreadCount}
                     </span>
                   )}
                 </button>
                 {showNotifMenu && (
-                  <div className="absolute right-0 mt-2 w-96 bg-white text-gray-800 rounded-2xl shadow-2xl ring-1 ring-black/5 overflow-hidden z-20">
-                    <div className="px-4 py-3 border-b text-sm font-semibold bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-800 flex items-center gap-2">
-                      <MdNotifications className="text-blue-600" /> การแจ้งเตือน
-                    </div>
-                    <div className="max-h-96 overflow-auto text-sm">
-                      {unreadCount === 0 && (
-                        <div className="px-4 py-3 text-gray-500">ยังไม่มีการแจ้งเตือนใหม่</div>
-                      )}
-                      {sortedVisibleItems.length > 0 && (
-                        <ul className="divide-y">
-                          {sortedVisibleItems.map(item => {
-                            const isRead = readIds.has(item.id);
-                            const iconMap = {
-                              admin_pending: <MdAssignment className="text-blue-600" />,
-                              admin_carry: <MdLocalShipping className="text-amber-600" />,
-                              admin_return: <MdUndo className="text-purple-600" />,
-                              exec_borrow_approval: <MdFactCheck className="text-red-600" />,
-                              exec_repair_approval: <MdBuild className="text-amber-600" />,
-                              user_pending: <MdSchedule className="text-blue-600" />,
-                              user_approved: <MdCheckCircle className="text-green-600" />,
-                              user_carry: <MdLocalShipping className="text-amber-600" />,
-                              user_waiting_payment: <MdPayment className="text-rose-600" />,
-                              user_overdue: <MdWarningAmber className="text-purple-600" />,
-                              user_rejected: <MdErrorOutline className="text-gray-600" />,
-                            };
-                            const statusBadge = {
-                              admin_pending: { label: 'รอจัดการ', cls: 'bg-blue-100 text-blue-700 border border-blue-200' },
-                              admin_carry: { label: 'ส่งมอบ', cls: 'bg-amber-100 text-amber-700 border border-amber-200' },
-                              admin_return: { label: 'รอคืน', cls: 'bg-purple-100 text-purple-700 border border-purple-200' },
-                              exec_borrow_approval: { label: 'รออนุมัติยืม', cls: 'bg-red-100 text-red-700 border border-red-200' },
-                              exec_repair_approval: { label: 'รออนุมัติซ่อม', cls: 'bg-amber-100 text-amber-700 border border-amber-200' },
-                              user_pending: { label: 'รออนุมัติ', cls: 'bg-blue-100 text-blue-700 border border-blue-200' },
-                              user_approved: { label: 'อนุมัติแล้ว', cls: 'bg-green-100 text-green-700 border border-green-200' },
-                              user_carry: { label: 'กำลังยืม', cls: 'bg-amber-100 text-amber-700 border border-amber-200' },
-                              user_waiting_payment: { label: 'ค้างชำระ', cls: 'bg-rose-100 text-rose-700 border border-rose-200' },
-                              user_overdue: { label: 'เกินกำหนด', cls: 'bg-purple-100 text-purple-700 border border-purple-200' },
-                              user_rejected: { label: 'ไม่อนุมัติ', cls: 'bg-gray-100 text-gray-700 border border-gray-200' },
-                            }[item.type] || { label: 'แจ้งเตือน', cls: 'bg-gray-100 text-gray-700 border border-gray-200' };
-                            const icon = iconMap[item.type] || <MdNotifications className="text-gray-600" />;
-                            return (
-                              <li key={item.id}>
+                  <div id="notif-menu" className="absolute right-0 mt-2 w-[420px] overflow-visible z-20 animate-in fade-in slide-in-from-top-1 duration-300">
+                    {/* Pointer (chat bubble tail) with animation */}
+                    <div
+                      className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-blue-700 absolute right-[10px] -top-[9px] z-30 animate-in fade-in zoom-in-95 duration-200"
+                    />
+
+                    <div className="bg-white rounded-xl shadow-2xl ring-1 ring-gray-900/5 overflow-hidden transform transition-all duration-300 ease-out">
+                      {/* Header with gradient and counter */}
+                      <div className="relative overflow-hidden bg-blue-700 px-6 py-4 rounded-b-xl ">
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <MdNotifications className="h-8 w-8 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-white">การแจ้งเตือน</h3>
+                              <p className="text-xs text-blue-100">
+                                {unreadCount > 0 ? `${unreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
+                              </p>
+                            </div>
+                          </div>
+                          {/* Sound toggle */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newState = !soundEnabled;
+                              setSoundEnabled(newState);
+                              localStorage.setItem('notifSound', newState ? '1' : '0');
+                            }}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-200 hover:scale-110"
+                            title={soundEnabled ? 'ปิดเสียงแจ้งเตือน' : 'เปิดเสียงแจ้งเตือน'}
+                          >
+                            {soundEnabled ? (
+                              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                            ) : (
+                              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                        {/* Decorative elements */}
+                        <div className="absolute -left-4 -bottom-4 h-20 w-20 rounded-full bg-white/10"></div>
+                      </div>
+
+                      {/* Notifications list with smooth scroll */}
+                      <div className="max-h-[420px] overflow-y-auto bg-gray-50 scroll-smooth scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                        {unreadCount === 0 && sortedVisibleItems.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-12 px-6 animate-in fade-in duration-300">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 mb-4 animate-bounce">
+                              <MdNotifications className="h-8 w-8 text-gray-400" />
+                            </div>
+                            <p className="text-sm font-medium text-gray-900">ไม่มีการแจ้งเตือน</p>
+                            <p className="text-xs text-gray-500 mt-1">คุณจะได้รับการแจ้งเตือนเมื่อมีกิจกรรมใหม่</p>
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-gray-100">
+                            {sortedVisibleItems.map(item => {
+                              const isRead = readIds.has(item.id);
+                              const iconMap = {
+                                admin_pending: <MdAssignment className="h-5 w-5" />,
+                                admin_carry: <MdLocalShipping className="h-5 w-5" />,
+                                admin_return: <MdUndo className="h-5 w-5" />,
+                                exec_borrow_approval: <MdFactCheck className="h-5 w-5" />,
+                                exec_repair_approval: <MdBuild className="h-5 w-5" />,
+                                user_pending: <MdSchedule className="h-5 w-5" />,
+                                user_approved: <MdCheckCircle className="h-5 w-5" />,
+                                user_carry: <MdLocalShipping className="h-5 w-5" />,
+                                user_waiting_payment: <MdPayment className="h-5 w-5" />,
+                                user_overdue: <MdWarningAmber className="h-5 w-5" />,
+                                user_rejected: <MdErrorOutline className="h-5 w-5" />,
+                              };
+                              const statusConfig = {
+                                admin_pending: { label: 'รอจัดการ', color: 'blue', icon: iconMap.admin_pending },
+                                admin_carry: { label: 'ส่งมอบ', color: 'amber', icon: iconMap.admin_carry },
+                                admin_return: { label: 'รอคืน', color: 'purple', icon: iconMap.admin_return },
+                                exec_borrow_approval: { label: 'รออนุมัติยืม', color: 'red', icon: iconMap.exec_borrow_approval },
+                                exec_repair_approval: { label: 'รออนุมัติซ่อม', color: 'amber', icon: iconMap.exec_repair_approval },
+                                user_pending: { label: 'รออนุมัติ', color: 'blue', icon: iconMap.user_pending },
+                                user_approved: { label: 'อนุมัติแล้ว', color: 'green', icon: iconMap.user_approved },
+                                user_carry: { label: 'กำลังยืม', color: 'amber', icon: iconMap.user_carry },
+                                user_waiting_payment: { label: 'ค้างชำระ', color: 'rose', icon: iconMap.user_waiting_payment },
+                                user_overdue: { label: 'เกินกำหนด', color: 'purple', icon: iconMap.user_overdue },
+                                user_rejected: { label: 'ไม่อนุมัติ', color: 'red', icon: iconMap.user_rejected },
+                              }[item.type] || { label: 'แจ้งเตือน', color: 'gray', icon: <MdNotifications className="h-5 w-5" /> };
+                              
+                              const colorClasses = {
+                                blue: 'bg-blue-500 text-blue-500 bg-blue-50 border-blue-200',
+                                amber: 'bg-amber-500 text-amber-500 bg-amber-50 border-amber-200',
+                                purple: 'bg-purple-500 text-purple-500 bg-purple-50 border-purple-200',
+                                red: 'bg-red-500 text-red-500 bg-red-50 border-red-200',
+                                green: 'bg-green-500 text-green-500 bg-green-50 border-green-200',
+                                rose: 'bg-rose-500 text-rose-500 bg-rose-50 border-rose-200',
+                                gray: 'bg-gray-500 text-gray-500 bg-gray-50 border-gray-200',
+                              }[statusConfig.color];
+                              
+                              const [bgColor, textColor, lightBg, borderColor] = colorClasses.split(' ');
+
+                              return (
                                 <button
-                                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 flex items-start gap-3 cursor-pointer ${isRead ? 'text-gray-500' : 'text-gray-800'}`}
-                                  onMouseDown={(e)=>e.preventDefault()}
+                                  key={item.id}
+                                  className={`group relative w-full px-6 py-4 text-left transition-all duration-200 hover:bg-white hover:shadow-md hover:scale-[1.01] transform ${
+                                    isRead ? 'opacity-60 hover:opacity-80' : 'hover:opacity-100'
+                                  }`}
+                                  onMouseDown={(e) => e.preventDefault()}
                                   onClick={() => {
                                     setShowNotifMenu(false);
                                     const next = new Set(Array.from(readIds));
@@ -619,34 +704,82 @@ function Header({ userRole, changeRole }) {
                                     navigate(item.href);
                                   }}
                                 >
-                                  <div className="mt-0.5">{icon}</div>
-                                  <div className="flex-1">
-                                    <div className="font-medium leading-5 flex items-center gap-2 flex-wrap">
-                                      <span>{item.text}</span>
-                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge.cls}`}>{statusBadge.label}</span>
-                                      {!isRead && (
-                                        <span className="inline-block w-2 h-2 bg-red-500 rounded-full" title="ใหม่" aria-label="ใหม่"></span>
-                                      )}
+                                  {/* Unread indicator with animation */}
+                                  {!isRead && (
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500 transition-all duration-200 group-hover:w-1.5"></div>
+                                  )}
+                                  
+                                  <div className="flex items-start gap-4">
+                                    {/* Icon container with hover effect */}
+                                    <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${lightBg} ${textColor} transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg`}>
+                                      {statusConfig.icon}
                                     </div>
-                                    <div className="text-xs text-gray-500 mt-0.5">
-                                      {(() => {
-                                        const readAt = readAtMap[item.id];
-                                        if (readAt) {
-                                          const mins = Math.max(1, Math.round((nowTs - readAt) / 60000));
-                                          return `อ่านแล้ว ${mins} นาทีที่แล้ว`;
-                                        }
-                                        return 'ยังไม่ได้อ่าน';
-                                      })()}
+                                    
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1">
+                                          <p className={`text-sm font-medium ${isRead ? 'text-gray-600' : 'text-gray-900'} line-clamp-2`}>
+                                            {item.text}
+                                          </p>
+                                          <div className="mt-1 flex items-center gap-2">
+                                            <span className={`inline-flex items-center  px-2 py-1 text-xs font-medium ring-1 ring-inset rounded-full ${lightBg} ${textColor} ring-${statusConfig.color}-200 transition-all duration-200 group-hover:ring-2`}>
+                                              {statusConfig.label}
+                                            </span>
+                                            <span className="text-xs text-gray-500">
+                                              {(() => {
+                                                const readAt = readAtMap[item.id];
+                                                if (readAt) {
+                                                  const mins = Math.max(1, Math.round((nowTs - readAt) / 60000));
+                                                  if (mins < 60) return `${mins} นาทีที่แล้ว`;
+                                                  const hours = Math.floor(mins / 60);
+                                                  if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
+                                                  const days = Math.floor(hours / 24);
+                                                  return `${days} วันที่แล้ว`;
+                                                }
+                                                return 'ใหม่';
+                                              })()}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Arrow icon with animation */}
+                                        <MdChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-all duration-200 flex-shrink-0 group-hover:translate-x-1" />
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className="ml-auto flex items-center gap-2">
-                                    <span className="text-xs text-blue-600 font-medium">คลิกเพื่อดูรายละเอียด</span>
                                   </div>
                                 </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer with view all link */}
+                      {sortedVisibleItems.length > 0 && (
+                        <div className="border-t border-gray-100 bg-blue-700  px-6 py-3 ">
+
+                          <div className="flex justify-end">
+                          <button
+                            onClick={() => {
+                              // Do not close the menu when marking all as read
+                              // setShowNotifMenu(false);
+                              // Mark all as read
+                              const allIds = new Set(notifItems.map(i => i.id));
+                              setReadIds(allIds);
+                              try {
+                                const userStr = localStorage.getItem('user');
+                                const user = userStr ? JSON.parse(userStr) : null;
+                                const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`;
+                                localStorage.setItem(key, JSON.stringify(Array.from(allIds)));
+                              } catch {}
+                            }}
+                            className="text-sm font-medium text-white/80 hover:text-white transition-all duration-200 hover:underline"
+                          >
+                            ทำเครื่องหมายอ่านทั้งหมด
+                          </button>
+                        </div>
+                      </div>
                       )}
                     </div>
                   </div>
@@ -656,16 +789,16 @@ function Header({ userRole, changeRole }) {
               {/* Settings Button (role-based destination) */}
               <button
                 onClick={() => navigate(userRole === 'admin' ? '/system-settings' : '/edit_profile')}
-                className="md:flex items-center justify-center p-2 rounded-full hover:bg-blue-700 transition-colors"
+                className="md:flex items-center justify-center p-2 rounded-full hover:bg-blue-700 transition-all duration-200 group"
                 title={userRole === 'admin' ? 'ตั้งค่าระบบ' : 'ตั้งค่า'}
               >
-                <MdSettings className="h-5 w-5" />
+                <MdSettings className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
               </button>
 
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="md:flex items-center justify-center p-2 rounded-full hover:bg-blue-700 transition-colors"
+                className="md:flex items-center justify-center p-2 rounded-full hover:bg-blue-700 transition-all duration-200 group"
                 title="ออกจากระบบ"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
